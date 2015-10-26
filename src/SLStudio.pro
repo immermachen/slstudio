@@ -72,7 +72,8 @@ HEADERS  += SLStudio.h \
         tracker/CorrEstKdTreeFast.h \
         tracker/TrackerPCL.h \
         tracker/PoseFilter.h \
-        cvtools.h
+        cvtools.h \
+    camera/CameraVimba.h
 
 
 SOURCES += main.cpp \
@@ -121,7 +122,8 @@ SOURCES += main.cpp \
         tracker/TrackerNDT.cpp \
         tracker/CorrRejectOrgBoundFast.cpp \
         tracker/TrackerPCL.cpp \
-        tracker/PoseFilter.cpp
+        tracker/PoseFilter.cpp \
+    camera/CameraVimba.cpp
 
 INCLUDEPATH += camera/ projector/ codec/ triangulator/ calibrator/ tracker/
 
@@ -287,6 +289,18 @@ macx{
 
 
 # Compile with specific camera driver bindings
+#Vimba
+unix:!macx:exists(/opt/Vimba_1_3/VimbaCPP/Include/VimbaCPP.h) {
+    DEFINES += WITH_CAMERAVIMBA
+    INCLUDEPATH += /opt/Vimba_1_3/VimbaCPP/Include #\
+                   #/opt/Vimba_1_3/
+    LIBS += -L /opt/Vimba_1_3/VimbaCPP/DynamicLib/x86_64bit -lVimbaC -lVimbaCPP
+}
+contains(DEFINES, WITH_CAMERAIIDC) {
+    HEADERS += camera/CameraVimba.h
+    SOURCES += camera/CameraVimba.cpp
+}
+
 # libdc1394
 unix:!macx:exists(/usr/include/dc1394/dc1394.h) {
     DEFINES += WITH_CAMERAIIDC
