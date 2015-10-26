@@ -72,7 +72,8 @@ HEADERS  += SLStudio.h \
         tracker/CorrEstKdTreeFast.h \
         tracker/TrackerPCL.h \
         tracker/PoseFilter.h \
-        cvtools.h
+        cvtools.h \
+    camera/CameraVimba.h
 
 
 SOURCES += main.cpp \
@@ -121,7 +122,8 @@ SOURCES += main.cpp \
         tracker/TrackerNDT.cpp \
         tracker/CorrRejectOrgBoundFast.cpp \
         tracker/TrackerPCL.cpp \
-        tracker/PoseFilter.cpp
+        tracker/PoseFilter.cpp \
+    camera/CameraVimba.cpp
 
 INCLUDEPATH += camera/ projector/ codec/ triangulator/ calibrator/ tracker/
 
@@ -287,6 +289,27 @@ macx{
 
 
 # Compile with specific camera driver bindings
+#Vimba C++ API (libVimbaCPP.so)                        1.3.0*
+#Image Transform Library (libAVTImageTransform.so)     1.2.0*
+# Vimba Camera: /opt/Vimba_1_3/VimbaCPP/Include
+unix:!macx:exists(/opt/Vimba_1_3/VimbaCPP/Include/VimbaCPP.h){
+    INCLUDEPATH += /opt/Vimba_1_3/VimbaCPP/Include \
+                   /opt/Vimba_1_3/VimbaC/Include  \
+                   /opt/Vimba_1_3/VimbaC \
+                   /opt/Vimba_1_3/VimbaCPP \
+                   /opt/Vimba_1_3
+#                   /opt/Vimba_1_3/AVTImageTransform/Include
+    DEFINES += WITH_CAMERAVIMBA
+    #LIBS += -lVimbaCPP
+    LIBS += /opt/Vimba_1_3/VimbaCPP/DynamicLib/x86_64bit/libVimbaCPP.so \
+            /opt/Vimba_1_3/VimbaC/DynamicLib/x86_64bit/libVimbaC.so
+#            /opt/Vimba_1_3/AVTImageTransform/DynamicLib/x86_64bit/libAVTImageTransform.so
+}
+contains(DEFINES, WITH_CAMERAXIMEA) {
+    HEADERS += camera/CameraVimba.h
+    SOURCES += camera/CameraVimba.cpp
+}
+
 # libdc1394
 unix:!macx:exists(/usr/include/dc1394/dc1394.h) {
     DEFINES += WITH_CAMERAIIDC

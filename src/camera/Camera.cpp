@@ -19,6 +19,7 @@ std::vector< std::vector<CameraInfo> > Camera::GetInterfaceCameraList(){
 
 #ifdef WITH_CAMERAIIDC
     std::vector<CameraInfo> iidccameras = CameraIIDC::getCameraList();
+    std::cout<<"GetInterfaceCameraList-->WITH_CAMERAIIDC" << iidccameras.size()<<std::endl;
     ret.push_back(iidccameras);
 #endif
 #ifdef WITH_CAMERAXIMEA
