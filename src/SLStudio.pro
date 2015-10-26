@@ -372,7 +372,7 @@ unix:!macx{
     SOURCES += projector/LC4500API/hid.Libusb.c
     CONFIG += link_pkgconfig
     #PKGCONFIG += libudev
-    PKGCONFIG += libusb-1.0
+    PKGCONFIG += libusb-1.0 #Yang: sudo apt-get install libusb-1.0-0-dev
 }
 win32{
     SOURCES += projector/LC4500API/hid.Win.c
