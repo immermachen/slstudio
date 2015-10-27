@@ -1,5 +1,8 @@
 #include "Camera.h"
 
+#ifdef WITH_CAMERAVIMBA
+    #include "CameraVimba.h"
+#endif
 #ifdef WITH_CAMERAIIDC
     #include "CameraIIDC.h"
 #endif
@@ -17,6 +20,11 @@
 std::vector< std::vector<CameraInfo> > Camera::GetInterfaceCameraList(){
     std::vector< std::vector<CameraInfo> > ret;
 
+#ifdef WITH_CAMERAVIMBA
+    std::vector<CameraInfo> vimbacameras = CameraVimba::getCameraList();
+    std::cout<<"GetInterfaceCameraList-->WITH_CAMERAVIMBA" << vimbacameras.size()<<std::endl;
+    ret.push_back(vimbacameras);
+#endif
 #ifdef WITH_CAMERAIIDC
     std::vector<CameraInfo> iidccameras = CameraIIDC::getCameraList();
     std::cout<<"GetInterfaceCameraList-->WITH_CAMERAIIDC" << iidccameras.size()<<std::endl;
@@ -42,6 +50,11 @@ std::vector< std::vector<CameraInfo> > Camera::GetInterfaceCameraList(){
 Camera* Camera::NewCamera(unsigned int interfaceNum, unsigned int camNum, CameraTriggerMode triggerMode){
 
     interfaceNum += 1;
+#ifdef WITH_CAMERAVIMBA
+    interfaceNum -= 1;
+    if(interfaceNum == 0)
+        return new CameraVimba(camNum, triggerMode);
+#endif
 
 #ifdef WITH_CAMERAIIDC
     interfaceNum -= 1;
