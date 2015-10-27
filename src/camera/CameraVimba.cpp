@@ -66,12 +66,12 @@ CameraVimba::CameraVimba(unsigned int camNum, CameraTriggerMode triggerMode) : C
     err = vimbaSystem.GetCameras( cameras );            // Fetch all cameras known to Vimba
     if( VmbErrorSuccess == err ){
         unsigned int numCameras = cameras.size();
-        std::cout << "Cameras found: " << cameras.size() <<"\n\n";
         camera = cameras[camNum-1];
-        //std::string cameraID;
-        //camera->GetID(cameraID);
+        std::string cameraID;
+        camera->GetID(cameraID);
         //vimbaSystem.OpenCameraByID(cameraID.c_str(), triggerMode, camera);
         camera->Open(VmbAccessModeFull);
+        std::cout << "Cameras open: " << cameraID <<"\n\n";
     }
     else
     {
