@@ -1,8 +1,9 @@
 #include "CameraVimba.h"
 #include <stdlib.h>  //for atoi
 
+using namespace AVT::VmbAPI;
 std::vector<CameraInfo> CameraVimba::getCameraList(){
-    using namespace AVT::VmbAPI;
+
     std::vector<CameraInfo> ret;
 
     VimbaSystem&    sys = VimbaSystem::GetInstance();  // Get a reference to the VimbaSystem singleton
@@ -99,14 +100,39 @@ void CameraVimba::setCameraSettings(CameraSettings settings){
 void CameraVimba::startCapture(){
 
     if(triggerMode == triggerModeHardware){
+        // Configure for hardware trigger
 
     } else if(triggerMode == triggerModeSoftware) {
-
+        // Configure for software trigger (for getSingleFrame())
 
     }
 
+    IFrameObserverPtr pObserver( new MyFrameObserver() ); //TODO
+    FeaturePtr pFeature;
+    VmbUint64_t nPLS;
+    camera->GetFeatureByName("PayloadSize", pFeature);
+    pFeature->GetValue(nPLS);
+    FramePtr frame;
+    *frame = new Frame(nPLS);
+    frame->RegisterObserver(pObserver);
+    camera->AnnounceFrame(*frame);
+
+    // Start aquistion
+    camera->StartCapture();
+    camera->QueueFrame(*frame);
+
+    camera->GetFeatureByName("AcquisitionStart",pFeature);
+    pFeature->RunCommand();
+
     capturing = true;
 }
+
+class MyFrameObserer: public IFrameObserver{
+public:
+    MyFrameObserer(){
+
+    }
+};
 
 void CameraVimba::stopCapture(){
     camera->EndCapture();
@@ -114,18 +140,39 @@ void CameraVimba::stopCapture(){
 }
 
 CameraFrame CameraVimba::getFrame(){
-
-    CameraFrame frame;
-
-    if (!capturing) {
-        //cerr << "ERROR: Not capturing on camera. Call startCapture() before lockFrame()." << endl;
-        return frame;
-    }
-
+    // Create single image buffer
+    XI_IMG image;
+    image.size = SIZE_XI_IMG_V2; // must be initialized
+    image.bp = NULL;
+    image.bp_size = 0;
 
     if(triggerMode == triggerModeSoftware){
+        // Fire software trigger
+        stat = xiSetParamInt(camera, XI_PRM_TRG_SOFTWARE, 0);
+        HandleResult(stat,"xiSetParam (XI_PRM_TRG_SOFTWARE)");
 
+        // Retrieve image from camera
+        stat = xiGetImage(camera, 1000, &image);
+        HandleResult(stat,"xiGetImage");
+    } else {
+
+        // Retrieve image from camera
+        stat = xiGetImage(camera, 50, &image);
+        HandleResult(stat,"xiGetImage");
     }
+
+    // Empty buffer
+    while(xiGetImage(camera, 1, &image) == XI_OK){
+        std::cerr << "drop!" << std::endl;
+        continue;
+    }
+
+    CameraFrame frame;
+    frame.height = image.height;
+    frame.width = image.width;
+    frame.memory = (unsigned char*)image.bp;
+    frame.timeStamp = image.tsUSec;
+    frame.sizeBytes = image.bp_size;
 
     return frame;
 }
@@ -142,12 +189,20 @@ size_t CameraVimba::getFrameSizeBytes(){
 }
 
 size_t CameraVimba::getFrameWidth(){
-    return 0;
+    AVT::VmbAPI::FramePtr frame;
+
+    VmbUint32_t width;
+    frame->GetWidth(width);
+    return width;
 }
 
 
 size_t CameraVimba::getFrameHeight(){
-    return 0;
+    AVT::VmbAPI::FramePtr frame;
+
+    VmbUint32_t height;
+    frame->GetHeight(height);
+    return height;
 }
 
 CameraVimba::~CameraVimba(){
