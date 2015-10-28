@@ -291,8 +291,8 @@ macx{
 #Vimba C++ API (libVimbaCPP.so)                        1.3.0*
 #Image Transform Library (libAVTImageTransform.so)     1.2.0*
 # Vimba Camera: /opt/Vimba_1_3/VimbaCPP/Include
-#                   /opt/Vimba_1_3/AVTImageTransform/Include
-#            /opt/Vimba_1_3/AVTImageTransform/DynamicLib/x86_64bit/libAVTImageTransform.so
+#               /opt/Vimba_1_3/AVTImageTransform/Include
+#               /opt/Vimba_1_3/AVTImageTransform/DynamicLib/x86_64bit/libAVTImageTransform.so
 unix:!macx:exists(/opt/Vimba_1_3/VimbaCPP/Include/VimbaCPP.h){
     DEFINES += WITH_CAMERAVIMBA
     INCLUDEPATH += /opt/Vimba_1_3/VimbaCPP/Include \
