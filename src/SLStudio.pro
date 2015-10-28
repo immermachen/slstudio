@@ -131,7 +131,7 @@ RESOURCES += \
 # Linux
 unix:!macx {
     CONFIG += link_pkgconfig
-    # Link VTK and Boost (no pkg-config)
+    # Link VTK and Boost (no pkg-config) Yang
     INCLUDEPATH += /usr/include/vtk-5.8/
     LIBS += -lQVTK -lvtkCommon -lvtkFiltering -lvtkRendering -lvtkIO -lvtkGraphics -lvtkHybrid
     # PCL pkg-config workaround
