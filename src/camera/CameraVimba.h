@@ -2,14 +2,14 @@
 #define CAMERAVIMBA_H
 
 #include "Camera.h"
+#include "vimbaframeobserver.h"
 #include <VimbaCPP.h>
 #include <VimbaCPP/Examples/Common/ErrorCodeToMessage.h>
 #include <VimbaCPP/Examples/Common/StreamSystemInfo.h>
-
+#include <QObject>
 
 class CameraVimba : public Camera{
 public:
-    AVT::VmbAPI::VimbaSystem& vimbaSystem = AVT::VmbAPI::VimbaSystem::GetInstance();  // Get a reference to the VimbaSystem singleton
     // Static methods
     static std::vector<CameraInfo> getCameraList();
     // Interface function
@@ -23,9 +23,25 @@ public:
     size_t getFrameWidth();
     size_t getFrameHeight();
     ~CameraVimba();
-private:
-    AVT::VmbAPI::CameraPtr camera;
 
+private: 
+    bool Init(unsigned int camNum);
+
+    std::vector<std::string> listOptions(AVT::VmbAPI::FeaturePtr pFeature);
+    void setFormat(QString formatstring);
+
+    std::vector<std::string> listPixelFormats();
+
+    AVT::VmbAPI::VimbaSystem & system;
+    AVT::VmbAPI::CameraPtr     pCamera;
+    VimbaFrameObserver* frameWatcher;
+    int bufCount;
+    VmbInt64_t height,width;
+    VmbInt64_t maxHeight,maxWidth;
+    double frameRate,exposure;
+    VmbInt64_t camFreq,initialStamp;
+    int timeOffset;
+    QString format;
 };
 
 #endif // CAMERAVIMBA_H

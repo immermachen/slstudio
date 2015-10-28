@@ -302,6 +302,8 @@ unix:!macx:exists(/opt/Vimba_1_3/VimbaCPP/Include/VimbaCPP.h){
 contains(DEFINES, WITH_CAMERAVIMBA) {
     HEADERS += camera/CameraVimba.h
     SOURCES += camera/CameraVimba.cpp
+    HEADERS += camera/vimbaframeobserver.h
+    SOURCES += camera/vimbaframeobserver.cpp
 }
 
 # libdc1394
