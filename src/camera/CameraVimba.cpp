@@ -218,7 +218,7 @@ bool CameraVimba::Init(unsigned int camNum){
                         frameWatcher=new VimbaFrameObserver( pCamera );
 
                     } else {
-                        // camera did not open successfully
+                        qDebug()<<"camera did not open successfully";
                         return false;
                     }
                 }
