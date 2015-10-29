@@ -8,6 +8,7 @@
 #include <VimbaCPP/Examples/Common/StreamSystemInfo.h>
 #include <QObject>
 #include <stdio.h>
+#include <Bitmap.h>
 
 class CameraVimba : public Camera{
 public:

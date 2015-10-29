@@ -12,8 +12,11 @@
 #include "CameraVimba.h"
 #include <stdlib.h>  //for atoi
 #include <qinputdialog.h>
+#include <QDateTime>
+
 
 using namespace AVT::VmbAPI;
+
 std::vector<CameraInfo> CameraVimba::getCameraList(){
 
     std::vector<CameraInfo> ret;
@@ -132,7 +135,7 @@ bool CameraVimba::Init(unsigned int camNum){
                         if (err==VmbErrorSuccess) {
                             err=pFeature->GetValue(camFreq);
                             if (err==VmbErrorSuccess) {
-//                                qDebug()<<"Camera freq is "<<(1.0*camFreq);
+                                qDebug()<<"Camera freq is "<<(1.0*camFreq);
                             } else {
                                 qDebug()<<"Could not extract freq: "<<err;
                             }
@@ -360,16 +363,97 @@ CameraFrame CameraVimba::getFrame(){
 
     //AVT::VmbAPI::FramePtr pFrame=frameWatcher->GetFrame();
 
-    err = m_pCamera->AcquireSingleImage( pFrame, 5000 );//timeout=5000:The time to wait until the frame got filled
+    err = m_pCamera->AcquireSingleImage( pFrame, 500 );//timeout=5000:The time to wait until the frame got filled
 
-    if(pFrame == NULL)
-    {
-        qDebug()<<"getFrame --> NO Frame!  ";
+    if (err!=VmbErrorSuccess) {
+        qDebug()<< "AcquireSingleImage err="<< ErrorCodeToMessage(err).c_str();
         return frame;
     }
 
     qDebug()<<"getFrame --> GetFrame() works!  ";
 
+    //---------------------------DEBUG-----------------------------------
+    const char *    pFileName   = NULL;             // The filename for the bitmap to save
+
+    pFileName = "SynchronousGrab.bmp";
+   if ( VmbErrorSuccess == err )
+        {
+            VmbPixelFormatType ePixelFormat = VmbPixelFormatMono8;
+            err = pFrame->GetPixelFormat( ePixelFormat );
+            if ( VmbErrorSuccess == err )
+            {
+                if(     ( VmbPixelFormatMono8 != ePixelFormat )
+                    &&  ( VmbPixelFormatRgb8 != ePixelFormat ))
+                {
+                    err = VmbErrorInvalidValue;
+                }
+                else
+                {
+                    VmbUint32_t nImageSize = 0;
+                    err = pFrame->GetImageSize( nImageSize );
+                    if ( VmbErrorSuccess == err )
+                    {
+                        VmbUint32_t nWidth = 0;
+                        err = pFrame->GetWidth( nWidth );
+                        if ( VmbErrorSuccess == err )
+                        {
+                            VmbUint32_t nHeight = 0;
+                            err = pFrame->GetHeight( nHeight );
+                            if ( VmbErrorSuccess == err )
+                            {
+                                VmbUchar_t *pImage = NULL;
+                                err = pFrame->GetImage( pImage );
+                                if ( VmbErrorSuccess == err )
+                                {
+                                    AVTBitmap bitmap;
+
+                                    if( VmbPixelFormatRgb8 == ePixelFormat )
+                                    {
+                                        bitmap.colorCode = ColorCodeRGB24;
+                                    }
+                                    else
+                                    {
+                                        bitmap.colorCode = ColorCodeMono8;
+                                    }
+
+                                    bitmap.bufferSize = nImageSize;
+                                    bitmap.width = nWidth;
+                                    bitmap.height = nHeight;
+
+                                    // Create the bitmap
+                                    if ( 0 == AVTCreateBitmap( &bitmap, pImage ))
+                                    {
+                                        std::cout<<"Could not create bitmap.\n";
+                                        err = VmbErrorResources;
+                                    }
+                                    else
+                                    {
+                                        // Save the bitmap
+                                        if ( 0 == AVTWriteBitmapToFile( &bitmap,  pFileName) )
+                                        {
+                                            std::cout<<"Could not write bitmap to file.\n";
+                                            err = VmbErrorOther;
+                                        }
+                                        else
+                                        {
+                                            std::cout<<"Bitmap successfully written to file \""<<pFileName<<"\"\n" ;
+                                            // Release the bitmap's buffer
+                                            if ( 0 == AVTReleaseBitmap( &bitmap ))
+                                            {
+                                                std::cout<<"Could not release the bitmap.\n";
+                                                err = VmbErrorInternalFault;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+//Debug---------------------------------------------------end
 
     VmbUint32_t width,height,size;
     VmbPixelFormatType pixFormat;
@@ -382,13 +466,15 @@ CameraFrame CameraVimba::getFrame(){
 
     VmbUint64_t stamp;
     err=pFrame->GetTimestamp(stamp);
-//    if (initialStamp==0) {
-//        initialStamp=stamp;
-//        qint64 currMsec=QDateTime::currentMSecsSinceEpoch();
-//        timeOffset=currMsec;
-//    }
-//    int timeStamp=timeOffset+1000.0*(stamp-initialStamp)/(1.0*camFreq);
-//    qDebug()<<"TODO????: Time Stamp in ms: "<<(timeStamp-timeOffset);
+
+    if (initialStamp==0) {
+        initialStamp=stamp;
+        qint64 currMsec=QDateTime::currentMSecsSinceEpoch();
+
+        timeOffset=currMsec;
+    }
+    int timeStamp=timeOffset+1000.0*(stamp-initialStamp)/(1.0*camFreq);
+    qDebug()<<"TODO????: Time Stamp in ms: "<<(timeStamp-timeOffset);
 
     //m_pCamera->QueueFrame( pFrame ); // requeue here. Not sure what will happen if buffer too small!
 
@@ -398,7 +484,7 @@ CameraFrame CameraVimba::getFrame(){
     frame.timeStamp = stamp;
     frame.sizeBytes = size;
 
-    qDebug()<<"getFrame --> GetFrame-->End";
+    qDebug()<<"getFrame --> GetFrame-->End. size="<< size << ", Height=" << height << ", width=" << width << ", Format=" << pixFormat;
     return frame;
 }
 

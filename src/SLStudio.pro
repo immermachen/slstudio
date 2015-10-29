@@ -304,6 +304,8 @@ contains(DEFINES, WITH_CAMERAVIMBA) {
     SOURCES += camera/CameraVimba.cpp
     HEADERS += camera/vimbaframeobserver.h
     SOURCES += camera/vimbaframeobserver.cpp
+    HEADERS += camera/Bitmap.h
+    SOURCES += camera/Bitmap.cpp
 }
 
 # libdc1394
