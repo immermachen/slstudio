@@ -64,19 +64,19 @@ std::vector<CameraInfo> CameraVimba::getCameraList(){
 }
 
 CameraVimba::CameraVimba(unsigned int camNum, CameraTriggerMode triggerMode) :
-    system ( AVT::VmbAPI::VimbaSystem::GetInstance() ), bufCount(50), initialStamp(0), Camera(triggerMode){
+    m_system ( AVT::VmbAPI::VimbaSystem::GetInstance() ), bufCount(50), initialStamp(0), Camera(triggerMode){
 
     Init(camNum);
 }
 
 bool CameraVimba::Init(unsigned int camNum){
-    VmbErrorType    err=system.Startup();
+    VmbErrorType    err=m_system.Startup();
     CameraPtrVector cameras;
 
     if( VmbErrorSuccess == err )
     {
         // now find all cameras
-        err = system.GetCameras( cameras );            // Fetch all cameras known to Vimba
+        err = m_system.GetCameras( cameras );            // Fetch all cameras known to Vimba
         if( VmbErrorSuccess == err ) {
 
             if (cameras.size()>0) {
@@ -91,15 +91,16 @@ bool CameraVimba::Init(unsigned int camNum){
                 }
 
                 // now open
-                pCamera=cameras[camNum];
+                m_pCamera=cameras[camNum];
                 std::string camID;
                 std::string namestr;
-                err=pCamera->GetName(namestr);
-                err=pCamera->GetID(camID);
+                err=m_pCamera->GetName(namestr);
+                err=m_pCamera->GetID(camID);
                 if( VmbErrorSuccess == err )    {
                     qDebug()<<"Opening camera "<<QString::fromStdString(namestr);
 
-                    err=pCamera->Open(VmbAccessModeFull);
+                    err=m_pCamera->Open(VmbAccessModeFull);
+
                     if (err==VmbErrorSuccess) {
                         //camera successfully opened. Now do some camera initialisation steps
                         qDebug()<<"camera successfully opened";
@@ -107,7 +108,7 @@ bool CameraVimba::Init(unsigned int camNum){
                         // Set the GeV packet size to the highest possible value
                         // (In this example we do not test whether this cam actually is a GigE cam)
                         FeaturePtr pCommandFeature;
-                        if ( VmbErrorSuccess == pCamera->GetFeatureByName( "GVSPAdjustPacketSize", pCommandFeature ))
+                        if ( VmbErrorSuccess == m_pCamera->GetFeatureByName( "GVSPAdjustPacketSize", pCommandFeature ))
                         {
                             if ( VmbErrorSuccess == pCommandFeature->RunCommand() )
                             {
@@ -127,7 +128,7 @@ bool CameraVimba::Init(unsigned int camNum){
 
 
                         // get Camera timestamp frequency
-                        err=pCamera->GetFeatureByName("GevTimestampTickFrequency",pFeature);
+                        err=m_pCamera->GetFeatureByName("GevTimestampTickFrequency",pFeature);
                         if (err==VmbErrorSuccess) {
                             err=pFeature->GetValue(camFreq);
                             if (err==VmbErrorSuccess) {
@@ -151,42 +152,42 @@ bool CameraVimba::Init(unsigned int camNum){
 
 
                         // Set acquisition mode to continuous
-                        err=pCamera->GetFeatureByName("AcquisitionMode",pFeature);
+                        err=m_pCamera->GetFeatureByName("AcquisitionMode",pFeature);
                         if (err==VmbErrorSuccess) {
                             pFeature->SetValue("Continuous"); // this should be continuous
                         }
 
                         // set/get maximum height and width of current camera
-                        err=pCamera->GetFeatureByName("WidthMax",pFeature);
+                        err=m_pCamera->GetFeatureByName("WidthMax",pFeature);
                         if (err==VmbErrorSuccess) {
                             pFeature->GetValue(maxWidth);
                         }
 
-                        err=pCamera->GetFeatureByName("Width",pFeature);
+                        err=m_pCamera->GetFeatureByName("Width",pFeature);
                         if (err==VmbErrorSuccess) {
                             pFeature->SetValue(maxWidth);
                             pFeature->GetValue(width);
                         }
 
-                        err=pCamera->GetFeatureByName("HeightMax",pFeature);
+                        err=m_pCamera->GetFeatureByName("HeightMax",pFeature);
                         if (err==VmbErrorSuccess) {
                             pFeature->GetValue(maxHeight);
                         }
 
-                        err=pCamera->GetFeatureByName("Height",pFeature);
+                        err=m_pCamera->GetFeatureByName("Height",pFeature);
                         if (err==VmbErrorSuccess) {
                             pFeature->SetValue(maxHeight);
                             pFeature->GetValue(height);
                         }
 
                         // make sure shutter time is manual
-                        err=pCamera->GetFeatureByName("ExposureAuto",pFeature);
+                        err=m_pCamera->GetFeatureByName("ExposureAuto",pFeature);
                         if (err==VmbErrorSuccess) {
                             pFeature->SetValue("Off"); // this should be manual exposure setting
                         }
 
                         // Set up 8bit monochrome color depth
-                        err=pCamera->GetFeatureByName("PixelFormat",pFeature);
+                        err=m_pCamera->GetFeatureByName("PixelFormat",pFeature);
                         if (err==VmbErrorSuccess) {
                             pFeature->SetValue(VmbPixelFormatMono8);//"Mono8",VmbPixelFormatMono8
                         }
@@ -196,7 +197,7 @@ bool CameraVimba::Init(unsigned int camNum){
                         }
 
                         // Disable gamma mode
-                        err=pCamera->GetFeatureByName("Gamma",pFeature);
+                        err=m_pCamera->GetFeatureByName("Gamma",pFeature);
                         if (err==VmbErrorSuccess) {
                             pFeature->SetValue("OFF");
                         }
@@ -252,8 +253,6 @@ CameraSettings CameraVimba::getCameraSettings(){
     return settings;
 }
 
-
-
 void CameraVimba::setCameraSettings(CameraSettings settings){
 
 }
@@ -262,80 +261,87 @@ void CameraVimba::setCameraSettings(CameraSettings settings){
 void CameraVimba::startCapture(){
     std::cout << "startCapture --> "<<std::endl;
 
+    VmbErrorType err;
+    FeaturePtr pFeature;
+
     if(triggerMode == triggerModeHardware){
         // Configure for hardware trigger
 
-    } else if(triggerMode == triggerModeSoftware) {
+    }
+    else if(triggerMode == triggerModeSoftware)
+    {
         // Configure for software trigger (for getSingleFrame())
         // Set Trigger source to fixedRate or Software or Freerun[default   ]
-        err=pCamera->GetFeatureByName("TriggerSource",pFeature);
+        err=m_pCamera->GetFeatureByName("TriggerSource",pFeature);
         if (err==VmbErrorSuccess) {
-            pFeature->SetValue("Software");
-        }
-    }
-
-    // construct the frame observer to the camera
-    frameWatcher=new VimbaFrameObserver( pCamera );
-    qDebug()<<"camera successfully opened --> VimbaFrameObserver";
-
-    VmbErrorType err;
-    IFrameObserverPtr pObserver( frameWatcher ); //TODO
-
-    FramePtrVector frames ( 1);
-    FeaturePtr pFeature;
-    VmbInt64_t nPLS;
-
-    err = pCamera->GetFeatureByName ( "PayloadSize", pFeature );
-    err = pFeature->GetValue( nPLS );
-    if (err==VmbErrorSuccess) {
-        qDebug()<< "startCapture --> PayloadSize Work, nPLS= " << nPLS;
-    }
-
-    for(FramePtrVector::iterator iter = frames.begin (); frames.end () != iter; ++iter ){
-        (*iter).reset( new Frame ( nPLS ) );
-
-
-        err = (*iter)->RegisterObserver ( pObserver );
-
-        if (err==VmbErrorSuccess) {
-            qDebug()<< "startCapture --> RegisterObserver Work! ";
+            //pFeature->SetValue("Software");
         }
 
-        err = pCamera->AnnounceFrame( *iter );
 
-        if (err==VmbErrorSuccess) {
-            qDebug()<< "startCapture --> AnnounceFrame  Work! ";
-        }
-    }
+//    // construct the frame observer to the camera
+//    frameWatcher=new VimbaFrameObserver( m_pCamera );
+//    qDebug()<<"camera successfully opened --> VimbaFrameObserver";
 
-    qDebug()<<"startCapture --> RegisterObserver";
+//
+//    IFrameObserverPtr pObserver( frameWatcher ); //TODO
 
-    // Start aquistion
-    //err = pCamera->StartCapture();
-    err = pCamera->StartContinuousImageAcquisition(3,pObserver);
+//    FramePtrVector frames ( 1);
+//
+//    VmbInt64_t nPLS;
 
-    if (err==VmbErrorSuccess) {
-        qDebug()<< "StartCapture -->StartCapture   Work! ";
-    }
+//    err = m_pCamera->GetFeatureByName ( "PayloadSize", pFeature );
+//    err = pFeature->GetValue( nPLS );
+//    if (err==VmbErrorSuccess) {
+//        qDebug()<< "startCapture --> PayloadSize Work, nPLS= " << nPLS;
+//    }
 
-    for(FramePtrVector::iterator iter = frames.begin (); frames.end () != iter; ++iter ){
-        err = pCamera->QueueFrame( *iter );
-        if (err==VmbErrorSuccess) {
-            qDebug()<< "StartCapture -->QueueFrame   Work! ";
-        }else
-        {
-            qDebug()<< "StartCapture -->QueueFrame not  Work: err= "<< err;
-        }
-    }
+//    for(FramePtrVector::iterator iter = frames.begin (); frames.end () != iter; ++iter ){
+//        (*iter).reset( new Frame ( nPLS ) );
 
-    pCamera->GetFeatureByName("AcquisitionStart",pFeature); //AcquisitionStop
-    err = pFeature->RunCommand();
-    if (err==VmbErrorSuccess) {
-        qDebug()<< "AcquisitionStart --> RunCommand  Work! ";
-    }else
-    {
-        qDebug()<< "AcquisitionStart -->RunCommand not  Work: err= "<< err;
-    }
+
+//        err = (*iter)->RegisterObserver ( pObserver );
+
+//        if (err==VmbErrorSuccess) {
+//            qDebug()<< "startCapture --> RegisterObserver Work! ";
+//        }
+
+//        err = m_pCamera->AnnounceFrame( *iter );
+
+//        if (err==VmbErrorSuccess) {
+//            qDebug()<< "startCapture --> AnnounceFrame  Work! ";
+//        }
+//    }
+
+//    qDebug()<<"startCapture --> RegisterObserver";
+
+//    // Start aquistion
+//    //err = m_pCamera->StartCapture();
+//    //err = m_pCamera->StartContinuousImageAcquisition(3,pObserver);
+//    err = AVT::VmbAPI::Camera::StartCapture();
+
+//    if (err==VmbErrorSuccess) {
+//        qDebug()<< "StartCapture -->StartCapture   Work! ";
+//    }
+
+//    for(FramePtrVector::iterator iter = frames.begin (); frames.end () != iter; ++iter ){
+//        err = m_pCamera->QueueFrame( *iter );
+//        if (err==VmbErrorSuccess) {
+//            qDebug()<< "StartCapture -->QueueFrame   Work! ";
+//        }else
+//        {
+//            qDebug()<< "StartCapture -->QueueFrame not  Work: err= "<< err;
+//        }
+//    }
+
+//    m_pCamera->GetFeatureByName("AcquisitionStart",pFeature); //AcquisitionStop
+//    err = pFeature->RunCommand();
+//    if (err==VmbErrorSuccess) {
+//        qDebug()<< "AcquisitionStart --> RunCommand  Work! ";
+//    }else
+//    {
+//        qDebug()<< "AcquisitionStart -->RunCommand not  Work: err= "<< err;
+//    }
+}
 
 
     qDebug()<<"startCapture --> RunCommand -->AcquisitionStart ";
@@ -349,8 +355,12 @@ CameraFrame CameraVimba::getFrame(){
     qDebug()<<"getFrame -->  ";
 
     CameraFrame frame;
+    FramePtr pFrame;
+    VmbErrorType err;
 
-    AVT::VmbAPI::FramePtr pFrame=frameWatcher->GetFrame();
+    //AVT::VmbAPI::FramePtr pFrame=frameWatcher->GetFrame();
+
+    err = m_pCamera->AcquireSingleImage( pFrame, 5000 );//timeout=5000:The time to wait until the frame got filled
 
     if(pFrame == NULL)
     {
@@ -360,7 +370,7 @@ CameraFrame CameraVimba::getFrame(){
 
     qDebug()<<"getFrame --> GetFrame() works!  ";
 
-    VmbErrorType err;
+
     VmbUint32_t width,height,size;
     VmbPixelFormatType pixFormat;
     VmbUchar_t* image;
@@ -380,7 +390,7 @@ CameraFrame CameraVimba::getFrame(){
 //    int timeStamp=timeOffset+1000.0*(stamp-initialStamp)/(1.0*camFreq);
 //    qDebug()<<"TODO????: Time Stamp in ms: "<<(timeStamp-timeOffset);
 
-    pCamera->QueueFrame( pFrame ); // requeue here. Not sure what will happen if buffer too small!
+    //m_pCamera->QueueFrame( pFrame ); // requeue here. Not sure what will happen if buffer too small!
 
     frame.height = height;
     frame.width = width;
@@ -406,9 +416,10 @@ size_t CameraVimba::getFrameSizeBytes(){
 
 void CameraVimba::stopCapture(){
     FeaturePtr pFeature;
-    pCamera->GetFeatureByName("AcquisitionStop",pFeature); //AcquisitionStop
+    m_pCamera->GetFeatureByName("AcquisitionStop",pFeature); //AcquisitionStop
     pFeature->RunCommand();
-    pCamera->EndCapture();
+    m_pCamera->EndCapture();
+
     capturing = false;
 }
 
@@ -430,11 +441,11 @@ size_t CameraVimba::getFrameHeight(){
 }
 
 CameraVimba::~CameraVimba(){
-    VmbErrorType err=pCamera->Close();
+    VmbErrorType err=m_pCamera->Close();
     if (err!=VmbErrorSuccess) {
         qDebug()<<"Problem closing the camera";
     }
-    err=system.Shutdown();
+    err=m_system.Shutdown();
     if (err!=VmbErrorSuccess) {
         qDebug()<<"Problem shutting down Vimba";
     }
@@ -443,7 +454,7 @@ CameraVimba::~CameraVimba(){
 std::vector<std::string> CameraVimba::listPixelFormats() {
     FeaturePtr pFeature;
     VmbErrorType err;
-    err = pCamera->GetFeatureByName( "PixelFormat", pFeature );
+    err = m_pCamera->GetFeatureByName( "PixelFormat", pFeature );
     if ( VmbErrorSuccess == err ) {
         return listOptions(pFeature);
     } else {
@@ -472,7 +483,7 @@ void CameraVimba::setFormat(QString formatstring) {
 
     // Check/set pixel format
     // Set pixel format. For the sake of simplicity we only support Mono and BGR in this example.
-    err = pCamera->GetFeatureByName( "PixelFormat", pFeature );
+    err = m_pCamera->GetFeatureByName( "PixelFormat", pFeature );
     if ( VmbErrorSuccess == err )
     {
         if (format=="MONO8") {
@@ -496,4 +507,10 @@ void CameraVimba::setFormat(QString formatstring) {
 //        qDebug()<<"Working in "<<QString::fromStdString(form)<<" mode";
 //                                qDebug()<<"Will work in Mono8 mode";
     }
+}
+
+// Translates Vimba error codes to readable error messages
+std::string CameraVimba::ErrorCodeToMessage( VmbErrorType eErr ) const
+{
+    return AVT::VmbAPI::Examples::ErrorCodeToMessage( eErr );
 }

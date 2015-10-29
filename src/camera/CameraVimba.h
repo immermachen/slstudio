@@ -23,6 +23,7 @@ public:
     size_t getFrameSizeBytes();
     size_t getFrameWidth();
     size_t getFrameHeight();
+    std::string     ErrorCodeToMessage( VmbErrorType eErr ) const ;
     ~CameraVimba();
 
 private: 
@@ -33,8 +34,8 @@ private:
 
     std::vector<std::string> listPixelFormats();
 
-    AVT::VmbAPI::VimbaSystem & system;
-    AVT::VmbAPI::CameraPtr     pCamera;
+    AVT::VmbAPI::VimbaSystem & m_system;
+    AVT::VmbAPI::CameraPtr     m_pCamera;
     VimbaFrameObserver* frameWatcher;
     int bufCount;
     VmbInt64_t height,width;
