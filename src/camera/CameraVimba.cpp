@@ -1,3 +1,14 @@
+/*****************************************************************************
+**             Yang: some notation
+**  Frames contain image meta-data as well as references to the data that were sent by the camera (image
+**  and ancillary data). For use in Vimba, they must be created by the application and then be queued at the
+**  corresponding camera. When an image was received, the next available frame is filled and handed over to
+**  the application through a dedicated notification. After having processed the image data, the application
+**  should return the frame to the API by re-enqueuing it at the corresponding camera.
+
+******************************************************************************/
+
+
 #include "CameraVimba.h"
 #include <stdlib.h>  //for atoi
 #include <qinputdialog.h>
@@ -114,11 +125,6 @@ bool CameraVimba::Init(unsigned int camNum){
                         // get/set some features
                         FeaturePtr pFeature;
 
-                        // Set Trigger source to fixedRate
-                        err=pCamera->GetFeatureByName("TriggerSource",pFeature);
-                        if (err==VmbErrorSuccess) {
-                            pFeature->SetValue("FixedRate");
-                        }
 
                         // get Camera timestamp frequency
                         err=pCamera->GetFeatureByName("GevTimestampTickFrequency",pFeature);
@@ -159,7 +165,7 @@ bool CameraVimba::Init(unsigned int camNum){
                         err=pCamera->GetFeatureByName("Width",pFeature);
                         if (err==VmbErrorSuccess) {
                             pFeature->SetValue(maxWidth);
-                            pFeature->GetValue(width); // this should be continuous
+                            pFeature->GetValue(width);
                         }
 
                         err=pCamera->GetFeatureByName("HeightMax",pFeature);
@@ -170,7 +176,7 @@ bool CameraVimba::Init(unsigned int camNum){
                         err=pCamera->GetFeatureByName("Height",pFeature);
                         if (err==VmbErrorSuccess) {
                             pFeature->SetValue(maxHeight);
-                            pFeature->GetValue(height); // this should be continuous
+                            pFeature->GetValue(height);
                         }
 
                         // make sure shutter time is manual
@@ -179,28 +185,35 @@ bool CameraVimba::Init(unsigned int camNum){
                             pFeature->SetValue("Off"); // this should be manual exposure setting
                         }
 
-                        // now let the user select the pixel format to be used
-                        std::vector<std::string> pixF;
-                        QStringList items;
-                        pixF=listPixelFormats();
-                        for (uint i=0;i<pixF.size();i++) {
-                            if (pixF[i]=="Mono8") {
-                                items<<"MONO8";
-                            } else if (pixF[i]=="Mono12") {
-                                items<<"MONO12";
-                            } else if (pixF[i]=="Mono14") {
-                                items<<"MONO14";
-                            } else if (pixF[i]=="BayerRG8") {
-                                items<<"BAYERRG8";
-                            } else if (pixF[i]=="BayerGB8") {
-                                items<<"BAYERGB8";
-                            } else {
-                                if (!QString::fromStdString(pixF[i]).contains("Packed")) {
-                                    qDebug()<<"This pixel-mode not yet available in Gigaviewer: "<<QString::fromStdString(pixF[i]);
-                                }
-                            }
-
+                        // Set up 8bit monochrome color depth
+                        err=pCamera->GetFeatureByName("PixelFormat",pFeature);
+                        if (err==VmbErrorSuccess) {
+                            pFeature->SetValue(VmbPixelFormatMono8);//"Mono8",VmbPixelFormatMono8
                         }
+                        else
+                        {
+                            qDebug()<<"Init-->GetFeatureByName: PixelFormat: err: "<< err;
+                        }
+
+                        // Disable gamma mode
+                        err=pCamera->GetFeatureByName("Gamma",pFeature);
+                        if (err==VmbErrorSuccess) {
+                            pFeature->SetValue("OFF");
+                        }
+                        else
+                        {
+                            qDebug()<<"Init-->GetFeatureByName: Gamma: err: "<< err;
+                        }
+
+                        // Disable frame-rate mode
+
+                        // Set reasonable default settings
+                        CameraSettings settings;
+                        //settings.shutter = 8.333;
+                        settings.shutter = 16.66;
+                        settings.gain = 0.0;
+                        this->setCameraSettings(settings);
+
 
                         qDebug()<<"camera successfully opened --> Set/Get finished!";
 
@@ -254,7 +267,11 @@ void CameraVimba::startCapture(){
 
     } else if(triggerMode == triggerModeSoftware) {
         // Configure for software trigger (for getSingleFrame())
-
+        // Set Trigger source to fixedRate or Software or Freerun[default   ]
+        err=pCamera->GetFeatureByName("TriggerSource",pFeature);
+        if (err==VmbErrorSuccess) {
+            pFeature->SetValue("Software");
+        }
     }
 
     // construct the frame observer to the camera
@@ -296,6 +313,7 @@ void CameraVimba::startCapture(){
     // Start aquistion
     //err = pCamera->StartCapture();
     err = pCamera->StartContinuousImageAcquisition(3,pObserver);
+
     if (err==VmbErrorSuccess) {
         qDebug()<< "StartCapture -->StartCapture   Work! ";
     }
