@@ -9,14 +9,14 @@ VimbaFrameObserver::VimbaFrameObserver(CameraPtr pCamera) : IFrameObserver( pCam
 
 void VimbaFrameObserver::FrameReceived( const FramePtr pFrame )
 {
-    qDebug()<<"TODO::FrameReceived";
+    qDebug()<<"VimbaFrameObserver::FrameReceived()--->";
 
     bool bQueueDirectly = true;
     VmbFrameStatusType eReceiveStatus;
 
     if( VmbErrorSuccess == pFrame->GetReceiveStatus( eReceiveStatus ) )
     {
-        qDebug()<<"TODO::FrameReceived-->eReceiveStatus OK! and push a pframe!";
+        qDebug()<<"VimbaFrameObserver::FrameReceived--> OK! and push a pframe!";
 
         // Lock the frame queue
         allFramesMutex.lock();
@@ -28,9 +28,13 @@ void VimbaFrameObserver::FrameReceived( const FramePtr pFrame )
         //emit FrameReceivedSignal( eReceiveStatus );
         bQueueDirectly = false;
     }
+    else
+    {
+        qDebug()<<"VimbaFrameObserver::FrameReceived--> No!";
+    }
 
     // If any error occurred we queue the frame without notification
-    if( true == bQueueDirectly )
+    //if( true == bQueueDirectly )
     {
         m_pCamera->QueueFrame( pFrame ); //m_pCamera is the inherent name of the camera pointer of an IFrameObserver
     }
@@ -39,11 +43,20 @@ void VimbaFrameObserver::FrameReceived( const FramePtr pFrame )
 // Returns the oldest frame that has not been picked up yet
 FramePtr VimbaFrameObserver::GetFrame()
 {
+    qDebug()<<"VimbaFrameObserver::GetFrame()-->";
     // Lock the frame queue
     allFramesMutex.lock();
-    // Pop frame from queue
-    FramePtr res = allFrames.front();
-    allFrames.pop();
+    FramePtr res;
+    if(allFrames.size()>0){
+        qDebug()<<"VimbaFrameObserver::GetFrame()--> allFrame Size=" << allFrames.size();
+        // Pop frame from queue
+        res = allFrames.front();
+        allFrames.pop();
+    }
+    else
+    {
+        qDebug()<<"VimbaFrameObserver::GetFrame()--> No frames!";
+    }
     // Unlock frame queue
     allFramesMutex.unlock();
     return res;

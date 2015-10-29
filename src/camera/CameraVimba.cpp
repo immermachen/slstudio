@@ -91,7 +91,7 @@ bool CameraVimba::Init(unsigned int camNum){
                     err=pCamera->Open(VmbAccessModeFull);
                     if (err==VmbErrorSuccess) {
                         //camera successfully opened. Now do some camera initialisation steps
-
+                        qDebug()<<"camera successfully opened";
 
                         // Set the GeV packet size to the highest possible value
                         // (In this example we do not test whether this cam actually is a GigE cam)
@@ -202,20 +202,7 @@ bool CameraVimba::Init(unsigned int camNum){
 
                         }
 
-                        bool ok;
-                        QString item = QInputDialog::getItem(NULL, "Pixel format",
-                                                            "Selection options:", items, 0, false, &ok);
-                        if (ok && !item.isEmpty()) {
-                            format=item;
-                            setFormat(format);
-            //                qDebug()<<"Selected "<<format;
-                        }
-
-
-
-
-                        // construct the frame observer to the camera
-                        frameWatcher=new VimbaFrameObserver( pCamera );
+                        qDebug()<<"camera successfully opened --> Set/Get finished!";
 
                     } else {
                         qDebug()<<"camera did not open successfully";
@@ -239,6 +226,8 @@ bool CameraVimba::Init(unsigned int camNum){
         return false;
     }
 
+
+    qDebug()<<"Init --> End  ";
     return true;
 }
 
@@ -258,6 +247,7 @@ void CameraVimba::setCameraSettings(CameraSettings settings){
 
 
 void CameraVimba::startCapture(){
+    std::cout << "startCapture --> "<<std::endl;
 
     if(triggerMode == triggerModeHardware){
         // Configure for hardware trigger
@@ -267,37 +257,91 @@ void CameraVimba::startCapture(){
 
     }
 
+    // construct the frame observer to the camera
+    frameWatcher=new VimbaFrameObserver( pCamera );
+    qDebug()<<"camera successfully opened --> VimbaFrameObserver";
+
+    VmbErrorType err;
     IFrameObserverPtr pObserver( frameWatcher ); //TODO
 
+    FramePtrVector frames ( 1);
     FeaturePtr pFeature;
+    VmbInt64_t nPLS;
 
-    FramePtr frame;
-    frame->RegisterObserver(pObserver);
+    err = pCamera->GetFeatureByName ( "PayloadSize", pFeature );
+    err = pFeature->GetValue( nPLS );
+    if (err==VmbErrorSuccess) {
+        qDebug()<< "startCapture --> PayloadSize Work, nPLS= " << nPLS;
+    }
 
-    pCamera->AnnounceFrame(frame);
+    for(FramePtrVector::iterator iter = frames.begin (); frames.end () != iter; ++iter ){
+        (*iter).reset( new Frame ( nPLS ) );
+
+
+        err = (*iter)->RegisterObserver ( pObserver );
+
+        if (err==VmbErrorSuccess) {
+            qDebug()<< "startCapture --> RegisterObserver Work! ";
+        }
+
+        err = pCamera->AnnounceFrame( *iter );
+
+        if (err==VmbErrorSuccess) {
+            qDebug()<< "startCapture --> AnnounceFrame  Work! ";
+        }
+    }
+
+    qDebug()<<"startCapture --> RegisterObserver";
 
     // Start aquistion
-    pCamera->StartCapture();
-    pCamera->QueueFrame(frame);
+    //err = pCamera->StartCapture();
+    err = pCamera->StartContinuousImageAcquisition(3,pObserver);
+    if (err==VmbErrorSuccess) {
+        qDebug()<< "StartCapture -->StartCapture   Work! ";
+    }
+
+    for(FramePtrVector::iterator iter = frames.begin (); frames.end () != iter; ++iter ){
+        err = pCamera->QueueFrame( *iter );
+        if (err==VmbErrorSuccess) {
+            qDebug()<< "StartCapture -->QueueFrame   Work! ";
+        }else
+        {
+            qDebug()<< "StartCapture -->QueueFrame not  Work: err= "<< err;
+        }
+    }
 
     pCamera->GetFeatureByName("AcquisitionStart",pFeature); //AcquisitionStop
-    pFeature->RunCommand();
+    err = pFeature->RunCommand();
+    if (err==VmbErrorSuccess) {
+        qDebug()<< "AcquisitionStart --> RunCommand  Work! ";
+    }else
+    {
+        qDebug()<< "AcquisitionStart -->RunCommand not  Work: err= "<< err;
+    }
 
+
+    qDebug()<<"startCapture --> RunCommand -->AcquisitionStart ";
     capturing = true;
 }
 
 
-void CameraVimba::stopCapture(){
-    FeaturePtr pFeature;
-    pCamera->GetFeatureByName("AcquisitionStop",pFeature); //AcquisitionStop
-    pFeature->RunCommand();
-    pCamera->EndCapture();
-    capturing = false;
-}
 
 CameraFrame CameraVimba::getFrame(){
 
+    qDebug()<<"getFrame -->  ";
+
+    CameraFrame frame;
+
     AVT::VmbAPI::FramePtr pFrame=frameWatcher->GetFrame();
+
+    if(pFrame == NULL)
+    {
+        qDebug()<<"getFrame --> NO Frame!  ";
+        return frame;
+    }
+
+    qDebug()<<"getFrame --> GetFrame() works!  ";
+
     VmbErrorType err;
     VmbUint32_t width,height,size;
     VmbPixelFormatType pixFormat;
@@ -320,13 +364,13 @@ CameraFrame CameraVimba::getFrame(){
 
     pCamera->QueueFrame( pFrame ); // requeue here. Not sure what will happen if buffer too small!
 
-    CameraFrame frame;
     frame.height = height;
     frame.width = width;
     frame.memory = (unsigned char*)image;
     frame.timeStamp = stamp;
     frame.sizeBytes = size;
 
+    qDebug()<<"getFrame --> GetFrame-->End";
     return frame;
 }
 
@@ -339,6 +383,15 @@ size_t CameraVimba::getFrameSizeBytes(){
 
 
     return 0;
+}
+
+
+void CameraVimba::stopCapture(){
+    FeaturePtr pFeature;
+    pCamera->GetFeatureByName("AcquisitionStop",pFeature); //AcquisitionStop
+    pFeature->RunCommand();
+    pCamera->EndCapture();
+    capturing = false;
 }
 
 size_t CameraVimba::getFrameWidth(){

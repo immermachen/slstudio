@@ -7,6 +7,7 @@
 #include <VimbaCPP/Examples/Common/ErrorCodeToMessage.h>
 #include <VimbaCPP/Examples/Common/StreamSystemInfo.h>
 #include <QObject>
+#include <stdio.h>
 
 class CameraVimba : public Camera{
 public:
