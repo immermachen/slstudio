@@ -137,7 +137,7 @@ unix:!macx {
     # PCL pkg-config workaround
     LIBS += -lboost_system -lpcl_visualization -lpcl_common -lpcl_io -lpcl_search -lpcl_surface
     # PKG-config libs
-    INCLUDEPATH += /usr/local/include/pcl-1.7 /usr/include/eigen3/
+    INCLUDEPATH += /usr/include/pcl-1.7 /usr/include/eigen3/
     PKGCONFIG += opencv pcl_registration-1.7 pcl_visualization-1.7 pcl_surface-1.7 pcl_search-1.7 pcl_filters-1.7 pcl_kdtree-1.7 pcl_tracking-1.7 flann eigen3
 }
 # Windows
