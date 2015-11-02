@@ -38,16 +38,19 @@ CalibrationData CalibratorLocHom::calibrate(){
     vector<cv::Mat> up(nFrameSeq), vp(nFrameSeq), shading(nFrameSeq), mask(nFrameSeq);
 
     // Decode frame sequences
+    std::cout << "Decode frame sequences: Num="<< nFrameSeq<<std::endl;
     for(unsigned int i=0; i<nFrameSeq; i++){
         vector<cv::Mat> frames = frameSeqs[i];
         for(unsigned int f=0; f<frames.size(); f++){
             decoder->setFrame(f, frames[f]);
-            #if 0
+            #if 1
                 cv::imwrite(QString("frames[%1].png").arg(f).toStdString(), frames[f]);
             #endif
         }
+        std::cout << "decodeFrames begin...... "<<std::endl;
         decoder->decodeFrames(up[i], vp[i], mask[i], shading[i]);
-        #if 0
+        std::cout << "decodeFrames end."<<std::endl;
+        #if 1
             cvtools::writeMat(shading[i], QString("shading[%1].mat").arg(i).toLocal8Bit());
             cvtools::writeMat(up[i], QString("up[%1].mat").arg(i).toLocal8Bit());
             cvtools::writeMat(vp[i], QString("vp[%1].mat").arg(i).toLocal8Bit());
@@ -58,12 +61,15 @@ CalibrationData CalibratorLocHom::calibrate(){
     unsigned int frameHeight = frameSeqs[0][0].rows;
 
     // Generate local calibration object coordinates [mm]
+    std::cout << "Generate local calibration object coordinates"<<std::endl;
     vector<cv::Point3f> Qi;
     for (int h=0; h<patternSize.height; h++)
         for (int w=0; w<patternSize.width; w++)
             Qi.push_back(cv::Point3f(checkerSize * w, checkerSize* h, 0.0));
 
     // Find calibration point coordinates for camera and projector
+    std::cout<< "Find calibration point coordinates for camera and projector!" <<std::endl;
+
     vector< vector<cv::Point2f> > qc, qp;
     vector< vector<cv::Point3f> > Q;
     for(unsigned int i=0; i<nFrameSeq; i++){
@@ -72,7 +78,7 @@ CalibrationData CalibratorLocHom::calibrate(){
         // Aid checkerboard extraction by slight blur
         //cv::GaussianBlur(shading[i], shading[i], cv::Size(5,5), 2, 2);
         // Extract checker corners
-        //std::cout << i << " findChessboardCorners" << std::endl;
+        std::cout << i << " findChessboardCorners" << std::endl;
         bool success = cv::findChessboardCorners(shading[i], patternSize, qci, cv::CALIB_CB_ADAPTIVE_THRESH);
         if(!success)
             std::cout << "Calibrator: could not extract chess board corners on frame seqence " << i << std::endl << std::flush;
@@ -84,7 +90,7 @@ CalibrationData CalibratorLocHom::calibrate(){
         cv::Mat shadingColor;
         cv::cvtColor(shading[i], shadingColor, cv::COLOR_GRAY2RGB);
         cv::drawChessboardCorners(shadingColor, patternSize, qci, success);
-#if 0
+#if 1
     cv::imwrite("shadingColor.png", shadingColor);
 #endif
         // Emit chessboard results
@@ -161,6 +167,8 @@ CalibrationData CalibratorLocHom::calibrate(){
     }
 
     //calibrate the camera
+    std::cout<< "calibrate the camera!" <<std::endl;
+
     cv::Mat Kc, kc;
     std::vector<cv::Mat> cam_rvecs, cam_tvecs;
     cv::Size frameSize(frameWidth, frameHeight);

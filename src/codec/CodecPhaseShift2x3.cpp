@@ -86,15 +86,18 @@ void DecoderPhaseShift2x3::setFrame(unsigned int depth, cv::Mat frame){
 }
 
 void DecoderPhaseShift2x3::decodeFrames(cv::Mat &up, cv::Mat &vp, cv::Mat &mask, cv::Mat &shading){
-
+std::cout << "DecoderPhaseShift2x3-->In decodeFrames begin...... "<<std::endl;
     const float pi = M_PI;
 
     if(dir & CodecDirHorizontal){
+        std::cout << "In decodeFrames begin--> CodecDirHorizontal...... "<<std::endl;
+
         std::vector<cv::Mat> framesHorz(frames.begin(), frames.begin()+6);
 
         // Horizontal decoding
         up = pstools::getPhase(framesHorz[0], framesHorz[1], framesHorz[2]);
         cv::Mat upCue = pstools::getPhase(framesHorz[3], framesHorz[4], framesHorz[5]);
+        std::cout << "In decodeFrames begin--> CodecDirHorizontal-->unwrapWithCue...... "<<std::endl;
         up = pstools::unwrapWithCue(up, upCue, nPhases);
         up *= screenCols/(2*pi);
 
@@ -102,11 +105,13 @@ void DecoderPhaseShift2x3::decodeFrames(cv::Mat &up, cv::Mat &vp, cv::Mat &mask,
 
     }
     if(dir & CodecDirVertical){
+        std::cout << "In decodeFrames begin--> CodecDirVertical...... "<<std::endl;
         std::vector<cv::Mat> framesVert(frames.end()-6, frames.end());
 
         // Vertical decoding
         vp = pstools::getPhase(framesVert[0], framesVert[1], framesVert[2]);
         cv::Mat vpCue = pstools::getPhase(framesVert[3], framesVert[4], framesVert[5]);
+        std::cout << "In decodeFrames begin--> CodecDirVertical-->unwrapWithCue...... "<<std::endl;
         vp = pstools::unwrapWithCue(vp, vpCue, nPhases);
         vp *= screenRows/(2*pi);
     }

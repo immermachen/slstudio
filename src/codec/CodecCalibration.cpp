@@ -86,29 +86,38 @@ void DecoderCalibration::setFrame(unsigned int depth, cv::Mat frame){
 }
 
 void DecoderCalibration::decodeFrames(cv::Mat &up, cv::Mat &vp, cv::Mat &mask, cv::Mat &shading){
-
+    std::cout << "DecoderCalibration-->decodeFrames begin...... "<<std::endl;
     const float pi = M_PI;
 
     if(dir & CodecDirHorizontal){
+        std::cout << "DecoderCalibration-->CodecDirHorizontal--> framesHorz..... "<<std::endl;
         std::vector<cv::Mat> framesHorz(frames.begin(), frames.begin()+6);
 
+        std::cout << "DecoderCalibration-->CodecDirHorizontal-->getPhase  up..... "<<std::endl;
         // Horizontal decoding
         up = pstools::getPhase(framesHorz[0], framesHorz[1], framesHorz[2]);
+
+        std::cout << "DecoderCalibration-->CodecDirHorizontal-->getPhase  upCue..... "<<std::endl;
         cv::Mat upCue = pstools::getPhase(framesHorz[3], framesHorz[4], framesHorz[5]);
+
+        std::cout << "DecoderCalibration-->CodecDirHorizontal-->unwrapWithCue begin...... "<<std::endl;
         up = pstools::unwrapWithCue(up, upCue, nPhases);
         up *= screenCols/(2*pi);
 
     }
     if(dir & CodecDirVertical){
+        std::cout << "DecoderCalibration-->CodecDirVertical-->...... "<<std::endl;
         std::vector<cv::Mat> framesVert(frames.end()-6, frames.end());
 
         // Vertical decoding
         vp = pstools::getPhase(framesVert[0], framesVert[1], framesVert[2]);
         cv::Mat vpCue = pstools::getPhase(framesVert[3], framesVert[4], framesVert[5]);
+        std::cout << "DecoderCalibration-->CodecDirVertical-->unwrapWithCue begin...... "<<std::endl;
         vp = pstools::unwrapWithCue(vp, vpCue, nPhases);
         vp *= screenRows/(2*pi);
     }
 
+    std::cout << "DecoderCalibration-->getMagnitude begin...... "<<std::endl;
     // Calculate modulation
     shading = pstools::getMagnitude(frames[0], frames[1], frames[2]);
 

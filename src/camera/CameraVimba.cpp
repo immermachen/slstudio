@@ -68,7 +68,7 @@ CameraFrame CameraVimba::getFrame(){
     }
 
     VmbUint32_t nImageSize = 0;
-    err = pFrame->GetImageSize( nImageSize );
+    err = pFrame->GetImageSize( frame.sizeBytes );
     if ( VmbErrorSuccess != err )
     {
         qDebug()<< "GetImageSize err="<< ErrorCodeToMessage(err).c_str();
@@ -76,7 +76,7 @@ CameraFrame CameraVimba::getFrame(){
     }
 
     VmbUint32_t nWidth = 0;
-    err = pFrame->GetWidth( nWidth );
+    err = pFrame->GetWidth( frame.width );
     if ( VmbErrorSuccess != err )
     {
         qDebug()<< "GetWidth err="<< ErrorCodeToMessage(err).c_str();
@@ -84,7 +84,7 @@ CameraFrame CameraVimba::getFrame(){
     }
 
     VmbUint32_t nHeight = 0;
-    err = pFrame->GetHeight( nHeight );
+    err = pFrame->GetHeight( frame.height );
     if ( VmbErrorSuccess != err )
     {
         qDebug()<< "GetWidth err="<< ErrorCodeToMessage(err).c_str();
@@ -93,85 +93,99 @@ CameraFrame CameraVimba::getFrame(){
 
     VmbUchar_t *pImage = NULL;
     err = pFrame->GetImage( pImage );
+    //err = pFrame->GetImage( frame.memory );
     if ( VmbErrorSuccess != err )
     {
         qDebug()<< "GetImage err="<< ErrorCodeToMessage(err).c_str();
         return frame;
     }
 
-    AVTBitmap bitmap;
-
-    if( VmbPixelFormatRgb8 == ePixelFormat )
-    {
-        qDebug()<< "ePixelFormat colorCode=ColorCodeRGB24";
-        bitmap.colorCode = ColorCodeRGB24;
-    }
-    else
-    {
-        qDebug()<< "ePixelFormat colorCode=ColorCodeMono8";
-        bitmap.colorCode = ColorCodeMono8;
-    }
-
-    bitmap.bufferSize = nImageSize;
-    bitmap.width = nWidth;
-    bitmap.height = nHeight;
-
-    // Create the bitmap
-    if ( 0 == AVTCreateBitmap( &bitmap, pImage ))
-    {
-        std::cout<<"Could not create bitmap.\n";
-        err = VmbErrorResources;
-    }
-    else
-    {
-        // Save the bitmap
-        if ( 0 == AVTWriteBitmapToFile( &bitmap,  pFileName) )
-        {
-            std::cout<<"Could not write bitmap to file.\n";
-            err = VmbErrorOther;
-        }
-        else
-        {
-            std::cout<<"Bitmap successfully written to file \""<<pFileName<<"\"\n" ;
-//            // Release the bitmap's buffer
-//            if ( 0 == AVTReleaseBitmap( &bitmap ))
-//            {
-//                std::cout<<"Could not release the bitmap.\n";
-//                err = VmbErrorInternalFault;
-//            }
-        }
-    }
-
     VmbUint64_t stamp;
-    err=pFrame->GetTimestamp(stamp);
-
-    frame.height = nHeight;
-    frame.width = nWidth;
-    frame.memory = pImage; //(unsigned char*)bitmap.buffer;
+    err=pFrame->GetTimestamp( stamp );
     frame.timeStamp = stamp;
-    frame.sizeBytes = nImageSize;
+    if ( VmbErrorSuccess != err )
+    {
+        qDebug()<< "GetTimestamp err="<< ErrorCodeToMessage(err).c_str();
+        return frame;
+    }
 
-    //qDebug()<<"getFrame --> GetFrame-->End. size="<< size << ", Height=" << height << ", width=" << width << ", Format=" << pixFormat << ", stamp="<< stamp;
-    qDebug()<<"getFrame --> GetFrame-->End. size="<< frame.sizeBytes << ", Height=" << frame.height << ", width=" << frame.width << ", Format=" << bitmap.colorCode << ", stamp="<< stamp;
+//    //Debug-------------------------------------begin
+//    AVTBitmap bitmap;
+
+//    if( VmbPixelFormatRgb8 == ePixelFormat )
+//    {
+//        qDebug()<< "ePixelFormat colorCode=ColorCodeRGB24";
+//        bitmap.colorCode = ColorCodeRGB24;
+//    }
+//    else
+//    {
+//        qDebug()<< "ePixelFormat colorCode=ColorCodeMono8";
+//        bitmap.colorCode = ColorCodeMono8;
+//    }
+
+//    bitmap.bufferSize = nImageSize;
+//    bitmap.width = nWidth;
+//    bitmap.height = nHeight;
+
+//    // Create the bitmap
+//    if ( 0 == AVTCreateBitmap( &bitmap, pImage ))
+//    {
+//        std::cout<<"Could not create bitmap.\n";
+//        err = VmbErrorResources;
+//    }
+//    else
+//    {
+//        // Save the bitmap
+//        if ( 0 == AVTWriteBitmapToFile( &bitmap,  pFileName) )
+//        {
+//            std::cout<<"Could not write bitmap to file.\n";
+//            err = VmbErrorOther;
+//        }
+//        else
+//        {
+//            std::cout<<"Bitmap successfully written to file \""<<pFileName<<"\"\n" ;
+////            // Release the bitmap's buffer
+////            if ( 0 == AVTReleaseBitmap( &bitmap ))
+////            {
+////                std::cout<<"Could not release the bitmap.\n";
+////                err = VmbErrorInternalFault;
+////            }
+//        }
+//    }
+////Debug --------------------------------------------------------------end
+
 
     //---debug--------------------------------------------------------
     // Create 8 bit OpenCV matrix
-    cv::Mat frameCV(frame.height, frame.width, CV_8UC1, frame.memory);//CV_32S, CV_8U
-    //frameCV = frameCV.clone();
-    QString filename = QString("frameSeq_%1.bmp").arg(100, 2, 10, QChar('0'));
+    //cv::Mat frameCV(frame.height, frame.width, CV_8U, frame.memory);//CV_32S, CV_8U
+    cv::Mat frameCV(frame.height, frame.width, CV_8U, pImage);//CV_32S, CV_8U
+    frameCV = frameCV.clone();
+    int i=rand();
+    //QString filename = QString("frameSeq_Debug_%1.bmp").arg(i, 2, 10, QChar('0'));
+    QString filename = QString("frameSeq_Debug.bmp");
     cv::imwrite(filename.toStdString(), frameCV);
+    //frame.memory = frameCV.data;
+
+    frame.memory = pImage;
     //debug end-----------------------------------------------------
+
+
+    //qDebug()<<"getFrame --> GetFrame-->End. size="<< size << ", Height=" << height << ", width=" << width << ", Format=" << pixFormat << ", stamp="<< stamp;
+    qDebug()<<"getFrame --> GetFrame-->End. size="<< frame.sizeBytes << ", Height=" << frame.height << ", width=" << frame.width  << ", stamp="<< stamp;
 
     return frame;
 }
 
 CameraVimba::CameraVimba(unsigned int camNum, CameraTriggerMode triggerMode) :
-    m_system ( AVT::VmbAPI::VimbaSystem::GetInstance() ), bufCount(50), initialStamp(0), Camera(triggerMode){
+    m_system ( AVT::VmbAPI::VimbaSystem::GetInstance() ), bufCount(50), initialStamp(0), Camera(triggerMode)
+{
 
     Init(camNum);
 }
 
-bool CameraVimba::Init(unsigned int camNum){
+bool CameraVimba::Init(unsigned int camNum)
+{
+
     VmbErrorType    err=m_system.Startup();
     CameraPtrVector cameras;
 
@@ -269,8 +283,8 @@ bool CameraVimba::Init(unsigned int camNum){
 }
 
 
-
-void CameraVimba::startCapture(){
+void CameraVimba::startCapture()
+{
     std::cout << "startCapture --> "<<std::endl;
 
     VmbErrorType err;
@@ -296,15 +310,21 @@ void CameraVimba::startCapture(){
 }
 
 
-void CameraVimba::stopCapture(){
-    VmbErrorType err=m_system.Shutdown();
+void CameraVimba::stopCapture()
+{
+    VmbErrorType err=m_pCamera->Close();
     if (err!=VmbErrorSuccess) {
         qDebug()<<"Problem closing the camera";
+    }
+    err=m_system.Shutdown();
+    if (err!=VmbErrorSuccess) {
+        qDebug()<<"Problem shutting down Vimba";
     }
     capturing = false;
 }
 
-CameraVimba::~CameraVimba(){
+CameraVimba::~CameraVimba()
+{
     VmbErrorType err=m_pCamera->Close();
     if (err!=VmbErrorSuccess) {
         qDebug()<<"Problem closing the camera";
@@ -315,7 +335,8 @@ CameraVimba::~CameraVimba(){
     }
 }
 
-std::vector<CameraInfo> CameraVimba::getCameraList(){
+std::vector<CameraInfo> CameraVimba::getCameraList()
+{
 
     std::vector<CameraInfo> ret;
 
@@ -373,6 +394,14 @@ CameraSettings CameraVimba::getCameraSettings(){
 
 void CameraVimba::setCameraSettings(CameraSettings settings){
 
+//    // Set shutter (in us)
+//    xiSetParamInt(camera, XI_PRM_EXPOSURE, settings.shutter*1000);
+//    // Set gain (in dB)
+//    xiSetParamFloat(camera, XI_PRM_GAIN, settings.gain);
+
+    std::cout << "Setting camera parameters:" << std::endl
+              << "Shutter: " << settings.shutter << " ms" << std::endl
+              << "Gain: " << settings.gain << " dB" << std::endl;
 }
 
 size_t CameraVimba::getFrameSizeBytes(){
