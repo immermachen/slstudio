@@ -67,7 +67,6 @@ CameraFrame CameraVimba::getFrame(){
         return frame;
     }
 
-    VmbUint32_t nImageSize = 0;
     err = pFrame->GetImageSize( frame.sizeBytes );
     if ( VmbErrorSuccess != err )
     {
@@ -75,16 +74,16 @@ CameraFrame CameraVimba::getFrame(){
         return frame;
     }
 
-    VmbUint32_t nWidth = 0;
     err = pFrame->GetWidth( frame.width );
+    width = frame.width;
     if ( VmbErrorSuccess != err )
     {
         qDebug()<< "GetWidth err="<< ErrorCodeToMessage(err).c_str();
         return frame;
     }
 
-    VmbUint32_t nHeight = 0;
     err = pFrame->GetHeight( frame.height );
+    height = frame.height;
     if ( VmbErrorSuccess != err )
     {
         qDebug()<< "GetWidth err="<< ErrorCodeToMessage(err).c_str();
@@ -109,68 +108,15 @@ CameraFrame CameraVimba::getFrame(){
         return frame;
     }
 
-//    //Debug-------------------------------------begin
-//    AVTBitmap bitmap;
-
-//    if( VmbPixelFormatRgb8 == ePixelFormat )
-//    {
-//        qDebug()<< "ePixelFormat colorCode=ColorCodeRGB24";
-//        bitmap.colorCode = ColorCodeRGB24;
-//    }
-//    else
-//    {
-//        qDebug()<< "ePixelFormat colorCode=ColorCodeMono8";
-//        bitmap.colorCode = ColorCodeMono8;
-//    }
-
-//    bitmap.bufferSize = nImageSize;
-//    bitmap.width = nWidth;
-//    bitmap.height = nHeight;
-
-//    // Create the bitmap
-//    if ( 0 == AVTCreateBitmap( &bitmap, pImage ))
-//    {
-//        std::cout<<"Could not create bitmap.\n";
-//        err = VmbErrorResources;
-//    }
-//    else
-//    {
-//        // Save the bitmap
-//        if ( 0 == AVTWriteBitmapToFile( &bitmap,  pFileName) )
-//        {
-//            std::cout<<"Could not write bitmap to file.\n";
-//            err = VmbErrorOther;
-//        }
-//        else
-//        {
-//            std::cout<<"Bitmap successfully written to file \""<<pFileName<<"\"\n" ;
-////            // Release the bitmap's buffer
-////            if ( 0 == AVTReleaseBitmap( &bitmap ))
-////            {
-////                std::cout<<"Could not release the bitmap.\n";
-////                err = VmbErrorInternalFault;
-////            }
-//        }
-//    }
-////Debug --------------------------------------------------------------end
-
-
-    //---debug--------------------------------------------------------
     // Create 8 bit OpenCV matrix
-    //cv::Mat frameCV(frame.height, frame.width, CV_8U, frame.memory);//CV_32S, CV_8U
     cv::Mat frameCV(frame.height, frame.width, CV_8U, pImage);//CV_32S, CV_8U
     frameCV = frameCV.clone();
-    int i=rand();
+    //int i=rand();
     //QString filename = QString("frameSeq_Debug_%1.bmp").arg(i, 2, 10, QChar('0'));
     QString filename = QString("frameSeq_Debug.bmp");
     cv::imwrite(filename.toStdString(), frameCV);
-    //frame.memory = frameCV.data;
+    //frame.memory = pImage;
 
-    frame.memory = pImage;
-    //debug end-----------------------------------------------------
-
-
-    //qDebug()<<"getFrame --> GetFrame-->End. size="<< size << ", Height=" << height << ", width=" << width << ", Format=" << pixFormat << ", stamp="<< stamp;
     qDebug()<<"getFrame --> GetFrame-->End. size="<< frame.sizeBytes << ", Height=" << frame.height << ", width=" << frame.width  << ", stamp="<< stamp;
 
     return frame;
@@ -386,9 +332,25 @@ std::vector<CameraInfo> CameraVimba::getCameraList()
 }
 
 CameraSettings CameraVimba::getCameraSettings(){
-
     // Get settings:
     CameraSettings settings;
+    settings.gain = 0;
+    settings.shutter = 0;
+
+    FeaturePtr pFeature;
+    VmbErrorType err;
+    err = m_pCamera->GetFeatureByName( "Gain", pFeature );
+    if ( VmbErrorSuccess == err ) {
+        double gain;
+        err=pFeature->GetValue(gain);
+        settings.gain = gain;
+    }
+    err = m_pCamera->GetFeatureByName( "ExposureTimeAbs", pFeature ); //it is microseconds
+    if ( VmbErrorSuccess == err ) {
+        double shutter;
+        err=pFeature->GetValue(shutter);
+        settings.shutter = shutter/1000.0;// from us to ms
+    }
     return settings;
 }
 
@@ -415,19 +377,11 @@ size_t CameraVimba::getFrameSizeBytes(){
 }
 
 size_t CameraVimba::getFrameWidth(){
-    AVT::VmbAPI::FramePtr frame;
-
-    VmbUint32_t width;
-    frame->GetWidth(width);
     return width;
 }
 
 
 size_t CameraVimba::getFrameHeight(){
-    AVT::VmbAPI::FramePtr frame;
-
-    VmbUint32_t height;
-    frame->GetHeight(height);
     return height;
 }
 

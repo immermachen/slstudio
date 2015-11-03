@@ -28,11 +28,11 @@ SLCalibrationDialog::SLCalibrationDialog(SLStudio *parent) : QDialog(parent), ui
     QSettings settings("SLStudio");
 
     //Checkerboard parameters
-    unsigned int checkerSize = settings.value("calibration/checkerSize",23).toInt();//8
+    unsigned int checkerSize = settings.value("calibration/checkerSize",8).toInt();
     ui->checkerSizeBox->setValue(checkerSize);
-    unsigned int checkerRows = settings.value("calibration/checkerRows",7).toInt();//8
+    unsigned int checkerRows = settings.value("calibration/checkerRows",8).toInt();
     ui->checkerRowsBox->setValue(checkerRows);
-    unsigned int checkerCols = settings.value("calibration/checkerCols",10).toInt();//8
+    unsigned int checkerCols = settings.value("calibration/checkerCols",8).toInt();
     ui->checkerColsBox->setValue(checkerCols);
 
     // Instatiate camera with software trigger
@@ -118,8 +118,9 @@ void SLCalibrationDialog::timerEvent(QTimerEvent *event){
 
     //Yang:
     QString filename = QString("frameSeq_Debug.bmp");
-    cv::Mat tmpFrame = cv::imread(filename.toStdString());
-    cv::Mat frameCV = tmpFrame;
+    cv::Mat tmpFrame = cv::imread(filename.toStdString(), CV_LOAD_IMAGE_GRAYSCALE);
+    cv::Mat frameCV(frame.height, frame.width, CV_8U, tmpFrame.data);
+    frameCV = frameCV.clone();
 
 
     ui->videoWidget->showFrameCV(frameCV);
@@ -169,8 +170,9 @@ void SLCalibrationDialog::on_snapButton_clicked(){
 
         //Yang:
         QString filename1 = QString("frameSeq_Debug.bmp");
-        cv::Mat tmpFrame = cv::imread(filename1.toStdString());
-        cv::Mat frameCV = tmpFrame;
+        cv::Mat tmpFrame = cv::imread(filename1.toStdString(),CV_LOAD_IMAGE_GRAYSCALE);
+        cv::Mat frameCV(frame.height, frame.width, CV_8U, tmpFrame.data);
+        frameCV = frameCV.clone();
 
         //Yang:
         int seqNum = frameSeqs.size();

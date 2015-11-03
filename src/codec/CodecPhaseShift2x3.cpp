@@ -135,6 +135,8 @@ std::cout << "DecoderPhaseShift2x3-->In decodeFrames begin...... "<<std::endl;
     cv::Sobel(up, dx, -1, 1, 0, 3);
     cv::Sobel(up, dy, -1, 0, 1, 3);
     cv::Mat edges;
+
+    std::cout << "In decodeFrames begin--> magnitude...... "<<std::endl;
     cv::magnitude(dx, dy, edges);
 //cvtools::writeMat(edges, "edges.mat", "edges");
     mask = mask & (edges < 200);

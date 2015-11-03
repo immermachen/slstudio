@@ -232,14 +232,15 @@ void SLScanWorker::doWork(){
 //            QString filename = QString("frameSeq_scan_%1.bmp").arg(i, 2, 10, QChar('0'));
 //            cv::imwrite(filename.toStdString(), frameCV1);
             QString filename = QString("frameSeq_Debug.bmp");
-            cv::Mat tmpFrame = cv::imread(filename.toStdString());
-            frame.memory = tmpFrame.data;
+            cv::Mat tmpFrame = cv::imread(filename.toStdString(),CV_LOAD_IMAGE_GRAYSCALE);
+            cv::Mat frameCV(frame.height, frame.width, CV_8U, tmpFrame.data);
+            frameCV = frameCV.clone();
+
              //debug end-----------------------------------------------------
 
             // Create 8 bit OpenCV matrix
 //            cv::Mat frameCV(frame.height, frame.width, CV_8U, frame.memory);
 //            frameCV = frameCV.clone();
-            cv::Mat frameCV = tmpFrame;
 
             if(triggerMode == triggerModeHardware)
                 frameSeq[(i+N-shift)%N] = frameCV;
