@@ -28,8 +28,10 @@ SLCalibrationDialog::SLCalibrationDialog(SLStudio *parent) : QDialog(parent), ui
     QSettings settings("SLStudio");
 
     //Checkerboard parameters
-    unsigned int checkerSize = settings.value("calibration/checkerSize",8).toInt();
-    ui->checkerSizeBox->setValue(checkerSize);
+    float checkerSize = settings.value("calibration/checkerSize",8).toFloat();
+    //ui->checkerSizeBox->setValue(checkerSize);
+    ui->txtCheckSize->setPlainText(settings.value("calibration/checkerSize",8).toString());
+
     unsigned int checkerRows = settings.value("calibration/checkerRows",8).toInt();
     ui->checkerRowsBox->setValue(checkerRows);
     unsigned int checkerCols = settings.value("calibration/checkerCols",8).toInt();
@@ -303,7 +305,7 @@ void SLCalibrationDialog::closeEvent(QCloseEvent *){
 
     // Save calibration settings
     QSettings settings("SLStudio");
-    unsigned int checkerSize = ui->checkerSizeBox->value();
+    float checkerSize = ui->txtCheckSize->toPlainText().toFloat();//  ui->checkerSizeBox->value();
     settings.setValue("calibration/checkerSize", checkerSize);
     unsigned int checkerRows = ui->checkerRowsBox->value();
     settings.setValue("calibration/checkerRows", checkerRows);

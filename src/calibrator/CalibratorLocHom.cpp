@@ -25,7 +25,8 @@ CalibrationData CalibratorLocHom::calibrate(){
     QSettings settings("SLStudio");
 
     //Checkerboard parameters
-    unsigned int checkerSize = settings.value("calibration/checkerSize").toInt();
+    float checkerSize = settings.value("calibration/checkerSize").toFloat();
+    std::cout << "checkerSize== "<< checkerSize <<std::endl;
     unsigned int checkerRows = settings.value("calibration/checkerRows").toInt();
     unsigned int checkerCols = settings.value("calibration/checkerCols").toInt();
 
@@ -43,14 +44,14 @@ CalibrationData CalibratorLocHom::calibrate(){
         vector<cv::Mat> frames = frameSeqs[i];
         for(unsigned int f=0; f<frames.size(); f++){
             decoder->setFrame(f, frames[f]);
-            #if 1
+            #if 0
                 cv::imwrite(QString("frames[%1].png").arg(f).toStdString(), frames[f]);
             #endif
         }
         std::cout << "decodeFrames begin...... "<<std::endl;
         decoder->decodeFrames(up[i], vp[i], mask[i], shading[i]);
         std::cout << "decodeFrames end."<<std::endl;
-        #if 0
+        #if 1
             cvtools::writeMat(shading[i], QString("shading[%1].mat").arg(i).toLocal8Bit());
             cvtools::writeMat(up[i], QString("up[%1].mat").arg(i).toLocal8Bit());
             cvtools::writeMat(vp[i], QString("vp[%1].mat").arg(i).toLocal8Bit());
@@ -90,14 +91,19 @@ CalibrationData CalibratorLocHom::calibrate(){
         cv::Mat shadingColor;
         cv::cvtColor(shading[i], shadingColor, cv::COLOR_GRAY2RGB);
         cv::drawChessboardCorners(shadingColor, patternSize, qci, success);
+
 #if 1
-    cv::imwrite("shadingColor.png", shadingColor);
+        QString filename = QString("shadingColor%1.bmp").arg(i, 2, 10, QChar('0'));
+        cv::imwrite(filename.toStdString(), shadingColor);
+        filename = QString("shadingColor%1.png").arg(i, 2, 10, QChar('0'));
+        cv::imwrite(filename.toStdString(), shadingColor);
 #endif
         // Emit chessboard results
         //std::cout << i << " newSequenceResult" << std::endl;
         emit newSequenceResult(shadingColor, i, success);
 
-        if(success){
+        if(success)
+        {
             // Vectors of accepted points for current view
             vector<cv::Point2f> qpi_a;
             vector<cv::Point2f> qci_a;
