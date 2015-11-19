@@ -313,7 +313,8 @@ std::vector<CameraInfo> CameraVimba::getCameraList()
             CameraInfo info;
             CameraPtr cam = cameras[i];
             info.vendor = "Vimba";
-            cam->GetModel(info.model);
+            //cam->GetModel(info.model);
+            cam->GetSerialNumber(info.model);
             std::string cameraID;
             cam->GetID(cameraID);
             std::cout << "cameraID: " << cameraID <<"\n\n";
