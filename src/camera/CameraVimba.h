@@ -2,7 +2,7 @@
 #define CAMERAVIMBA_H
 
 #include "Camera.h"
-#include "vimbaframeobserver.h"
+//#include "vimbaframeobserver.h"
 #include <VimbaCPP.h>
 #include <VimbaCPP/Examples/Common/ErrorCodeToMessage.h>
 #include <VimbaCPP/Examples/Common/StreamSystemInfo.h>
@@ -37,7 +37,7 @@ private:
 
     AVT::VmbAPI::VimbaSystem & m_system;
     AVT::VmbAPI::CameraPtr     m_pCamera;
-    VimbaFrameObserver* frameWatcher;
+//    VimbaFrameObserver* frameWatcher;
     int bufCount;
     VmbInt64_t height,width;
     VmbInt64_t maxHeight,maxWidth;

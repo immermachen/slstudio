@@ -14,7 +14,7 @@
 #include <qinputdialog.h>
 #include <QDateTime>
 #include <QSettings>
-
+#include<QDebug>
 
 #include <opencv2/opencv.hpp>
 #include "cvtools.h"
