@@ -6,7 +6,6 @@
 #include <VimbaCPP.h>
 #include <VimbaCPP/Examples/Common/ErrorCodeToMessage.h>
 #include <VimbaCPP/Examples/Common/StreamSystemInfo.h>
-#include <QObject>
 #include <stdio.h>
 #include <Bitmap.h>
 
@@ -31,7 +30,7 @@ private:
     bool Init(unsigned int camNum);
 
     std::vector<std::string> listOptions(AVT::VmbAPI::FeaturePtr pFeature);
-    void setFormat(QString formatstring);
+    void setFormat(std::string formatstring);
 
     std::vector<std::string> listPixelFormats();
 
@@ -44,7 +43,7 @@ private:
     double frameRate,exposure;
     VmbInt64_t camFreq,initialStamp;
     int timeOffset;
-    QString format;
+    std::string format;
 };
 
 #endif // CAMERAVIMBA_H

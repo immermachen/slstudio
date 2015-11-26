@@ -12,10 +12,10 @@ if ismac
     DEFINES = {'-DWITH_CAMERAIIDC'};
     srcFilesCamera = {'Camera.cpp', 'CameraIIDC.cpp'};
 elseif isunix
-    CXXFLAGS = {'-I/usr/local/lib/', '-I/opt/XIMEA/include'};
-    LDFLAGS = 'LDFLAGS = "\$LDFLAGS -ldc1394 -lm3api"';
-    DEFINES = {'-DWITH_CAMERAIIDC', '-DWITH_CAMERAXIMEA'};
-    srcFilesCamera = {'Camera.cpp', 'CameraIIDC.cpp', 'CameraXIMEA.cpp'};
+    CXXFLAGS = {'-I/opt/Vimba_1_3/VimbaCPP/Include', '-I/opt/Vimba_1_3'};
+    LDFLAGS = 'LDFLAGS = "\$LDFLAGS -L /opt/Vimba_1_3/VimbaCPP/DynamicLib/x86_64bit -lVimbaCPP -lVimbaC"';
+    DEFINES = {'-DWITH_CAMERAVIMBA'};
+    srcFilesCamera = {'Camera.cpp', 'CameraVimba.cpp'};
 elseif ispc
 % 	CXXFLAGS = {'-IC:/Program Files/IDS/uEye/Develop/include/'};
 %   LDFLAGS = 'C:\Program Files\IDS\uEye\Develop\Lib\uEye_api_64.lib';
@@ -28,9 +28,11 @@ end
 
 srcFilesCamera = strcat(srcDirCamera, srcFilesCamera);
 srcFilesCamera = ['CameraMex.cpp' srcFilesCamera];
-
-mex('-v', ['-I' srcDirCamera], CXXFLAGS{:}, DEFINES{:}, srcFilesCamera{:}, LDFLAGS{:});
-
+  
+%mex('-v', ['-I' srcDirCamera], CXXFLAGS{:}, DEFINES{:}, srcFilesCamera{:}, LDFLAGS{:});
+%mex('-v', ['-I' srcDirCamera], CXXFLAGS(:), DEFINES(:), srcFilesCamera(:), LDFLAGS(:));
+%mex -v -I/home/yang/slstudio/src/camera/ -I/opt/Vimba_1_3/VimbaCPP/Include -I/opt/Vimba_1_3  -DWITH_CAMERAVIMBA  CameraMex.cpp    /home/yang/slstudio/src/camera/Bitmap.cpp /home/yang/slstudio/src/camera/Camera.cpp    /home/yang/slstudio/src/camera/CameraVimba.cpp  -L/opt/Vimba_1_3/VimbaCPP/DynamicLib/x86_64bit -lVimbaCPP -lVimbaC
+mex -v -I/home/yang/slstudio/src/camera/ -I/opt/Vimba_1_3/VimbaCPP/Include -I/opt/Vimba_1_3  -DWITH_CAMERAVIMBA  CameraMex.cpp    /home/yang/slstudio/src/camera/Bitmap.cpp /home/yang/slstudio/src/camera/Camera.cpp    /home/yang/slstudio/src/camera/CameraVimba.cpp  /opt/Vimba_1_3/VimbaCPP/DynamicLib/x86_64bit/libVimbaCPP.so /opt/Vimba_1_3/VimbaCPP/DynamicLib/x86_64bit/libVimbaC.so
 %% Projector
 srcDirProjector = [srcDir 'projector/'];
 srcFilesProjector = {'ProjectorOpenGL.cpp'};
@@ -54,5 +56,5 @@ end
 srcFilesProjector = strcat(srcDirProjector, srcFilesProjector);
 srcFilesProjector = ['ProjectorMex.cpp' srcFilesProjector];
 
-mex('-v', ['-I' srcDirProjector], srcFilesProjector{:}, CXXFLAGS{:}, DEFINES{:}, LDFLAGS{:});
-
+%mex('-v', ['-I' srcDirProjector], srcFilesProjector{:}, CXXFLAGS{:}, DEFINES{:}, LDFLAGS{:});
+mex -v -I/home/yang/slstudio/src/projector/ ProjectorMex.cpp  /home/yang/slstudio/src/projector/OpenGLContext.Unix.cpp /home/yang/slstudio/src/projector/ProjectorOpenGL.cpp -lGL -lGLU -lX11 -lXxf86vm -lGLEW

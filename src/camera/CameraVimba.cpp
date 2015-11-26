@@ -11,13 +11,12 @@
 
 #include "CameraVimba.h"
 #include <stdlib.h>  //for atoi
-#include <qinputdialog.h>
-#include <QDateTime>
-#include <QSettings>
-#include<QDebug>
+//#include <qinputdialog.h>
+//#include <QDateTime>
+//#include <QSettings>
 
-#include <opencv2/opencv.hpp>
-#include "cvtools.h"
+//#include <opencv2/opencv.hpp>
+//#include "cvtools.h"
 
 using namespace AVT::VmbAPI;
 
@@ -26,7 +25,7 @@ using namespace AVT::VmbAPI;
 
 CameraFrame CameraVimba::getFrame(){
 
-    qDebug()<<"getFrame -->  ";
+    std::cout<<"getFrame -->  " <<std::endl;
 
     CameraFrame frame;
     FramePtr pFrame;
@@ -34,43 +33,43 @@ CameraFrame CameraVimba::getFrame(){
 
     //AVT::VmbAPI::FramePtr pFrame=frameWatcher->GetFrame();
 
-    QSettings settings("SLStudio");
-    unsigned int shift = settings.value("trigger/shift", "0").toInt();
-    unsigned int delay = settings.value("trigger/delay", "100").toInt();
+    //QSettings settings("SLStudio");
+    unsigned int shift = 0;//settings.value("trigger/shift", "0").toInt();
+    unsigned int delay = 100;//settings.value("trigger/delay", "100").toInt();
 
     err = m_pCamera->AcquireSingleImage( pFrame, delay );//timeout=5000:The time to wait until the frame got filled
 
     if (err!=VmbErrorSuccess) {
-        qDebug()<< "AcquireSingleImage err="<< ErrorCodeToMessage(err).c_str();
+        std::cout<< "AcquireSingleImage err="<< ErrorCodeToMessage(err).c_str()<<std::endl;
         return frame;
     }
 
-    qDebug()<<"getFrame --> GetFrame() works!  ";
+    std::cout<<"getFrame --> GetFrame() works!  ";
 
     const char *    pFileName   = NULL;             // The filename for the bitmap to save
 
-    pFileName = "SynchronousGrab.bmp";
+    pFileName = "frameSeq_Debug.bmp";
 
 
     VmbPixelFormatType ePixelFormat = VmbPixelFormatMono8;
     err = pFrame->GetPixelFormat( ePixelFormat );
     if ( VmbErrorSuccess != err )
     {
-        qDebug()<< "GetPixelFormat err="<< ErrorCodeToMessage(err).c_str();
+        std::cout<< "GetPixelFormat err="<< ErrorCodeToMessage(err).c_str();
         return frame;
     }
 
     if(  ( VmbPixelFormatMono8 != ePixelFormat ) &&  ( VmbPixelFormatRgb8 != ePixelFormat ))
     {
         err = VmbErrorInvalidValue;
-        qDebug()<< "VmbPixelFormatMono8 err="<< ErrorCodeToMessage(err).c_str();
+        std::cout<< "VmbPixelFormatMono8 err="<< ErrorCodeToMessage(err).c_str();
         return frame;
     }
 
     err = pFrame->GetImageSize( frame.sizeBytes );
     if ( VmbErrorSuccess != err )
     {
-        qDebug()<< "GetImageSize err="<< ErrorCodeToMessage(err).c_str();
+        std::cout<< "GetImageSize err="<< ErrorCodeToMessage(err).c_str();
         return frame;
     }
 
@@ -78,7 +77,7 @@ CameraFrame CameraVimba::getFrame(){
     width = frame.width;
     if ( VmbErrorSuccess != err )
     {
-        qDebug()<< "GetWidth err="<< ErrorCodeToMessage(err).c_str();
+        std::cout<< "GetWidth err="<< ErrorCodeToMessage(err).c_str();
         return frame;
     }
 
@@ -86,16 +85,18 @@ CameraFrame CameraVimba::getFrame(){
     height = frame.height;
     if ( VmbErrorSuccess != err )
     {
-        qDebug()<< "GetWidth err="<< ErrorCodeToMessage(err).c_str();
+        std::cout<< "GetWidth err="<< ErrorCodeToMessage(err).c_str();
         return frame;
     }
 
     VmbUchar_t *pImage = NULL;
     err = pFrame->GetImage( pImage );
+
+    frame.memory = (unsigned char*)pImage;
     //err = pFrame->GetImage( frame.memory );
     if ( VmbErrorSuccess != err )
     {
-        qDebug()<< "GetImage err="<< ErrorCodeToMessage(err).c_str();
+        std::cout<< "GetImage err="<< ErrorCodeToMessage(err).c_str();
         return frame;
     }
 
@@ -104,20 +105,60 @@ CameraFrame CameraVimba::getFrame(){
     frame.timeStamp = stamp;
     if ( VmbErrorSuccess != err )
     {
-        qDebug()<< "GetTimestamp err="<< ErrorCodeToMessage(err).c_str();
+        std::cout<< "GetTimestamp err="<< ErrorCodeToMessage(err).c_str();
         return frame;
     }
 
-    // Create 8 bit OpenCV matrix
-    cv::Mat frameCV(frame.height, frame.width, CV_8U, pImage);//CV_32S, CV_8U
-    frameCV = frameCV.clone();
-    //int i=rand();
-    //QString filename = QString("frameSeq_Debug_%1.bmp").arg(i, 2, 10, QChar('0'));
-    QString filename = QString("frameSeq_Debug.bmp");
-    cv::imwrite(filename.toStdString(), frameCV);
-    //frame.memory = pImage;
 
-    qDebug()<<"getFrame --> GetFrame-->End. size="<< frame.sizeBytes << ", Height=" << frame.height << ", width=" << frame.width  << ", stamp="<< stamp;
+    //-------------------------------------------------------------------------------------
+//    //Yang: stupid way to save image to disk, then read it again when run getFrame() outside.
+//    // Create 8 bit OpenCV matrix
+//    cv::Mat frameCV(frame.height, frame.width, CV_8U, pImage);//CV_32S, CV_8U
+//    frameCV = frameCV.clone();
+//    //int i=rand();
+//    //QString filename = QString("frameSeq_Debug_%1.bmp").arg(i, 2, 10, QChar('0'));
+//    std::string filename = "frameSeq_Debug.bmp";
+//    cv::imwrite(filename, frameCV);
+//    //frame.memory = pImage;
+    //-------------------------------------------------------------------------------------
+
+
+
+    //-------------------------------------------------------------------------------------
+    AVTBitmap bitmap;
+    bitmap.colorCode = ColorCodeMono8;
+    bitmap.bufferSize = frame.sizeBytes;
+    bitmap.width = width;
+    bitmap.height = height;
+
+    // Create the bitmap
+    if ( 0 == AVTCreateBitmap( &bitmap, pImage ))
+    {
+        std::cout<<"Could not create bitmap.\n";
+        err = VmbErrorResources;
+    }
+    else
+    {
+        // Save the bitmap
+        if ( 0 == AVTWriteBitmapToFile( &bitmap, pFileName ))
+        {
+            std::cout<<"Could not write bitmap to file.\n";
+            err = VmbErrorOther;
+        }
+        else
+        {
+            std::cout<<"Bitmap successfully written to file \""<<pFileName<<"\"\n" ;
+            // Release the bitmap's buffer
+            if ( 0 == AVTReleaseBitmap( &bitmap ))
+            {
+                std::cout<<"Could not release the bitmap.\n";
+                err = VmbErrorInternalFault;
+            }
+        }
+    }
+    //-------------------------------------------------------------------------------------
+
+    std::cout<<"getFrame --> GetFrame-->End. size="<< frame.sizeBytes << ", Height=" << frame.height << ", width=" << frame.width  << ", stamp="<< stamp;
 
     return frame;
 }
@@ -143,12 +184,12 @@ bool CameraVimba::Init(unsigned int camNum)
 
             if (cameras.size()>0) {
                 if (cameras.size()>1) {
-                    qDebug() << "Cameras found: " << cameras.size();  // should also implement Qinputdialog to let the user choose which one to use
+                    std::cout << "Cameras found: " << cameras.size();  // should also implement Qinputdialog to let the user choose which one to use
                     for (uint i=0;i<cameras.size();i++) {
                         CameraPtr cam=cameras[i];
                         std::string namestr;
                         err=cam->GetName(namestr);
-                        qDebug()<<"Next Camera is: "<<QString::fromStdString(namestr);
+                        std::cout<<"Next Camera is: "<<namestr;
                     }
                 }
 
@@ -159,13 +200,13 @@ bool CameraVimba::Init(unsigned int camNum)
                 err=m_pCamera->GetName(namestr);
                 err=m_pCamera->GetID(camID);
                 if( VmbErrorSuccess == err )    {
-                    qDebug()<<"Opening camera "<<QString::fromStdString(namestr);
+                    std::cout<<"Opening camera "<<namestr;
 
                     err=m_pCamera->Open(VmbAccessModeFull);
 
                     if (err==VmbErrorSuccess) {
                         //camera successfully opened. Now do some camera initialisation steps
-                        qDebug()<<"camera successfully opened";
+                        std::cout<<"camera successfully opened";
 
                         // Set the GeV packet size to the highest possible value
                         // (In this example we do not test whether this cam actually is a GigE cam)
@@ -199,32 +240,32 @@ bool CameraVimba::Init(unsigned int camNum)
                         this->setCameraSettings(settings);
 
 
-                        qDebug()<<"camera successfully opened --> Set/Get finished!";
+                        std::cout<<"camera successfully opened --> Set/Get finished!";
 
                     } else {
-                        qDebug()<<"camera did not open successfully";
+                        std::cout<<"camera did not open successfully";
                         return false;
                     }
                 }
             } else {
-                qDebug()<<"Zero cameras found";
+                std::cout<<"Zero cameras found";
                 return false;
             }
 
 
 
         } else {
-            qDebug() << "Could not list cameras. Error code: " << err;
+            std::cout << "Could not list cameras. Error code: " << err;
             return false;
         }
 
     } else {
-        qDebug() << "Could not start system. Error code: " << err;
+        std::cout << "Could not start system. Error code: " << err;
         return false;
     }
 
 
-    qDebug()<<"Init --> End  ";
+    std::cout<<"Init --> End  ";
     return true;
 }
 
@@ -251,7 +292,7 @@ void CameraVimba::startCapture()
     }
 
 
-    qDebug()<<"startCapture --> RunCommand -->AcquisitionStart ";
+    std::cout<<"startCapture --> RunCommand -->AcquisitionStart ";
     capturing = true;
 }
 
@@ -260,11 +301,11 @@ void CameraVimba::stopCapture()
 {
     VmbErrorType err=m_pCamera->Close();
     if (err!=VmbErrorSuccess) {
-        qDebug()<<"Problem closing the camera";
+        std::cout<<"Problem closing the camera";
     }
     err=m_system.Shutdown();
     if (err!=VmbErrorSuccess) {
-        qDebug()<<"Problem shutting down Vimba";
+        std::cout<<"Problem shutting down Vimba";
     }
     capturing = false;
 }
@@ -273,11 +314,11 @@ CameraVimba::~CameraVimba()
 {
     VmbErrorType err=m_pCamera->Close();
     if (err!=VmbErrorSuccess) {
-        qDebug()<<"Problem closing the camera";
+        std::cout<<"Problem closing the camera";
     }
     err=m_system.Shutdown();
     if (err!=VmbErrorSuccess) {
-        qDebug()<<"Problem shutting down Vimba";
+        std::cout<<"Problem shutting down Vimba";
     }
 }
 
@@ -407,12 +448,12 @@ std::vector<std::string> CameraVimba::listOptions(FeaturePtr pFeature) {
         pFeature->IsValueAvailable(vals[i].c_str(),ok);
         if (ok) {
             realVals.push_back(vals[i]);
-//            qDebug()<<"Valid value: " << QString::fromStdString(vals[i]);
+//            std::cout<<"Valid value: " << QString::fromStdString(vals[i]);
         }
     }
     return realVals;
 }
-void CameraVimba::setFormat(QString formatstring) {
+void CameraVimba::setFormat(std::string formatstring) {
     format=formatstring;
     FeaturePtr pFeature;
     VmbErrorType err;
@@ -433,15 +474,15 @@ void CameraVimba::setFormat(QString formatstring) {
         } else if (format=="BAYERGB8") {
             err=pFeature->SetValue(VmbPixelFormatBayerGB8);
         } else {
-            qDebug()<<"Pixel Format not yet working in Gigaviewer: "<<format;
+            std::cout<<"Pixel Format not yet working in Gigaviewer: "<<format;
         }
         if (err!=VmbErrorSuccess) {
-            qDebug()<<"Could not set requested pixel format.";
+            std::cout<<"Could not set requested pixel format.";
         }
         std::string form;
         err=pFeature->GetValue(form);
-//        qDebug()<<"Working in "<<QString::fromStdString(form)<<" mode";
-//                                qDebug()<<"Will work in Mono8 mode";
+//        std::cout<<"Working in "<<QString::fromStdString(form)<<" mode";
+//                                std::cout<<"Will work in Mono8 mode";
     }
 }
 

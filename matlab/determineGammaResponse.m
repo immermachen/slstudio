@@ -3,7 +3,7 @@ clear('all');
 %close('all');
 
 p = Projector(1);
-c = Camera(1,0);
+c = Camera(0,0);
 c.startCapture();
 
 response = zeros(256, 1);
