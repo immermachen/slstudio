@@ -11,6 +11,8 @@
 
 #include "CameraVimba.h"
 #include <stdlib.h>  //for atoi
+#include <sstream>
+
 //#include <qinputdialog.h>
 //#include <QDateTime>
 //#include <QSettings>
@@ -24,19 +26,14 @@ using namespace AVT::VmbAPI;
 
 
 CameraFrame CameraVimba::getFrame(){
-
-    std::cout<<"getFrame -->  " <<std::endl;
-
+    const char *    pFileName   = NULL;             // The filename for the bitmap to save
+    pFileName = "frameSeq_Debug.bmp";
     CameraFrame frame;
     FramePtr pFrame;
     VmbErrorType err;
-
-    //AVT::VmbAPI::FramePtr pFrame=frameWatcher->GetFrame();
-
     //QSettings settings("SLStudio");
     unsigned int shift = 0;//settings.value("trigger/shift", "0").toInt();
     unsigned int delay = 100;//settings.value("trigger/delay", "100").toInt();
-
     err = m_pCamera->AcquireSingleImage( pFrame, delay );//timeout=5000:The time to wait until the frame got filled
 
     if (err!=VmbErrorSuccess) {
@@ -44,121 +41,112 @@ CameraFrame CameraVimba::getFrame(){
         return frame;
     }
 
-    std::cout<<"getFrame --> GetFrame() works!  ";
+    // See if it is not corrupt
+    VmbFrameStatusType eReceiveStatus;
+    err = pFrame->GetReceiveStatus( eReceiveStatus );
+    if (VmbErrorSuccess != err || VmbFrameStatusComplete != eReceiveStatus)
+    {
+        std::cout<< "AcquireSingleImage-->GetReceiveStatus err="<< ErrorCodeToMessage(err).c_str()<<std::endl;
+        return frame;
+    }
 
-    const char *    pFileName   = NULL;             // The filename for the bitmap to save
-
-    pFileName = "frameSeq_Debug.bmp";
-
+    std::cout<<"getFrame --> GetFrame() works!  "<<std::endl;
 
     VmbPixelFormatType ePixelFormat = VmbPixelFormatMono8;
     err = pFrame->GetPixelFormat( ePixelFormat );
     if ( VmbErrorSuccess != err )
     {
-        std::cout<< "GetPixelFormat err="<< ErrorCodeToMessage(err).c_str();
+        std::cout<< "GetPixelFormat err="<< ErrorCodeToMessage(err).c_str()<<std::endl;;
         return frame;
     }
-
     if(  ( VmbPixelFormatMono8 != ePixelFormat ) &&  ( VmbPixelFormatRgb8 != ePixelFormat ))
     {
         err = VmbErrorInvalidValue;
-        std::cout<< "VmbPixelFormatMono8 err="<< ErrorCodeToMessage(err).c_str();
+        std::cout<< "VmbPixelFormatMono8 err="<< ErrorCodeToMessage(err).c_str()<<std::endl;;
         return frame;
     }
-
     err = pFrame->GetImageSize( frame.sizeBytes );
     if ( VmbErrorSuccess != err )
     {
-        std::cout<< "GetImageSize err="<< ErrorCodeToMessage(err).c_str();
+        std::cout<< "GetImageSize err="<< ErrorCodeToMessage(err).c_str()<<std::endl;;
         return frame;
     }
-
     err = pFrame->GetWidth( frame.width );
     width = frame.width;
     if ( VmbErrorSuccess != err )
     {
-        std::cout<< "GetWidth err="<< ErrorCodeToMessage(err).c_str();
+        std::cout<< "GetWidth err="<< ErrorCodeToMessage(err).c_str()<<std::endl;;
         return frame;
     }
-
     err = pFrame->GetHeight( frame.height );
     height = frame.height;
     if ( VmbErrorSuccess != err )
     {
-        std::cout<< "GetWidth err="<< ErrorCodeToMessage(err).c_str();
+        std::cout<< "GetWidth err="<< ErrorCodeToMessage(err).c_str()<<std::endl;;
         return frame;
     }
-
     VmbUchar_t *pImage = NULL;
-    err = pFrame->GetImage( pImage );
-
-    frame.memory = (unsigned char*)pImage;
-    //err = pFrame->GetImage( frame.memory );
+    err = pFrame->GetImage( pImage );    
     if ( VmbErrorSuccess != err )
     {
-        std::cout<< "GetImage err="<< ErrorCodeToMessage(err).c_str();
+        std::cout<< "GetImage err="<< ErrorCodeToMessage(err).c_str()<<std::endl;;
         return frame;
     }
-
     VmbUint64_t stamp;
     err=pFrame->GetTimestamp( stamp );
     frame.timeStamp = stamp;
     if ( VmbErrorSuccess != err )
     {
-        std::cout<< "GetTimestamp err="<< ErrorCodeToMessage(err).c_str();
+        std::cout<< "GetTimestamp err="<< ErrorCodeToMessage(err).c_str()<<std::endl;;
         return frame;
     }
 
 
-    //-------------------------------------------------------------------------------------
-//    //Yang: stupid way to save image to disk, then read it again when run getFrame() outside.
-//    // Create 8 bit OpenCV matrix
-//    cv::Mat frameCV(frame.height, frame.width, CV_8U, pImage);//CV_32S, CV_8U
-//    frameCV = frameCV.clone();
-//    //int i=rand();
-//    //QString filename = QString("frameSeq_Debug_%1.bmp").arg(i, 2, 10, QChar('0'));
-//    std::string filename = "frameSeq_Debug.bmp";
-//    cv::imwrite(filename, frameCV);
-//    //frame.memory = pImage;
-    //-------------------------------------------------------------------------------------
+//    //------------------Debug-------------------------------------------------------------------
+//    AVTBitmap bitmap;
+//    bitmap.colorCode = ColorCodeMono8;
+//    bitmap.bufferSize = frame.sizeBytes;
+//    bitmap.width = width;
+//    bitmap.height = height;
 
+//    // Create the bitmap
+//    if ( 0 == AVTCreateBitmap( &bitmap, pImage ))
+//    {
+//        std::cout<<"Could not create bitmap.\n";
+//        err = VmbErrorResources;
+//    }
+//    else
+//    {
+//        // Save the bitmap
+//        if ( 0 == AVTWriteBitmapToFile( &bitmap, pFileName ))
+//        {
+//            std::cout<<"Could not write bitmap to file.\n";
+//            err = VmbErrorOther;
+//        }
+//        else
+//        {
+//            std::cout<<"Bitmap successfully written to file \""<<pFileName<<"\"\n" ;
+//            // Release the bitmap's buffer
+//            if ( 0 == AVTReleaseBitmap( &bitmap ))
+//            {
+//                std::cout<<"Could not release the bitmap.\n";
+//                err = VmbErrorInternalFault;
+//            }
+//        }
+//    }
+//    //-------------------------------------------------------------------------------------
 
-
-    //-------------------------------------------------------------------------------------
-    AVTBitmap bitmap;
-    bitmap.colorCode = ColorCodeMono8;
-    bitmap.bufferSize = frame.sizeBytes;
-    bitmap.width = width;
-    bitmap.height = height;
-
-    // Create the bitmap
-    if ( 0 == AVTCreateBitmap( &bitmap, pImage ))
+    //frame.memory = (unsigned char*)pImage;
+    unsigned char* pBitmapBuffer = new unsigned char[frame.sizeBytes];
+    for(int i=0;i<frame.sizeBytes;i++)
     {
-        std::cout<<"Could not create bitmap.\n";
-        err = VmbErrorResources;
+        pBitmapBuffer[i] = pImage[i];
     }
-    else
-    {
-        // Save the bitmap
-        if ( 0 == AVTWriteBitmapToFile( &bitmap, pFileName ))
-        {
-            std::cout<<"Could not write bitmap to file.\n";
-            err = VmbErrorOther;
-        }
-        else
-        {
-            std::cout<<"Bitmap successfully written to file \""<<pFileName<<"\"\n" ;
-            // Release the bitmap's buffer
-            if ( 0 == AVTReleaseBitmap( &bitmap ))
-            {
-                std::cout<<"Could not release the bitmap.\n";
-                err = VmbErrorInternalFault;
-            }
-        }
-    }
-    //-------------------------------------------------------------------------------------
+    frame.memory = pBitmapBuffer;
 
-    std::cout<<"getFrame --> GetFrame-->End. size="<< frame.sizeBytes << ", Height=" << frame.height << ", width=" << frame.width  << ", stamp="<< stamp;
+
+    std::cout<<"getFrame --> GetFrame-->End. size="<< frame.sizeBytes << ", Height=" << frame.height << ", width=" << frame.width  << ", stamp="<< stamp<<std::endl;
+
 
     return frame;
 }

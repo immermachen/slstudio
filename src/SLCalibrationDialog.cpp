@@ -113,17 +113,9 @@ void SLCalibrationDialog::timerEvent(QTimerEvent *event){
     QApplication::processEvents();
     CameraFrame frame = camera->getFrame();
 
-    //Yang deleted
-//    cv::Mat frameCV(frame.height, frame.width, CV_8U, frame.memory);
-//    frameCV = frameCV.clone();
-////    cv::resize(frameCV, frameCV, cv::Size(0, 0), 0.5, 0,5);
-
-    //Yang:
-    QString filename = QString("frameSeq_Debug.bmp");
-    cv::Mat tmpFrame = cv::imread(filename.toStdString(), CV_LOAD_IMAGE_GRAYSCALE);
-    cv::Mat frameCV(frame.height, frame.width, CV_8U, tmpFrame.data);
+    cv::Mat frameCV(frame.height, frame.width, CV_8UC1, frame.memory);
     frameCV = frameCV.clone();
-
+//    cv::resize(frameCV, frameCV, cv::Size(0, 0), 0.5, 0,5);
 
     ui->videoWidget->showFrameCV(frameCV);
 
@@ -164,17 +156,9 @@ void SLCalibrationDialog::on_snapButton_clicked(){
         // Aquire frame
         CameraFrame frame = camera->getFrame();
 
-        //Yang deleted
-//        cv::Mat frameCV(frame.height, frame.width, CV_8U, frame.memory);
-//        frameCV = frameCV.clone();
-////        cv::resize(frameCV, frameCV, cv::Size(0, 0), 0.5, 0,5);
-
-
-        //Yang:
-        QString filename1 = QString("frameSeq_Debug.bmp");
-        cv::Mat tmpFrame = cv::imread(filename1.toStdString(),CV_LOAD_IMAGE_GRAYSCALE);
-        cv::Mat frameCV(frame.height, frame.width, CV_8U, tmpFrame.data);
+        cv::Mat frameCV(frame.height, frame.width, CV_8U, frame.memory);
         frameCV = frameCV.clone();
+////        cv::resize(frameCV, frameCV, cv::Size(0, 0), 0.5, 0,5);
 
         //Yang:
         int seqNum = frameSeqs.size();

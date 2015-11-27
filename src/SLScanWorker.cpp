@@ -220,27 +220,9 @@ void SLScanWorker::doWork(){
                 success = false;
             }
 
-            //---debug-----Yang---------------------------------------------------
-            //Here  frame = camera->getFrame(); this can not get memory from getFrame().
-            //I do not know the reason, maybe multithread results in the lost of memory data.
-            //So I first save the image into disk in camera class, then read the image here again.
-
-//            // Create 8 bit OpenCV matrix
-//            cv::Mat frameCV1(frame.height, frame.width, CV_8U, frame.memory);//CV_32S, CV_8U
-//            frameCV1 = frameCV1.clone();
-////            int i=rand();
-//            QString filename = QString("frameSeq_scan_%1.bmp").arg(i, 2, 10, QChar('0'));
-//            cv::imwrite(filename.toStdString(), frameCV1);
-
-            QString filename = QString("frameSeq_Debug.bmp");
-            cv::Mat tmpFrame = cv::imread(filename.toStdString(),CV_LOAD_IMAGE_GRAYSCALE);
-            cv::Mat frameCV(frame.height, frame.width, CV_8U, tmpFrame.data);
-            frameCV = frameCV.clone();
-             //debug end-----------------------------------------------------
-
             // Create 8 bit OpenCV matrix
-//            cv::Mat frameCV(frame.height, frame.width, CV_8UC1, frame.memory);
-//            frameCV = frameCV.clone();
+            cv::Mat frameCV(frame.height, frame.width, CV_8UC1, frame.memory);
+            frameCV = frameCV.clone();
 
             if(triggerMode == triggerModeHardware)
                 frameSeq[(i+N-shift)%N] = frameCV;
