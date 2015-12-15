@@ -7,23 +7,11 @@
 **  should return the frame to the API by re-enqueuing it at the corresponding camera.
 
 ******************************************************************************/
-
-
 #include "CameraVimba.h"
 #include <stdlib.h>  //for atoi
 #include <sstream>
 
-//#include <qinputdialog.h>
-//#include <QDateTime>
-//#include <QSettings>
-
-//#include <opencv2/opencv.hpp>
-//#include "cvtools.h"
-
 using namespace AVT::VmbAPI;
-
-
-
 
 CameraFrame CameraVimba::getFrame(){
     const char *    pFileName   = NULL;             // The filename for the bitmap to save
@@ -33,7 +21,7 @@ CameraFrame CameraVimba::getFrame(){
     VmbErrorType err;
     //QSettings settings("SLStudio");
     unsigned int shift = 0;//settings.value("trigger/shift", "0").toInt();
-    unsigned int delay = 100;//settings.value("trigger/delay", "100").toInt();
+    unsigned int delay = 5000;//settings.value("trigger/delay", "100").toInt();
     err = m_pCamera->AcquireSingleImage( pFrame, delay );//timeout=5000:The time to wait until the frame got filled
 
     if (err!=VmbErrorSuccess) {
@@ -100,41 +88,6 @@ CameraFrame CameraVimba::getFrame(){
         std::cout<< "GetTimestamp err="<< ErrorCodeToMessage(err).c_str()<<std::endl;;
         return frame;
     }
-
-
-//    //------------------Debug-------------------------------------------------------------------
-//    AVTBitmap bitmap;
-//    bitmap.colorCode = ColorCodeMono8;
-//    bitmap.bufferSize = frame.sizeBytes;
-//    bitmap.width = width;
-//    bitmap.height = height;
-
-//    // Create the bitmap
-//    if ( 0 == AVTCreateBitmap( &bitmap, pImage ))
-//    {
-//        std::cout<<"Could not create bitmap.\n";
-//        err = VmbErrorResources;
-//    }
-//    else
-//    {
-//        // Save the bitmap
-//        if ( 0 == AVTWriteBitmapToFile( &bitmap, pFileName ))
-//        {
-//            std::cout<<"Could not write bitmap to file.\n";
-//            err = VmbErrorOther;
-//        }
-//        else
-//        {
-//            std::cout<<"Bitmap successfully written to file \""<<pFileName<<"\"\n" ;
-//            // Release the bitmap's buffer
-//            if ( 0 == AVTReleaseBitmap( &bitmap ))
-//            {
-//                std::cout<<"Could not release the bitmap.\n";
-//                err = VmbErrorInternalFault;
-//            }
-//        }
-//    }
-//    //-------------------------------------------------------------------------------------
 
     //frame.memory = (unsigned char*)pImage;
     unsigned char* pBitmapBuffer = new unsigned char[frame.sizeBytes];
