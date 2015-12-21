@@ -73,6 +73,8 @@ HEADERS  += SLStudio.h \
         tracker/TrackerPCL.h \
         tracker/PoseFilter.h \
         cvtools.h \
+    codec/CodecGrayPhase.h \
+    codec/GrayPhase.h
 
 SOURCES += main.cpp \
         SLStudio.cpp \
@@ -121,6 +123,8 @@ SOURCES += main.cpp \
         tracker/CorrRejectOrgBoundFast.cpp \
         tracker/TrackerPCL.cpp \
         tracker/PoseFilter.cpp \
+    codec/CodecGrayPhase.cpp \
+    codec/GrayPhase.cpp
 
 INCLUDEPATH += camera/ projector/ codec/ triangulator/ calibrator/ tracker/
 
