@@ -32,7 +32,13 @@ srcFilesCamera = ['CameraMex.cpp' srcFilesCamera];
 %mex('-v', ['-I' srcDirCamera], CXXFLAGS{:}, DEFINES{:}, srcFilesCamera{:}, LDFLAGS{:});
 %mex('-v', ['-I' srcDirCamera], CXXFLAGS(:), DEFINES(:), srcFilesCamera(:), LDFLAGS(:));
 %mex -v -I/home/yang/slstudio/src/camera/ -I/opt/Vimba_1_3/VimbaCPP/Include -I/opt/Vimba_1_3  -DWITH_CAMERAVIMBA  CameraMex.cpp    /home/yang/slstudio/src/camera/Bitmap.cpp /home/yang/slstudio/src/camera/Camera.cpp    /home/yang/slstudio/src/camera/CameraVimba.cpp  -L/opt/Vimba_1_3/VimbaCPP/DynamicLib/x86_64bit -lVimbaCPP -lVimbaC
+
+%Ubuntu: Yang: only use this sentence code
 mex -v -I/home/yang/slstudio/src/camera/ -I/opt/Vimba_1_3/VimbaCPP/Include -I/opt/Vimba_1_3  -DWITH_CAMERAVIMBA  CameraMex.cpp    /home/yang/slstudio/src/camera/Bitmap.cpp /home/yang/slstudio/src/camera/Camera.cpp    /home/yang/slstudio/src/camera/CameraVimba.cpp  /opt/Vimba_1_3/VimbaCPP/DynamicLib/x86_64bit/libVimbaCPP.so /opt/Vimba_1_3/VimbaCPP/DynamicLib/x86_64bit/libVimbaC.so
+
+%Windows: Yang: only use this sentence code
+%mex -v -ID:/slstudio/src/camera/ '-IC:/Users/Public/Documents/Allied Vision/Vimba_1.4/VimbaCPP_Examples/Common' '-IC:/Program Files/Allied Vision Technologies/AVTVimba_1.4/VimbaCPP/Include' '-IC:/Program Files/Allied Vision Technologies/AVTVimba_1.4'  -DWITH_CAMERAVIMBA  CameraMex.cpp    D:/slstudio/src/camera/Bitmap.cpp D:/slstudio/src/camera/Camera.cpp    D:/slstudio/src/camera/CameraVimba.cpp  '-LC:/Program Files/Allied Vision Technologies/AVTVimba_1.4/VimbaCPP/Lib/Win64/VimbaCPP.lib' '-LC:/Program Files/Allied Vision Technologies/AVTVimba_1.4/VimbaC/Lib/Win64/VimbaC.lib'
+
 %% Projector
 srcDirProjector = [srcDir 'projector/'];
 srcFilesProjector = {'ProjectorOpenGL.cpp'};
@@ -56,5 +62,8 @@ end
 srcFilesProjector = strcat(srcDirProjector, srcFilesProjector);
 srcFilesProjector = ['ProjectorMex.cpp' srcFilesProjector];
 
-%mex('-v', ['-I' srcDirProjector], srcFilesProjector{:}, CXXFLAGS{:}, DEFINES{:}, LDFLAGS{:});
+%Ubuntu: Yang: only use this sentence code
 mex -v -I/home/yang/slstudio/src/projector/ ProjectorMex.cpp  /home/yang/slstudio/src/projector/OpenGLContext.Unix.cpp /home/yang/slstudio/src/projector/ProjectorOpenGL.cpp -lGL -lGLU -lX11 -lXxf86vm -lGLEW
+
+%Windows: Yang: only use this sentence code
+%mex -v -ID:/slstudio/src/camera/ -IC:/Program Files/Allied Vision Technologies/AVTVimba_1.4/VimbaCPP/Include -IC:/Program Files/Allied Vision Technologies/AVTVimba_1.4  -DWITH_CAMERAVIMBA  CameraMex.cpp    D:/slstudio/src/camera/Bitmap.cpp D:/slstudio/src/camera/Camera.cpp    D:/slstudio/src/camera/CameraVimba.cpp  -lC:/Program Files/Allied Vision Technologies/AVTVimba_1.4/VimbaCPP/Lib/Win64/VimbaCPP.lib -lC:/Program Files/Allied Vision Technologies/AVTVimba_1.4/VimbaC/Lib/Win64/VimbaC.lib
