@@ -287,17 +287,17 @@ macx{
 
 # Compile with specific camera driver bindings
 #Vimba
-#/opt/Vimba_1_3/VimbaC/DynamicLib/x86_64bit/libVimbaC.so
+#/opt/Vimba_1_4/VimbaC/DynamicLib/x86_64bit/libVimbaC.so
 #Vimba C++ API (libVimbaCPP.so)                        1.3.0*
 #Image Transform Library (libAVTImageTransform.so)     1.2.0*
-# Vimba Camera: /opt/Vimba_1_3/VimbaCPP/Include
-#               /opt/Vimba_1_3/AVTImageTransform/Include
-#               /opt/Vimba_1_3/AVTImageTransform/DynamicLib/x86_64bit/libAVTImageTransform.so
-unix:!macx:exists(/opt/Vimba_1_3/VimbaCPP/Include/VimbaCPP.h){
+# Vimba Camera: /opt/Vimba_1_4/VimbaCPP/Include
+#               /opt/Vimba_1_4/AVTImageTransform/Include
+#               /opt/Vimba_1_4/AVTImageTransform/DynamicLib/x86_64bit/libAVTImageTransform.so
+unix:!macx:exists(/opt/Vimba_1_4/VimbaCPP/Include/VimbaCPP.h){
     DEFINES += WITH_CAMERAVIMBA
-    INCLUDEPATH += /opt/Vimba_1_3/VimbaCPP/Include \
-                   /opt/Vimba_1_3
-    LIBS += -L /opt/Vimba_1_3/VimbaCPP/DynamicLib/x86_64bit -lVimbaCPP -lVimbaC
+    INCLUDEPATH += /opt/Vimba_1_4/VimbaCPP/Include \
+                   /opt/Vimba_1_4
+    LIBS += -L /opt/Vimba_1_4/VimbaCPP/DynamicLib/x86_64bit -lVimbaCPP -lVimbaC
 }
 contains(DEFINES, WITH_CAMERAVIMBA) {
     HEADERS += camera/CameraVimba.h
