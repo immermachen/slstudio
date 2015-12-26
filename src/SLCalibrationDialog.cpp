@@ -16,7 +16,7 @@
 #include "CalibratorRBF.h"
 
 #include "cvtools.h"
-
+#include "SLCameraVirtual.h"
 
 SLCalibrationDialog::SLCalibrationDialog(SLStudio *parent) : QDialog(parent), ui(new Ui::SLCalibrationDialog), reviewMode(false), timerInterval(100), delay(100) {
     ui->setupUi(this);
@@ -28,28 +28,45 @@ SLCalibrationDialog::SLCalibrationDialog(SLStudio *parent) : QDialog(parent), ui
     QSettings settings("SLStudio");
 
     //Checkerboard parameters
-    float checkerSize = settings.value("calibration/checkerSize",8).toFloat();
+    float checkerSize = settings.value("calibration/checkerSize",10).toFloat();
     //ui->checkerSizeBox->setValue(checkerSize);
-    ui->txtCheckSize->setPlainText(settings.value("calibration/checkerSize",8).toString());
+    ui->txtCheckSize->setPlainText(settings.value("calibration/checkerSize",10).toString());
 
-    unsigned int checkerRows = settings.value("calibration/checkerRows",8).toInt();
+    unsigned int checkerRows = settings.value("calibration/checkerRows",6).toInt();
     ui->checkerRowsBox->setValue(checkerRows);
-    unsigned int checkerCols = settings.value("calibration/checkerCols",8).toInt();
+    unsigned int checkerCols = settings.value("calibration/checkerCols",9).toInt();
     ui->checkerColsBox->setValue(checkerCols);
 
-    // Instatiate camera with software trigger
-    int iNum = settings.value("camera/interfaceNumber", 0).toInt();
-    int cNum = settings.value("camera/cameraNumber", 0).toInt();
-    camera = Camera::NewCamera(iNum,cNum,triggerModeSoftware);
+
+    // Read trigger configuration
+    CameraTriggerMode triggerMode;
+    QString sTriggerMode = settings.value("trigger/mode", "Hardware").toString();
+    if(sTriggerMode == "hardware")
+        triggerMode = triggerModeHardware;
+    else if(sTriggerMode == "software")
+        triggerMode = triggerModeSoftware;
+    else
+        std::cerr << "SLCalibrationDialog: invalid trigger mode " << sTriggerMode.toStdString() << std::endl;
+
+    // Create camera
+    int iNum = settings.value("camera/interfaceNumber", -1).toInt();
+    int cNum = settings.value("camera/cameraNumber", -1).toInt();
+    if(iNum != -1)
+        camera = Camera::NewCamera(iNum,cNum,triggerMode);
+    else
+        camera = new SLCameraVirtual(cNum,triggerMode);
 
     delay = settings.value("trigger/delay", "100").toInt();
 
-    // Set camera settings
-    CameraSettings camSettings;
-    camSettings.shutter = settings.value("camera/shutter", 16.666).toFloat();
-    camSettings.gain = 0.0;
-    camera->setCameraSettings(camSettings);
-    camera->startCapture();
+    //Yang: TODO
+//    // Set camera settings
+//    CameraSettings camSettings;
+//    camSettings.shutter = settings.value("camera/shutter", 16.666).toFloat();
+//    camSettings.gain = 0.0;
+//    camera->setCameraSettings(camSettings);
+
+    //TODO: tempary comment
+    //camera->startCapture();
 
     // Initialize projector
     int screenNum = settings.value("projector/screenNumber", -1).toInt();
@@ -66,6 +83,8 @@ SLCalibrationDialog::SLCalibrationDialog(SLStudio *parent) : QDialog(parent), ui
 
     unsigned int screenResX, screenResY;
     projector->getScreenRes(&screenResX, &screenResY);
+
+    std::cout<< screenResX << "-" << screenResY << std::endl;
 
     diamondPattern = settings.value("projector/diamondPattern", false).toBool();
 
@@ -96,11 +115,17 @@ SLCalibrationDialog::SLCalibrationDialog(SLStudio *parent) : QDialog(parent), ui
 
         projector->setPattern(i, pattern.ptr(), pattern.cols, pattern.rows);
 
+#if 0
+        QString filename = QString("PatternSeq_cal_%1_%2.bmp").arg(8, 2, 10, QChar('0')).arg(i, 2, 10, QChar('0'));
+        cv::imwrite(filename.toStdString(), pattern);
+#endif
+
     }
 
-    // Start live view
-    timerInterval = delay + camSettings.shutter;
-    liveViewTimer = startTimer(timerInterval);
+    //Yang: TODO
+//    // Start live view
+//    timerInterval = delay + camSettings.shutter;
+//    liveViewTimer = startTimer(timerInterval);
 }
 
 void SLCalibrationDialog::timerEvent(QTimerEvent *event){
@@ -111,13 +136,13 @@ void SLCalibrationDialog::timerEvent(QTimerEvent *event){
     }
 
     QApplication::processEvents();
-    CameraFrame frame = camera->getFrame();
 
-    cv::Mat frameCV(frame.height, frame.width, CV_8UC1, frame.memory);
-    frameCV = frameCV.clone();
-//    cv::resize(frameCV, frameCV, cv::Size(0, 0), 0.5, 0,5);
-
-    ui->videoWidget->showFrameCV(frameCV);
+    //TODO: tempary comment
+//    CameraFrame frame = camera->getFrame();
+//    cv::Mat frameCV(frame.height, frame.width, CV_8UC1, frame.memory);
+//    frameCV = frameCV.clone();
+////    cv::resize(frameCV, frameCV, cv::Size(0, 0), 0.5, 0,5);
+//    ui->videoWidget->showFrameCV(frameCV);
 
     QApplication::processEvents();
 }
@@ -154,16 +179,24 @@ void SLCalibrationDialog::on_snapButton_clicked(){
         QApplication::processEvents();
 
         // Aquire frame
-        CameraFrame frame = camera->getFrame();
 
-        cv::Mat frameCV(frame.height, frame.width, CV_8U, frame.memory);
+        //TODO: tempary comment
+//        CameraFrame frame = camera->getFrame();
+//        cv::Mat frameCV(frame.height, frame.width, CV_8U, frame.memory);
+        std::stringstream oss;
+        oss << "data/aCam1-1/Capture-";
+        oss << i;
+        oss <<".bmp";
+        cv::Mat frameCV = cv::imread(oss.str(), CV_LOAD_IMAGE_GRAYSCALE);
+
         frameCV = frameCV.clone();
 ////        cv::resize(frameCV, frameCV, cv::Size(0, 0), 0.5, 0,5);
 
-        //Yang:
+#if 0
         int seqNum = frameSeqs.size();
         QString filename = QString("frameSeq_cal_%1_%2.bmp").arg(seqNum, 2, 10, QChar('0')).arg(i, 2, 10, QChar('0'));
         cv::imwrite(filename.toStdString(), frameCV);
+#endif
 
         // Show frame
         ui->videoWidget->showFrameCV(frameCV);

@@ -42,6 +42,7 @@ SLPreferenceDialog::SLPreferenceDialog(QWidget *parent) : QDialog(parent), ui(ne
     ui->cameraComboBox->addItem("SLStudio Virtual Camera", QPoint(-1, -1));
 
     // List pattern modes
+    ui->patternModeComboBox->addItem("Gray and Phase Shift 4", "CodecGrayPhase4");
     ui->patternModeComboBox->addItem("3 Pattern Phase Shift", "CodecPhaseShift3");
     ui->patternModeComboBox->addItem("4 Pattern Phase Shift", "CodecPhaseShift4");
     ui->patternModeComboBox->addItem("2x3 Pattern Phase Shift", "CodecPhaseShift2x3");

@@ -232,7 +232,6 @@ void CameraVimba::startCapture()
         }
     }
 
-
     std::cout<<"startCapture --> RunCommand -->AcquisitionStart ";
     capturing = true;
 }
@@ -253,6 +252,8 @@ void CameraVimba::stopCapture()
 
 CameraVimba::~CameraVimba()
 {
+    try
+    {
     VmbErrorType err=m_pCamera->Close();
     if (err!=VmbErrorSuccess) {
         std::cout<<"Problem closing the camera";
@@ -261,6 +262,8 @@ CameraVimba::~CameraVimba()
     if (err!=VmbErrorSuccess) {
         std::cout<<"Problem shutting down Vimba";
     }
+    }catch(std::exception ex)
+    {}
 }
 
 std::vector<CameraInfo> CameraVimba::getCameraList()

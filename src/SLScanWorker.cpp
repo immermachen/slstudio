@@ -22,6 +22,7 @@
 #include "CodecPhaseShiftMicro.h"
 #include "CodecFastRatio.h"
 #include "CodecGrayCode.h"
+#include "CodecGrayPhase.h"
 
 #include "ProjectorOpenGL.h"
 #include "ProjectorLC3000.h"
@@ -73,7 +74,7 @@ void SLScanWorker::setup(){
 
     // Initialize encoder
     bool diamondPattern = settings.value("projector/diamondPattern", false).toBool();
-    QString patternMode = settings.value("pattern/mode", "CodecPhaseShift3").toString();
+    QString patternMode = settings.value("pattern/mode", "CodecGrayPhase4").toString();
 
     unsigned int screenResX, screenResY;
     projector->getScreenRes(&screenResX, &screenResY);
@@ -92,7 +93,9 @@ void SLScanWorker::setup(){
     if(dir == CodecDirNone)
         std::cerr << "SLScanWorker: invalid coding direction " << std::endl;
 
-    if(patternMode == "CodecPhaseShift3")
+    if(patternMode == "CodecGrayPhase4")
+        encoder = new EncoderGrayPhase(screenCols, screenRows, dir);
+    else if(patternMode == "CodecPhaseShift3")
         encoder = new EncoderPhaseShift3(screenCols, screenRows, dir);
     else if(patternMode == "CodecPhaseShift4")
         encoder = new EncoderPhaseShift4(screenCols, screenRows, dir);

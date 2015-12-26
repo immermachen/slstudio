@@ -20,9 +20,6 @@ using namespace cv;
 
 namespace slib
 {
-class GrayPhase{
-
-public:
     //------------------------------------------------------------
     // gray code
     //------------------------------------------------------------
@@ -46,6 +43,8 @@ public:
     // 'period' is the phase period of sinusoidal curve in pixel
     //void GeneratePhaseCodeImage(const int direction, const int period, const int phase, Field<2,float> &bmp);
     void GeneratePhaseCodeImage(const int direction, const int period, const int phase, Mat& bmp);
+
+    Mat GeneratePhaseCode(const unsigned int length, const int period, const int phase);
 
     // generate phase image from moire pattern images.
     //void DecodePhaseCodeImages(const std::vector<Field<2,float>> &images, Field<2,float>& result);
@@ -72,9 +71,6 @@ public:
 
 //    //template <typename T> void ExportCorrespondencePlot(const Field<2, T>&code, const Field<2,float> &mask, const std::string & filename);
 //    template <typename T> void ExportCorrespondencePlot(const Mat&code, const Mat &mask, const std::string & filename);
-
-};
-
 
 } // namespace slib
 #endif // GrayPHASE_H

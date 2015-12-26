@@ -13,6 +13,7 @@
 #include "CodecPhaseShift2p1.h"
 #include "CodecFastRatio.h"
 #include "CodecGrayCode.h"
+#include "CodecGrayPhase.h"
 
 std::vector<CameraInfo> SLCameraVirtual::getCameraList(){
 
@@ -27,7 +28,7 @@ std::vector<CameraInfo> SLCameraVirtual::getCameraList(){
     return ret;
 }
 
-SLCameraVirtual::SLCameraVirtual(unsigned int, CameraTriggerMode triggerMode): Camera(triggerMode), frameWidth(640), frameHeight(512), counter(0){
+SLCameraVirtual::SLCameraVirtual(unsigned int, CameraTriggerMode triggerMode): Camera(triggerMode), frameWidth(2448), frameHeight(2050), counter(0){
 
     QSettings settings("SLStudio");
 
@@ -35,8 +36,10 @@ SLCameraVirtual::SLCameraVirtual(unsigned int, CameraTriggerMode triggerMode): C
     if(dir == CodecDirNone)
         std::cerr << "SLCameraVirtual: invalid coding direction " << std::endl;
 
-    QString patternMode = settings.value("pattern/mode", "CodecPhaseShift3").toString();
-    if(patternMode == "CodecPhaseShift3")
+    QString patternMode = settings.value("pattern/mode", "CodecGrayPhase4").toString();
+    if(patternMode == "CodecGrayPhase4")
+        encoder = new EncoderGrayPhase(frameWidth, frameHeight, dir);
+    else if(patternMode == "CodecPhaseShift3")
         encoder = new EncoderPhaseShift3(frameWidth, frameHeight, dir);
     else if(patternMode == "CodecPhaseShift4")
         encoder = new EncoderPhaseShift4(frameWidth, frameHeight, dir);

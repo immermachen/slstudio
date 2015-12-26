@@ -1,6 +1,8 @@
 #include "CalibratorLocHom.h"
 #include "CodecCalibration.h"
 
+#include "CodecGrayPhase.h"
+
 #include "cvtools.h"
 
 #include <QSettings>
@@ -8,8 +10,10 @@
 CalibratorLocHom::CalibratorLocHom(unsigned int _screenCols, unsigned int _screenRows): Calibrator(_screenCols, _screenRows){
 
     // Create encoder/decoder
-    encoder = new EncoderCalibration(screenCols, screenRows, CodecDirBoth);
-    decoder = new DecoderCalibration(screenCols, screenRows, CodecDirBoth);
+    //encoder = new EncoderCalibration(screenCols, screenRows, CodecDirBoth);
+    //decoder = new DecoderCalibration(screenCols, screenRows, CodecDirBoth);
+    encoder = new EncoderGrayPhase(screenCols, screenRows, CodecDirBoth);
+    decoder = new DecoderGrayPhase(screenCols, screenRows, CodecDirBoth);
 
     this->N = encoder->getNPatterns();
 
@@ -45,13 +49,13 @@ CalibrationData CalibratorLocHom::calibrate(){
         for(unsigned int f=0; f<frames.size(); f++){
             decoder->setFrame(f, frames[f]);
             #if 0
-                cv::imwrite(QString("frames[%1].png").arg(f).toStdString(), frames[f]);
+                cv::imwrite(QString("m_frames[%1].png").arg(f).toStdString(), frames[f]);
             #endif
         }
-        std::cout << "decodeFrames begin...... "<<std::endl;
+        std::cout << "decodeFrames begin.....--------------------.>> "<<std::endl;
         decoder->decodeFrames(up[i], vp[i], mask[i], shading[i]);
-        std::cout << "decodeFrames end."<<std::endl;
-        #if 1
+        std::cout << "decodeFrames end-----------------------------||."<<std::endl;
+        #if 0
             cvtools::writeMat(shading[i], QString("shading[%1].mat").arg(i).toLocal8Bit());
             cvtools::writeMat(up[i], QString("up[%1].mat").arg(i).toLocal8Bit());
             cvtools::writeMat(vp[i], QString("vp[%1].mat").arg(i).toLocal8Bit());
@@ -79,13 +83,18 @@ CalibrationData CalibratorLocHom::calibrate(){
         // Aid checkerboard extraction by slight blur
         //cv::GaussianBlur(shading[i], shading[i], cv::Size(5,5), 2, 2);
         // Extract checker corners
-        std::cout << i << " findChessboardCorners" << std::endl;
-        bool success = cv::findChessboardCorners(shading[i], patternSize, qci, cv::CALIB_CB_ADAPTIVE_THRESH);
+
+        std::cout << i << " findChessboardCorners......" << std::endl;
+        bool success = cv::findChessboardCorners(shading[i], patternSize, qci,
+                                                 cv::CALIB_CB_ADAPTIVE_THRESH+CV_CALIB_CB_NORMALIZE_IMAGE+CALIB_CB_FAST_CHECK );
+        std::cout << " cv::findChessboardCorners: sucess = " << success << std::endl;
+
         if(!success)
             std::cout << "Calibrator: could not extract chess board corners on frame seqence " << i << std::endl << std::flush;
         else{
             // Refine corner locations
-            cv::cornerSubPix(shading[i], qci, cv::Size(5, 5), cv::Size(1, 1),cv::TermCriteria(cv::TermCriteria::EPS + cv::TermCriteria::MAX_ITER, 20, 0.01));
+            cv::cornerSubPix(shading[i], qci, cv::Size(5, 5), cv::Size(1, 1),
+                             cv::TermCriteria(cv::TermCriteria::EPS + cv::TermCriteria::MAX_ITER, 20, 0.01));
         }
         // Draw colored chessboard
         cv::Mat shadingColor;
@@ -93,13 +102,13 @@ CalibrationData CalibratorLocHom::calibrate(){
         cv::drawChessboardCorners(shadingColor, patternSize, qci, success);
 
 #if 1
-        QString filename = QString("shadingColor%1.bmp").arg(i, 2, 10, QChar('0'));
+        QString filename = QString("am_shadingColor%1.bmp").arg(i, 2, 10, QChar('0'));
         cv::imwrite(filename.toStdString(), shadingColor);
-        filename = QString("shadingColor%1.png").arg(i, 2, 10, QChar('0'));
-        cv::imwrite(filename.toStdString(), shadingColor);
+//        filename = QString("am_shadingColor%1.png").arg(i, 2, 10, QChar('0'));
+//        cv::imwrite(filename.toStdString(), shadingColor);
 #endif
-        // Emit chessboard results
-        //std::cout << i << " newSequenceResult" << std::endl;
+
+        //Emit chessboard results
         emit newSequenceResult(shadingColor, i, success);
 
         if(success)
@@ -164,7 +173,7 @@ CalibrationData CalibratorLocHom::calibrate(){
                 Q.push_back(Qi_a);
             }
         }
-    }    
+    }
 
     if(Q.size() < 1){
         std::cerr << "Error: not enough calibration sequences!" << std::endl;
@@ -227,5 +236,6 @@ CalibrationData CalibratorLocHom::calibrate(){
     }
 
     return calData;
-
+//                CalibrationData nanData;
+//                return nanData;
 }

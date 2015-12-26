@@ -12,7 +12,7 @@
 CalibrationData::CalibrationData() : Kc(1.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,1.0), kc(0.0), cam_error(0.0),
                     Kp(1.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,1.0), kp(0.0), proj_error(0.0),
                     Rp(1.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,1.0), Tp(0.0), stereo_error(0.0),
-                    frameWidth(640), frameHeight(512), screenResX(0), screenResY(0) {
+                    frameWidth(1920), frameHeight(1080), screenResX(0), screenResY(0) {
 
 }
 
