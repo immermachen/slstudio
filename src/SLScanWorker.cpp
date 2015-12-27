@@ -89,7 +89,7 @@ void SLScanWorker::setup(){
         screenRows = screenResY;
     }
 
-    CodecDir dir = (CodecDir)settings.value("pattern/direction", CodecDirHorizontal).toInt();
+    CodecDir dir = (CodecDir)settings.value("pattern/direction", CodecDirBoth).toInt();
     if(dir == CodecDirNone)
         std::cerr << "SLScanWorker: invalid coding direction " << std::endl;
 
@@ -214,17 +214,19 @@ void SLScanWorker::doWork(){
                 // Wait a few milliseconds to allow camera to get ready
                 QTest::qSleep(1);
             }
-            CameraFrame frame;
-            frame = camera->getFrame();
 
-
-            if(!frame.memory){
-                std::cerr << "SLScanWorker: missed frame!" << std::endl;
-                success = false;
-            }
-
-            // Create 8 bit OpenCV matrix
-            cv::Mat frameCV(frame.height, frame.width, CV_8UC1, frame.memory);
+            //TODO: tempary comment
+//            CameraFrame frame;
+//            frame = camera->getFrame();
+//            if(!frame.memory){
+//                std::cerr << "SLScanWorker: missed frame!" << std::endl;
+//                success = false;
+//            }
+//            cv::Mat frameCV(frame.height, frame.width, CV_8UC1, frame.memory);
+//            frameCV = frameCV.clone();
+            std::stringstream oss;
+            oss << "data/aCam1-15/Capture-" << i <<".bmp";
+            cv::Mat frameCV = cv::imread(oss.str(), CV_LOAD_IMAGE_GRAYSCALE);
             frameCV = frameCV.clone();
 
             if(triggerMode == triggerModeHardware)

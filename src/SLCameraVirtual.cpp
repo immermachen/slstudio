@@ -32,7 +32,7 @@ SLCameraVirtual::SLCameraVirtual(unsigned int, CameraTriggerMode triggerMode): C
 
     QSettings settings("SLStudio");
 
-    CodecDir dir = (CodecDir)settings.value("pattern/direction", CodecDirHorizontal).toInt();
+    CodecDir dir = (CodecDir)settings.value("pattern/direction", CodecDirBoth).toInt();
     if(dir == CodecDirNone)
         std::cerr << "SLCameraVirtual: invalid coding direction " << std::endl;
 

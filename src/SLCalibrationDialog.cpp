@@ -184,9 +184,7 @@ void SLCalibrationDialog::on_snapButton_clicked(){
 //        CameraFrame frame = camera->getFrame();
 //        cv::Mat frameCV(frame.height, frame.width, CV_8U, frame.memory);
         std::stringstream oss;
-        oss << "data/aCam1-1/Capture-";
-        oss << i;
-        oss <<".bmp";
+        oss << "data/aCam1-1/Capture-" << i <<".bmp";
         cv::Mat frameCV = cv::imread(oss.str(), CV_LOAD_IMAGE_GRAYSCALE);
 
         frameCV = frameCV.clone();

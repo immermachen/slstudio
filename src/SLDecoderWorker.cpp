@@ -12,6 +12,7 @@
 #include "CodecPhaseShiftMicro.h"
 #include "CodecFastRatio.h"
 #include "CodecGrayCode.h"
+#include "CodecGrayPhase.h"
 
 #include "CalibrationData.h"
 
@@ -27,7 +28,7 @@ void SLDecoderWorker::setup(){
     // Initialize decoder
     QSettings settings("SLStudio");
 
-    CodecDir dir = (CodecDir)settings.value("pattern/direction", CodecDirHorizontal).toInt();
+    CodecDir dir = (CodecDir)settings.value("pattern/direction", CodecDirBoth).toInt();
     if(dir == CodecDirNone)
         std::cerr << "SLDecoderWorker: invalid coding direction " << std::endl;
     bool diamondPattern = settings.value("projector/diamondPattern", false).toBool();
@@ -43,8 +44,10 @@ void SLDecoderWorker::setup(){
         screenRows = calib.screenResY;
     }
 
-    QString patternMode = settings.value("pattern/mode", "CodecPhaseShift3").toString();
-    if(patternMode == "CodecPhaseShift3")
+    QString patternMode = settings.value("pattern/mode", "CodecGrayPhase4").toString();
+    if(patternMode == "CodecGrayPhase4")
+        decoder = new DecoderGrayPhase(screenCols, screenRows, dir);
+    else if(patternMode == "CodecPhaseShift3")
         decoder = new DecoderPhaseShift3(screenCols, screenRows, dir);
     else if(patternMode == "CodecPhaseShift4")
         decoder = new DecoderPhaseShift4(screenCols, screenRows, dir);
