@@ -33,19 +33,21 @@ class SLCalibrationDialog : public QDialog {
         void on_snapButton_clicked();
         void on_calibrateButton_clicked();
         void on_listWidget_itemSelectionChanged();
+        void on_listWidget2_itemSelectionChanged();
         void on_saveButton_clicked();
         void onNewSequenceResult(cv::Mat img, unsigned int idx, bool success);
+        void onNewSequenceResult2(cv::Mat img, unsigned int idx, bool success);
     signals:
         void newCalibrationSaved(CalibrationData _calib);
     private:
         Ui::SLCalibrationDialog *ui;
-        Camera *camera;
+        vector< Camera * > camera; //add two camera support
         Projector *projector;
-        Calibrator *calibrator;
-        CalibrationData calib;
+        vector< Calibrator * > calibrator; //add two camera support
+        CalibrationData calib[2]; //add two camera support
         int liveViewTimer;
-        vector< vector<cv::Mat> > frameSeqs;
-        vector<unsigned int> activeFrameSeqs;
+        vector< vector<cv::Mat> > frameSeqs[2]; //n vectors of 62 vectors of Mat
+        vector<unsigned int> activeFrameSeqs[2]; //add two camera support
         bool reviewMode;
         unsigned int timerInterval; //ms
         unsigned int delay; //ms

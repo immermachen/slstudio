@@ -9,11 +9,15 @@
 #include <pcl/filters/statistical_outlier_removal.h>
 #include <pcl/io/pcd_io.h>
 
-void SLTriangulatorWorker::setup(){
+void SLTriangulatorWorker::setup(int iCam){
 
     // Initialize triangulator with calibration
     calibration = new CalibrationData;
-    calibration->load("calibration.xml");
+    if(iCam)
+        calibration->load("calibration_1.xml");
+    else
+        calibration->load("calibration_0.xml");
+
     triangulator = new Triangulator(*calibration);
 
     QSettings settings("SLStudio");

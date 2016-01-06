@@ -18,6 +18,7 @@
 #include <pcl/io/vtk_io.h>
 #include <vtkPolyDataWriter.h>
 #include <pcl/conversions.h>
+#include <pcl/registration/icp.h>
 
 #include <fstream>
 
@@ -104,6 +105,33 @@ void SLPointCloudWidget::updatePointCloud(PointCloudConstPtr _pointCloudPCL){
     emit newPointCloudDisplayed();
 
 //    std::cout << "PCL Widget: " << time.restart() << "ms" << std::endl;
+}
+
+/*
+Registration using ICP: Iterative Closest Point;
+goal: aligning(registering) two point cloud;
+*/
+PointCloudConstPtr SLPointCloudWidget::registerPointCloud(PointCloudConstPtr _pointCloudPCL)
+{
+    PointCloudPtr finalCloud(new pcl::PointCloud<pcl::PointXYZRGB>);
+
+    pcl::IterativeClosestPoint<pcl::PointXYZRGB, pcl::PointXYZRGB> registration; //TODO: check this pcl function
+    registration.setInputSource(pointCloudPCL);
+    registration.setInputTarget(_pointCloudPCL);
+
+    registration.align(*finalCloud); //very slowly
+
+    if (registration.hasConverged())
+    {
+        cout << "ICP converged!" << endl << "The score is " << registration.getFitnessScore() << endl; //slowly
+        cout << "Transformation Matrix:" << endl << registration.getFinalTransformation() << endl;
+        return finalCloud;
+    }
+    else
+    {
+        cout << "ICP did not converge!" << endl;
+        return pointCloudPCL;
+    }
 }
 
 void SLPointCloudWidget::savePointCloud(){

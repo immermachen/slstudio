@@ -66,9 +66,13 @@ signals:
 
         SLDecoderWorker *decoderWorker;
         QThread *decoderThread;
+        SLDecoderWorker *decoderWorker2;
+        QThread *decoderThread2;
 
         SLTriangulatorWorker *triangulatorWorker;
         QThread *triangulatorThread;
+        SLTriangulatorWorker *triangulatorWorker2;
+        QThread *triangulatorThread2;
 
         QTime *time;
         QSettings *settings;

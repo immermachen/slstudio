@@ -47,18 +47,47 @@ void SLScanWorker::setup(){
 
     // Create camera
     int iNum = settings.value("camera/interfaceNumber", -1).toInt();
-    int cNum = settings.value("camera/cameraNumber", -1).toInt();
+    int cNum = settings.value("camera/cameraNumber", 2).toInt();
+    std::cout<<"InterfaceNumber and cameraNumber: "<< iNum << ", " << cNum<<std::endl;
+
     if(iNum != -1)
-        camera = Camera::NewCamera(iNum,cNum,triggerMode);
+    {
+        if(cNum<2)
+        {
+            camera.push_back(Camera::NewCamera(iNum,cNum,triggerMode));  //only note:cNum
+        }
+        else
+        {
+            for(int c=0;c<cNum;c++)
+            {
+                camera.push_back(Camera::NewCamera(iNum,c,triggerMode));  //only note:cNum
+            }
+        }
+    }
     else
-        camera = new SLCameraVirtual(cNum,triggerMode);
+    {
+        if(cNum<2)
+        {
+            camera.push_back(new SLCameraVirtual(cNum,triggerMode));
+        }
+        else
+        {
+            for(int c=0;c<cNum;c++)
+            {
+                camera.push_back(new SLCameraVirtual(c,triggerMode));  //only note:cNum
+            }
+        }
+    }
 
     // Set camera settings
     CameraSettings camSettings;
     camSettings.shutter = settings.value("camera/shutter", 16.666).toFloat();
     camSettings.gain = 0.0;
-    camera->setCameraSettings(camSettings);
 
+    for(int c=0;c<camera.size();c++)
+    {
+        camera[c]->setCameraSettings(camSettings);
+    }
     // Initialize projector
     int screenNum = settings.value("projector/screenNumber", -1).toInt();
     if(screenNum >= 0)
@@ -183,7 +212,11 @@ void SLScanWorker::doWork(){
     unsigned long k = 0;
 
     std::cout << "Starting capture!" << std::endl;
-    camera->startCapture();
+
+    for(int c=0;c<camera.size();c++)
+    {
+        camera[c]->startCapture();
+    }
 
     unsigned int N = encoder->getNPatterns();
 
@@ -194,16 +227,19 @@ void SLScanWorker::doWork(){
     QTime time; time.start();
 
     // Processing loop
-    do {
+    do
+    {
+        //std::vector<cv::Mat> frameSeq[2];
+        frameSeq[0].resize(N);
+        frameSeq[1].resize(N);
 
-        std::vector<cv::Mat> frameSeq(N);
         bool success = true;
 
         time.restart();
 
         // Acquire patterns
-        for(unsigned int i=0; i<N; i++){
-
+        for(unsigned int i=0; i<N; i++)
+        {
             // Project coded pattern
             projector->displayPattern(i);
 
@@ -215,25 +251,27 @@ void SLScanWorker::doWork(){
                 QTest::qSleep(1);
             }
 
-            //TODO: tempary comment
-//            CameraFrame frame;
-//            frame = camera->getFrame();
-//            if(!frame.memory){
-//                std::cerr << "SLScanWorker: missed frame!" << std::endl;
-//                success = false;
-//            }
-//            cv::Mat frameCV(frame.height, frame.width, CV_8UC1, frame.memory);
-//            frameCV = frameCV.clone();
-            std::stringstream oss;
-            oss << "data/aCam1-15/Capture-" << i <<".bmp";
-            cv::Mat frameCV = cv::imread(oss.str(), CV_LOAD_IMAGE_GRAYSCALE);
-            frameCV = frameCV.clone();
+            for(int c=0;c<camera.size();c++)
+            {
+                //TODO: tempary comment
+    //            CameraFrame frame;
+    //            frame = camera->getFrame();
+    //            if(!frame.memory){
+    //                std::cerr << "SLScanWorker: missed frame!" << std::endl;
+    //                success = false;
+    //            }
+    //            cv::Mat frameCV(frame.height, frame.width, CV_8UC1, frame.memory);
+    //            frameCV = frameCV.clone();
+                std::stringstream oss;
+                oss << "data/aCam"<<c+1<<"-15/Capture-" << i <<".bmp";
+                cv::Mat frameCV = cv::imread(oss.str(), CV_LOAD_IMAGE_GRAYSCALE);
+                frameCV = frameCV.clone();
 
-            if(triggerMode == triggerModeHardware)
-                frameSeq[(i+N-shift)%N] = frameCV;
-            else
-                frameSeq[i] = frameCV;
-
+                if(triggerMode == triggerModeHardware)
+                    frameSeq[c][(i+N-shift)%N] = frameCV;
+                else
+                    frameSeq[c][i] = frameCV;
+            }
         }
 
         float sequenceTime = time.restart();
@@ -250,22 +288,25 @@ void SLScanWorker::doWork(){
 
         // Write frames to disk if desired
         if(writeToDisk){
-                for(int i=0; i<frameSeq.size(); i++){
-                    QString filename = QString("frameSeq_%1.bmp").arg(i, 2, 10, QChar('0'));
-                    cv::imwrite(filename.toStdString(), frameSeq[i]);
-
+            for(int i=0; i<frameSeq[0].size(); i++){
+                for(int c=0;c<camera.size();c++)
+                {
+                    QString filename = QString("frameSeq_%1_%2.bmp").arg(c, 1).arg(i, 2, 10, QChar('0'));
+                    cv::imwrite(filename.toStdString(), frameSeq[c][i]);
                 }
+            }
         }
 
         // Pass frame sequence to decoder
-        emit newFrameSeq(frameSeq);
+        emit newFrameSeq(frameSeq[0]);
+        emit newFrameSeq2(frameSeq[1]);
 
         // Calculate and show histogram of sumimage
         float range[] = {0, 255};
         const float* histRange = {range};
         int histSize = 256;
         cv::Mat histogram;
-        cv::Mat frameSeqArr[] = {frameSeq[0], frameSeq[1], frameSeq[2]};
+        cv::Mat frameSeqArr[] = {frameSeq[0][0], frameSeq[0][1], frameSeq[0][2]};
         const int channels[] = {0,1,2};
         cv::calcHist(frameSeqArr, 3, channels, cv::Mat(), histogram, 1, &histSize, &histRange);
         //emit hist("Histogram", histogram, 100, 50);
@@ -281,7 +322,12 @@ void SLScanWorker::doWork(){
     } while (isWorking && (aquisition == aquisitionContinuous));
 
     if(triggerMode == triggerModeHardware)
-        camera->stopCapture();
+    {
+        for(int c=0;c<camera.size();c++)
+        {
+            camera[c]->stopCapture();
+        }
+    }
 
     // Emit message to e.g. initiate thread break down
     emit finished();
@@ -293,7 +339,8 @@ void SLScanWorker::stopWorking(){
 
 SLScanWorker::~SLScanWorker(){
 
-    delete camera;
+    for(int c=0;c<camera.size();c++)
+        delete camera[c];
     delete projector;
 
 }

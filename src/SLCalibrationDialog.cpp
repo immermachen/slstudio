@@ -50,11 +50,37 @@ SLCalibrationDialog::SLCalibrationDialog(SLStudio *parent) : QDialog(parent), ui
 
     // Create camera
     int iNum = settings.value("camera/interfaceNumber", -1).toInt();
-    int cNum = settings.value("camera/cameraNumber", -1).toInt();
+    int cNum = settings.value("camera/cameraNumber", 2).toInt();
+    std::cout<<"InterfaceNumber and cameraNumber: "<< iNum << ", " << cNum<<std::endl;
+
     if(iNum != -1)
-        camera = Camera::NewCamera(iNum,cNum,triggerMode);
+    {
+        if(cNum<2)
+        {
+            camera.push_back(Camera::NewCamera(iNum,cNum,triggerMode));  //only note:cNum
+        }
+        else
+        {
+            for(int c=0;c<cNum;c++)
+            {
+                camera.push_back(Camera::NewCamera(iNum,c,triggerMode));  //only note:cNum
+            }
+        }
+    }
     else
-        camera = new SLCameraVirtual(cNum,triggerMode);
+    {
+        if(cNum<2)
+        {
+            camera.push_back(new SLCameraVirtual(cNum,triggerMode));
+        }
+        else
+        {
+            for(int c=0;c<cNum;c++)
+            {
+                camera.push_back(new SLCameraVirtual(c,triggerMode));  //only note:cNum
+            }
+        }
+    }
 
     delay = settings.value("trigger/delay", "100").toInt();
 
@@ -98,13 +124,16 @@ SLCalibrationDialog::SLCalibrationDialog(SLStudio *parent) : QDialog(parent), ui
     }
 
     // Create calibrator
-    calibrator = new CalibratorLocHom(screenCols, screenRows);
 
-    connect(calibrator, SIGNAL(newSequenceResult(cv::Mat, unsigned int, bool)), this, SLOT(onNewSequenceResult(cv::Mat,uint,bool)));
+    calibrator.push_back(new CalibratorLocHom(screenCols, screenRows));
+    calibrator.push_back(new CalibratorLocHom(screenCols, screenRows));
+
+    connect(calibrator[0], SIGNAL(newSequenceResult(cv::Mat, unsigned int, bool)), this, SLOT(onNewSequenceResult(cv::Mat,uint,bool)));
+    connect(calibrator[1], SIGNAL(newSequenceResult(cv::Mat, unsigned int, bool)), this, SLOT(onNewSequenceResult2(cv::Mat,uint,bool)));
 
     // Upload patterns to projector/GPU
-    for(unsigned int i=0; i<calibrator->getNPatterns(); i++){
-        cv::Mat pattern = calibrator->getCalibrationPattern(i);
+    for(unsigned int i=0; i<calibrator[0]->getNPatterns(); i++){
+        cv::Mat pattern = calibrator[0]->getCalibrationPattern(i);
 
         // general repmat
         pattern = cv::repeat(pattern, screenRows/pattern.rows + 1, screenCols/pattern.cols + 1);
@@ -143,6 +172,7 @@ void SLCalibrationDialog::timerEvent(QTimerEvent *event){
 //    frameCV = frameCV.clone();
 ////    cv::resize(frameCV, frameCV, cv::Size(0, 0), 0.5, 0,5);
 //    ui->videoWidget->showFrameCV(frameCV);
+//ui->videoWidget2->showFrameCV(frameCV);
 
     QApplication::processEvents();
 }
@@ -157,6 +187,7 @@ void SLCalibrationDialog::on_snapButton_clicked(){
     if(reviewMode){
         reviewMode = false;
         ui->listWidget->clearSelection();
+        ui->listWidget2->clearSelection();
         liveViewTimer = startTimer(timerInterval);
         ui->snapButton->setText("Snap");
         return;
@@ -167,10 +198,11 @@ void SLCalibrationDialog::on_snapButton_clicked(){
     // Stop live view
     killTimer(liveViewTimer);
 
-    vector<cv::Mat> frameSeq;
 
-    for(unsigned int i=0; i<calibrator->getNPatterns(); i++){
+    vector<cv::Mat> frameSeq[2];
 
+    for(unsigned int i=0; i<calibrator[0]->getNPatterns(); i++)
+    {
         // Project pattern
         projector->displayPattern(i);
         QTest::qSleep(delay);
@@ -178,38 +210,48 @@ void SLCalibrationDialog::on_snapButton_clicked(){
         // Effectuate sleep (necessary with some camera implementations)
         QApplication::processEvents();
 
-        // Aquire frame
+        vector< cv::Mat > frameCV;
+        for(int c=0;c<camera.size();c++)
+        {
+            //TODO: tempary comment
+    //        CameraFrame frame = camera[c]->getFrame();
+    //        cv::Mat frameCV(frame.height, frame.width, CV_8U, frame.memory);
+            std::stringstream oss;
+            oss << "data/aCam"<<c+1<<"-1/Capture-" << i <<".bmp";
+            cv::Mat curframeCV = cv::imread(oss.str(), CV_LOAD_IMAGE_GRAYSCALE);
+            curframeCV = curframeCV.clone();
 
-        //TODO: tempary comment
-//        CameraFrame frame = camera->getFrame();
-//        cv::Mat frameCV(frame.height, frame.width, CV_8U, frame.memory);
-        std::stringstream oss;
-        oss << "data/aCam1-1/Capture-" << i <<".bmp";
-        cv::Mat frameCV = cv::imread(oss.str(), CV_LOAD_IMAGE_GRAYSCALE);
+            frameCV.push_back(curframeCV);
 
-        frameCV = frameCV.clone();
-////        cv::resize(frameCV, frameCV, cv::Size(0, 0), 0.5, 0,5);
+            #if 0
+                    QString filename = QString("CalSeqs_cam_%1_%2.bmp").arg(c, 2, 10, QChar('0')).arg(i, 2, 10, QChar('0'));
+                    cv::imwrite(filename.toStdString(), curframeCV);
+            #endif
 
-#if 0
-        int seqNum = frameSeqs.size();
-        QString filename = QString("frameSeq_cal_%1_%2.bmp").arg(seqNum, 2, 10, QChar('0')).arg(i, 2, 10, QChar('0'));
-        cv::imwrite(filename.toStdString(), frameCV);
-#endif
+        }
 
         // Show frame
-        ui->videoWidget->showFrameCV(frameCV);
+        ui->videoWidget->showFrameCV(frameCV[0]);
+        ui->videoWidget2->showFrameCV(frameCV[1]);
 
         // Save frame
-        frameSeq.push_back(frameCV);
+        frameSeq[0].push_back(frameCV[0]);
+        frameSeq[1].push_back(frameCV[1]);
     }
 
     // Store frame sequence
-    frameSeqs.push_back(frameSeq);
+    frameSeqs[0].push_back(frameSeq[0]);
+    frameSeqs[1].push_back(frameSeq[1]);
 
     // Add identifier to list
-    QListWidgetItem* item = new QListWidgetItem(QString("Sequence %1").arg(frameSeqs.size()), ui->listWidget);
+    QListWidgetItem* item = new QListWidgetItem(QString("Sequence %1").arg(frameSeqs[0].size()), ui->listWidget);
     item->setFlags(item->flags() | Qt::ItemIsUserCheckable); // set checkable flag
     item->setCheckState(Qt::Checked); // AND initialize check state
+
+    // Add identifier to list
+    QListWidgetItem* item2 = new QListWidgetItem(QString("Sequence %1").arg(frameSeqs[1].size()), ui->listWidget2);
+    item2->setFlags(item2->flags() | Qt::ItemIsUserCheckable); // set checkable flag
+    item2->setCheckState(Qt::Checked); // AND initialize check state
 
     //    // Allow calibration if enough frame pairs
     //    if(ui->listWidget->count() >= 3)
@@ -230,31 +272,45 @@ void SLCalibrationDialog::on_calibrateButton_clicked(){
     // Disable interface elements
     ui->calibrateButton->setEnabled(false);
     ui->listWidget->setEnabled(false);
+    ui->listWidget2->setEnabled(false);
 
     // Stop live view
     killTimer(liveViewTimer);
     reviewMode = true;
     ui->snapButton->setText("Live View");
 
-    calibrator->reset();
-
+    //----------------Camear1-----------------------
+    calibrator[0]->reset();
     // Note which frame sequences are used
-    activeFrameSeqs.clear();
-
+    activeFrameSeqs[0].clear();
     for(int i=0; i<ui->listWidget->count(); i++){
         if(ui->listWidget->item(i)->checkState() == Qt::Checked){
-            vector<cv::Mat> frameSeq(frameSeqs[i].begin(), frameSeqs[i].begin() + calibrator->getNPatterns());
-            calibrator->addFrameSequence(frameSeq);
-            activeFrameSeqs.push_back(i);
+            vector<cv::Mat> frameSeq(frameSeqs[0][i].begin(), frameSeqs[0][i].begin() + calibrator[0]->getNPatterns());
+            calibrator[0]->addFrameSequence(frameSeq);
+            activeFrameSeqs[0].push_back(i);
         }
     }
-
     // Perform calibration
-            calib = calibrator->calibrate();
+    calib[0] = calibrator[0]->calibrate();
+
+    //----------------Camear2-----------------------
+    calibrator[1]->reset();
+    // Note which frame sequences are used
+    activeFrameSeqs[1].clear();
+    for(int i=0; i<ui->listWidget2->count(); i++){
+        if(ui->listWidget2->item(i)->checkState() == Qt::Checked){
+            vector<cv::Mat> frameSeq(frameSeqs[1][i].begin(), frameSeqs[1][i].begin() + calibrator[0]->getNPatterns());
+            calibrator[1]->addFrameSequence(frameSeq);
+            activeFrameSeqs[1].push_back(i);
+        }
+    }
+    // Perform calibration
+    calib[1] = calibrator[1]->calibrate();
 
     // Re-enable interface elements
     ui->calibrateButton->setEnabled(true);
     ui->listWidget->setEnabled(true);
+    ui->listWidget2->setEnabled(true);
     ui->saveButton->setEnabled(true);
 }
 
@@ -270,21 +326,42 @@ void SLCalibrationDialog::on_listWidget_itemSelectionChanged(){
     ui->snapButton->setText("Live View");
 
     int currentRow = ui->listWidget->currentRow();
-    ui->videoWidget->showFrameCV(frameSeqs[currentRow].back());
+    ui->videoWidget->showFrameCV(frameSeqs[0][currentRow].back());
 }
 
+void SLCalibrationDialog::on_listWidget2_itemSelectionChanged(){
+
+    // If selection was cleared
+    if(ui->listWidget2->selectedItems().isEmpty())
+        return;
+
+    // Stop live view
+    killTimer(liveViewTimer);
+    reviewMode = true;
+    ui->snapButton->setText("Live View2");
+
+    int currentRow = ui->listWidget2->currentRow();
+    ui->videoWidget2->showFrameCV(frameSeqs[1][currentRow].back());
+}
 
 void SLCalibrationDialog::on_saveButton_clicked(){
 
-    calib.frameWidth = camera->getFrameWidth();
-    calib.frameHeight = camera->getFrameHeight();
     unsigned int screenResX, screenResY;
     projector->getScreenRes(&screenResX, &screenResY);
-    calib.screenResX = screenResX;
-    calib.screenResY = screenResY;
-    calib.calibrationDateTime = QDateTime::currentDateTime().toString("DD.MM.YYYY HH:MM:SS").toStdString();
 
-    calib.save("calibration.xml");
+    for(int c=0;c<camera.size();c++)
+    {
+        calib[c].frameWidth = camera[c]->getFrameWidth();
+        calib[c].frameHeight = camera[c]->getFrameHeight();
+        calib[c].screenResX = screenResX;
+        calib[c].screenResY = screenResY;
+        calib[c].calibrationDateTime = QDateTime::currentDateTime().toString("DD.MM.YYYY HH:MM:SS").toStdString();
+
+        //QString filename = QString("frameSeq_cal_%1_%2.bmp").arg(seqNum, 2, 10, QChar('0')).arg(i, 2, 10, QChar('0'));
+        //arg(int a, int fieldWidth = 0, int base = 10, QChar fillChar = QLatin1Char( ' ' )) const
+        QString calFilename = QString("calibration_%1.xml").arg(c,1);
+        calib[c].save(calFilename);
+    }
     this->close();
 }
 
@@ -292,14 +369,14 @@ void SLCalibrationDialog::on_saveButton_clicked(){
 void SLCalibrationDialog::onNewSequenceResult(cv::Mat img, unsigned int idx, bool success){
 
     // Skip non-active frame sequences
-    int idxListView = activeFrameSeqs[idx];
+    int idxListView = activeFrameSeqs[0][idx];
 
     // Append calibration result to frame sequence
-    unsigned int N = calibrator->getNPatterns();
-    if(frameSeqs[idxListView].size() == N)
-        frameSeqs[idxListView].push_back(img);
+    unsigned int N = calibrator[0]->getNPatterns();
+    if(frameSeqs[0][idxListView].size() == N)
+        frameSeqs[0][idxListView].push_back(img);
     else
-        frameSeqs[idxListView][N] = img;
+        frameSeqs[0][idxListView][N] = img;
 
     if(!success) // uncheck
         ui->listWidget->item(idxListView)->setCheckState(Qt::Unchecked);
@@ -310,12 +387,35 @@ void SLCalibrationDialog::onNewSequenceResult(cv::Mat img, unsigned int idx, boo
 
     QApplication::processEvents();
 }
+void SLCalibrationDialog::onNewSequenceResult2(cv::Mat img, unsigned int idx, bool success){
+
+    // Skip non-active frame sequences
+    int idxListView = activeFrameSeqs[1][idx];
+
+    // Append calibration result to frame sequence
+    unsigned int N = calibrator[1]->getNPatterns();
+    if(frameSeqs[1][idxListView].size() == N)
+        frameSeqs[1][idxListView].push_back(img);
+    else
+        frameSeqs[1][idxListView][N] = img;
+
+    if(!success) // uncheck
+        ui->listWidget2->item(idxListView)->setCheckState(Qt::Unchecked);
+
+    // Highlight
+    ui->listWidget2->setCurrentRow(idxListView);
+    ui->listWidget2->setFocus();
+
+    QApplication::processEvents();
+}
 
 void SLCalibrationDialog::closeEvent(QCloseEvent *){
 
-    delete camera;
+    delete camera[0];
+    delete camera[1];
     delete projector;
-    delete calibrator;
+    delete calibrator[0];
+    delete calibrator[1];
     this->deleteLater();
 
     // Save calibration settings
