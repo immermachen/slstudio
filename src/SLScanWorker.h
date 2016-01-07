@@ -44,12 +44,13 @@ class SLScanWorker : public QObject {
         std::vector<cv::Mat> frameSeq[2];
         bool isWorking;
         std::vector<Camera*> camera;
-        Projector *projector;
+        Projector * projector;
         Encoder *encoder;
 
         CameraTriggerMode triggerMode;
         ScanAquisitionMode aquisition;
         bool writeToDisk;
+        void setupProjector(int c);
 };
 
 #endif

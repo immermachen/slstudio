@@ -46,8 +46,8 @@ void SLScanWorker::setup(){
         std::cerr << "SLScanWorker: invalid trigger mode " << sTriggerMode.toStdString() << std::endl;
 
     // Create camera
-    int iNum = settings.value("camera/interfaceNumber", -1).toInt();
-    int cNum = settings.value("camera/cameraNumber", 2).toInt();
+    int iNum = settings.value("camera/interfaceNumber", 0).toInt();
+    int cNum = settings.value("camera/cameraNumber", 0).toInt();
     std::cout<<"InterfaceNumber and cameraNumber: "<< iNum << ", " << cNum<<std::endl;
 
     if(iNum != -1)
@@ -88,6 +88,7 @@ void SLScanWorker::setup(){
     {
         camera[c]->setCameraSettings(camSettings);
     }
+
     // Initialize projector
     int screenNum = settings.value("projector/screenNumber", -1).toInt();
     if(screenNum >= 0)
@@ -151,33 +152,7 @@ void SLScanWorker::setup(){
     else
         std::cerr << "SLScanWorker: invalid pattern mode " << patternMode.toStdString() << std::endl;
 
-
-    // Lens correction and upload patterns to projector/GPU
-    CalibrationData calibration;
-    calibration.load("calibration.xml");
-
-    cv::Mat map1, map2;
-    cv::Size mapSize = cv::Size(screenCols, screenRows);
-    cvtools::initDistortMap(calibration.Kp, calibration.kp, mapSize, map1, map2);
-
-    // Upload patterns to projector/GPU
-    for(unsigned int i=0; i<encoder->getNPatterns(); i++){
-        cv::Mat pattern = encoder->getEncodingPattern(i);
-
-        // general repmat
-        pattern = cv::repeat(pattern, screenRows/pattern.rows + 1, screenCols/pattern.cols + 1);
-        pattern = pattern(cv::Range(0, screenRows), cv::Range(0, screenCols));
-
-        // correct for lens distortion
-        cv::remap(pattern, pattern, map1, map2, CV_INTER_CUBIC);
-
-        if(diamondPattern)
-            pattern=cvtools::diamondDownsample(pattern);
-
-        projector->setPattern(i, pattern.ptr(), pattern.cols, pattern.rows);
-
-        //cv::imwrite(cv::format("pat_%d.png", i), pattern);
-    }
+    //setupProjector(0);
 
 //    // Upload patterns to projector/GPU without lens correction
 //    for(unsigned int i=0; i<encoder->getNPatterns(); i++){
@@ -203,6 +178,54 @@ void SLScanWorker::setup(){
     writeToDisk = settings.value("writeToDisk/frames", false).toBool();
 
 }
+
+void SLScanWorker::setupProjector(int c)
+{
+    QSettings settings("SLStudio");
+    // Initialize encoder
+    bool diamondPattern = settings.value("projector/diamondPattern", false).toBool();
+
+    unsigned int screenResX, screenResY;
+    projector->getScreenRes(&screenResX, &screenResY);
+
+    // Unique number of rows and columns
+    unsigned int screenCols, screenRows;
+    if(diamondPattern){
+        screenCols = 2*screenResX;
+        screenRows = screenResY;
+    } else {
+        screenCols = screenResX;
+        screenRows = screenResY;
+    }
+
+    // Lens correction and upload patterns to projector/GPU
+    CalibrationData calibration;
+    QString filename = QString("calibration_%1.xml").arg(c,1);
+    calibration.load(filename);
+
+    cv::Mat map1, map2;
+    cv::Size mapSize = cv::Size(screenCols, screenRows);
+    cvtools::initDistortMap(calibration.Kp, calibration.kp, mapSize, map1, map2);
+
+    // Upload patterns to projector/GPU
+    for(unsigned int i=0; i<encoder->getNPatterns(); i++){
+        cv::Mat pattern = encoder->getEncodingPattern(i);
+
+        // general repmat
+        pattern = cv::repeat(pattern, screenRows/pattern.rows + 1, screenCols/pattern.cols + 1);
+        pattern = pattern(cv::Range(0, screenRows), cv::Range(0, screenCols));
+
+        // correct for lens distortion
+        cv::remap(pattern, pattern, map1, map2, CV_INTER_CUBIC);
+
+        if(diamondPattern)
+            pattern=cvtools::diamondDownsample(pattern);
+
+        projector->setPattern(i, pattern.ptr(), pattern.cols, pattern.rows);
+
+        //cv::imwrite(cv::format("pat_%d.png", i), pattern);
+    }
+ }
 
 void SLScanWorker::doWork(){
 
@@ -237,34 +260,35 @@ void SLScanWorker::doWork(){
 
         time.restart();
 
-        // Acquire patterns
-        for(unsigned int i=0; i<N; i++)
+        for(int c=0;c<camera.size();c++)
         {
-            // Project coded pattern
-            projector->displayPattern(i);
+            setupProjector(c);
 
-            if(triggerMode == triggerModeSoftware){
-                // Wait one frame period to rotate projector frame buffer
-                QTest::qSleep(delay);
-            } else {
-                // Wait a few milliseconds to allow camera to get ready
-                QTest::qSleep(1);
-            }
-
-            for(int c=0;c<camera.size();c++)
+            // Acquire patterns
+            for(unsigned int i=0; i<N; i++)
             {
-                //TODO: tempary comment
-    //            CameraFrame frame;
-    //            frame = camera->getFrame();
-    //            if(!frame.memory){
-    //                std::cerr << "SLScanWorker: missed frame!" << std::endl;
-    //                success = false;
-    //            }
-    //            cv::Mat frameCV(frame.height, frame.width, CV_8UC1, frame.memory);
-    //            frameCV = frameCV.clone();
-                std::stringstream oss;
-                oss << "data/aCam"<<c+1<<"-15/Capture-" << i <<".bmp";
-                cv::Mat frameCV = cv::imread(oss.str(), CV_LOAD_IMAGE_GRAYSCALE);
+                // Project coded pattern
+                projector->displayPattern(i);
+
+                if(triggerMode == triggerModeSoftware){
+                    // Wait one frame period to rotate projector frame buffer
+                    QTest::qSleep(delay);
+                } else {
+                    // Wait a few milliseconds to allow camera to get ready
+                    QTest::qSleep(1);
+                }
+
+                CameraFrame frame = camera[c]->getFrame();
+                if(!frame.memory){
+                    std::cerr << "SLScanWorker: missed frame!" << std::endl;
+                    success = false;
+                }
+                cv::Mat frameCV(frame.height, frame.width, CV_8UC1, frame.memory);
+
+//                std::stringstream oss;
+//                oss << "data/aCam"<<c+1<<"-15/Capture-" << i <<".bmp";
+//                cv::Mat frameCV = cv::imread(oss.str(), CV_LOAD_IMAGE_GRAYSCALE);
+
                 frameCV = frameCV.clone();
 
                 if(triggerMode == triggerModeHardware)
@@ -291,7 +315,7 @@ void SLScanWorker::doWork(){
             for(int i=0; i<frameSeq[0].size(); i++){
                 for(int c=0;c<camera.size();c++)
                 {
-                    QString filename = QString("frameSeq_%1_%2.bmp").arg(c, 1).arg(i, 2, 10, QChar('0'));
+                    QString filename = QString("data/%1_%2.bmp").arg(c, 1).arg(i, 2);//,10,QChar('0'));
                     cv::imwrite(filename.toStdString(), frameSeq[c][i]);
                 }
             }

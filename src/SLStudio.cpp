@@ -101,7 +101,7 @@ void SLStudio::onActionStart(){
     decoderThread = new QThread(this);
     decoderThread->setObjectName("decoderThread");
     decoderWorker->moveToThread(decoderThread);
-    connect(decoderThread, SIGNAL(started()), decoderWorker, SLOT(setup()));
+    connect(decoderThread, SIGNAL(started()), decoderWorker, SLOT(setup(int)));
     connect(decoderThread, SIGNAL(finished()), decoderWorker, SLOT(deleteLater()));
     connect(decoderThread, SIGNAL(finished()), decoderThread, SLOT(deleteLater()));
 
@@ -109,7 +109,7 @@ void SLStudio::onActionStart(){
     decoderThread2 = new QThread(this);
     decoderThread2->setObjectName("decoderThread2");
     decoderWorker2->moveToThread(decoderThread2);
-    connect(decoderThread2, SIGNAL(started()), decoderWorker2, SLOT(setup()));
+    connect(decoderThread2, SIGNAL(started()), decoderWorker2, SLOT(setup(int)));
     connect(decoderThread2, SIGNAL(finished()), decoderWorker2, SLOT(deleteLater()));
     connect(decoderThread2, SIGNAL(finished()), decoderThread2, SLOT(deleteLater()));
 
@@ -118,7 +118,7 @@ void SLStudio::onActionStart(){
     triangulatorThread = new QThread(this);
     triangulatorThread->setObjectName("triangulatorThread");
     triangulatorWorker->moveToThread(triangulatorThread);
-    connect(triangulatorThread, SIGNAL(started()), triangulatorWorker, SLOT(setup()));
+    connect(triangulatorThread, SIGNAL(started()), triangulatorWorker, SLOT(setup(int)));
     connect(triangulatorThread, SIGNAL(finished()), triangulatorWorker, SLOT(deleteLater()));
     connect(triangulatorThread, SIGNAL(finished()), triangulatorThread, SLOT(deleteLater()));
 
@@ -126,7 +126,7 @@ void SLStudio::onActionStart(){
     triangulatorThread2 = new QThread(this);
     triangulatorThread2->setObjectName("triangulatorThread2");
     triangulatorWorker2->moveToThread(triangulatorThread2);
-    connect(triangulatorThread2, SIGNAL(started()), triangulatorWorker2, SLOT(setup()));
+    connect(triangulatorThread2, SIGNAL(started()), triangulatorWorker2, SLOT(setup(int)));
     connect(triangulatorThread2, SIGNAL(finished()), triangulatorWorker2, SLOT(deleteLater()));
     connect(triangulatorThread2, SIGNAL(finished()), triangulatorThread2, SLOT(deleteLater()));
 

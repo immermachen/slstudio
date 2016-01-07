@@ -64,6 +64,8 @@ SLCalibrationDialog::SLCalibrationDialog(SLStudio *parent) : QDialog(parent), ui
             for(int c=0;c<cNum;c++)
             {
                 camera.push_back(Camera::NewCamera(iNum,c,triggerMode));  //only note:cNum
+
+                std::cout<<"Add Camera: "<< c <<std::endl;
             }
         }
     }
@@ -84,15 +86,17 @@ SLCalibrationDialog::SLCalibrationDialog(SLStudio *parent) : QDialog(parent), ui
 
     delay = settings.value("trigger/delay", "100").toInt();
 
-    //Yang: TODO
-//    // Set camera settings
-//    CameraSettings camSettings;
-//    camSettings.shutter = settings.value("camera/shutter", 16.666).toFloat();
-//    camSettings.gain = 0.0;
-//    camera->setCameraSettings(camSettings);
+    // Set camera settings
+    CameraSettings camSettings;
+    camSettings.shutter = settings.value("camera/shutter", 16.666).toFloat();
+    camSettings.gain = 0.0;
 
-    //TODO: tempary comment
-    //camera->startCapture();
+    for(int c=0;c<cNum;c++)
+    {
+        Camera * curCam = camera[c];
+        curCam->setCameraSettings(camSettings);
+        curCam->startCapture();
+    }
 
     // Initialize projector
     int screenNum = settings.value("projector/screenNumber", -1).toInt();
@@ -151,10 +155,9 @@ SLCalibrationDialog::SLCalibrationDialog(SLStudio *parent) : QDialog(parent), ui
 
     }
 
-    //Yang: TODO
-//    // Start live view
-//    timerInterval = delay + camSettings.shutter;
-//    liveViewTimer = startTimer(timerInterval);
+    // Start live view
+    timerInterval = delay + camSettings.shutter;
+    liveViewTimer = startTimer(timerInterval);
 }
 
 void SLCalibrationDialog::timerEvent(QTimerEvent *event){
@@ -166,13 +169,16 @@ void SLCalibrationDialog::timerEvent(QTimerEvent *event){
 
     QApplication::processEvents();
 
-    //TODO: tempary comment
-//    CameraFrame frame = camera->getFrame();
-//    cv::Mat frameCV(frame.height, frame.width, CV_8UC1, frame.memory);
-//    frameCV = frameCV.clone();
-////    cv::resize(frameCV, frameCV, cv::Size(0, 0), 0.5, 0,5);
-//    ui->videoWidget->showFrameCV(frameCV);
-//ui->videoWidget2->showFrameCV(frameCV);
+    CameraFrame frame = camera[0]->getFrame();
+    cv::Mat frameCV(frame.height, frame.width, CV_8UC1, frame.memory);
+    frameCV = frameCV.clone();
+    ui->videoWidget->showFrameCV(frameCV);
+
+
+    CameraFrame frame2 = camera[1]->getFrame();
+    cv::Mat frameCV2(frame2.height, frame2.width, CV_8UC1, frame2.memory);
+    frameCV2 = frameCV2.clone();
+    ui->videoWidget2->showFrameCV(frameCV2);
 
     QApplication::processEvents();
 }
@@ -213,18 +219,18 @@ void SLCalibrationDialog::on_snapButton_clicked(){
         vector< cv::Mat > frameCV;
         for(int c=0;c<camera.size();c++)
         {
-            //TODO: tempary comment
-    //        CameraFrame frame = camera[c]->getFrame();
-    //        cv::Mat frameCV(frame.height, frame.width, CV_8U, frame.memory);
-            std::stringstream oss;
-            oss << "data/aCam"<<c+1<<"-1/Capture-" << i <<".bmp";
-            cv::Mat curframeCV = cv::imread(oss.str(), CV_LOAD_IMAGE_GRAYSCALE);
+            CameraFrame frame = camera[c]->getFrame();
+            cv::Mat curframeCV(frame.height, frame.width, CV_8U, frame.memory);
+//            std::stringstream oss;
+//            oss << "data/aCam"<<c+1<<"-1/Capture-" << i <<".bmp";
+//            cv::Mat curframeCV = cv::imread(oss.str(), CV_LOAD_IMAGE_GRAYSCALE);
             curframeCV = curframeCV.clone();
 
             frameCV.push_back(curframeCV);
 
-            #if 0
-                    QString filename = QString("CalSeqs_cam_%1_%2.bmp").arg(c, 2, 10, QChar('0')).arg(i, 2, 10, QChar('0'));
+            #if 1
+                    int numSeqs = frameSeqs[0].size();
+                    QString filename = QString("caldata/aCam_%1_%2_%3.bmp").arg(numSeqs,2).arg(c, 1).arg(i, 2);
                     cv::imwrite(filename.toStdString(), curframeCV);
             #endif
 
@@ -279,7 +285,7 @@ void SLCalibrationDialog::on_calibrateButton_clicked(){
     reviewMode = true;
     ui->snapButton->setText("Live View");
 
-    //----------------Camear1-----------------------
+    std::cout<< "----------------Calibrate Camear1-----------------------"<<std::endl;
     calibrator[0]->reset();
     // Note which frame sequences are used
     activeFrameSeqs[0].clear();
@@ -293,7 +299,8 @@ void SLCalibrationDialog::on_calibrateButton_clicked(){
     // Perform calibration
     calib[0] = calibrator[0]->calibrate();
 
-    //----------------Camear2-----------------------
+
+    std::cout<< "----------------Calibrate Camear2-----------------------"<<std::endl;
     calibrator[1]->reset();
     // Note which frame sequences are used
     activeFrameSeqs[1].clear();
@@ -410,6 +417,8 @@ void SLCalibrationDialog::onNewSequenceResult2(cv::Mat img, unsigned int idx, bo
 }
 
 void SLCalibrationDialog::closeEvent(QCloseEvent *){
+    // Stop live view
+    killTimer(liveViewTimer);
 
     delete camera[0];
     delete camera[1];

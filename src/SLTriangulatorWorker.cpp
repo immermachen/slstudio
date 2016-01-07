@@ -12,13 +12,21 @@
 
 void SLTriangulatorWorker::setup(int iCam){
 
+    std::cout << "SLTriangulatorWorker::setup::------------------------------->" << std::endl;
+
     idxCam = iCam;
     // Initialize triangulator with calibration
     calibration = new CalibrationData;
     if(iCam)
+    {
+        std::cout << "SLTriangulatorWorker::setup:: Using Calibration_1.xml" << std::endl;
         calibration->load("calibration_1.xml");
+    }
     else
+    {
+        std::cout << "SLTriangulatorWorker::setup:: Using Calibration_0.xml" << std::endl;
         calibration->load("calibration_0.xml");
+    }
 
     triangulator = new Triangulator(*calibration);
 
@@ -120,7 +128,7 @@ void SLTriangulatorWorker::triangulatePointCloud(cv::Mat up, cv::Mat vp, cv::Mat
     std::cout << "Triangulator: " << time.elapsed() << "ms" << std::endl;
 
     if(writeToDisk){
-        QString fileName = QString("cam_%1").arg(idxCam,1);// = QDateTime::currentDateTime().toString("yyyyMMdd_HHmmsszzz");
+        QString fileName = QString("acam_%1").arg(idxCam,1);// = QDateTime::currentDateTime().toString("yyyyMMdd_HHmmsszzz");
         fileName.append(".ply");
         //pcl::io::savePCDFileBinary(fileName.toStdString(), *pointCloudPCL);
         pcl::PLYWriter w;

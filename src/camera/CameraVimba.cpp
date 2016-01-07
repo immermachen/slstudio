@@ -342,14 +342,32 @@ CameraSettings CameraVimba::getCameraSettings(){
 
 void CameraVimba::setCameraSettings(CameraSettings settings){
 
-//    // Set shutter (in us)
-//    xiSetParamInt(camera, XI_PRM_EXPOSURE, settings.shutter*1000);
-//    // Set gain (in dB)
-//    xiSetParamFloat(camera, XI_PRM_GAIN, settings.gain);
+    FeaturePtr pFeature;
+    VmbErrorType err;
 
-    std::cout << "Setting camera parameters:" << std::endl
-              << "Shutter: " << settings.shutter << " ms" << std::endl
-              << "Gain: " << settings.gain << " dB" << std::endl;
+    err = m_pCamera->GetFeatureByName( "ExposureTimeAbs", pFeature ); //it is microseconds
+    if ( VmbErrorSuccess == err ) {
+        double shutter;
+        err=pFeature->GetValue(shutter);
+
+        std::cout << "Setting camera parameters, beginning:" << std::endl
+                  << "Shutter: " << shutter << " us" << std::endl;
+                  //<< "Gain: " << settings.gain << " dB" << std::endl;
+    }
+
+    if ( VmbErrorSuccess == err ) {
+        double shutter = settings.shutter * 1000.0; // from us to ms
+        err=pFeature->SetValue(shutter);
+    }
+
+    if ( VmbErrorSuccess == err ) {
+        double shutter;
+        err=pFeature->GetValue(shutter);
+
+        std::cout << "Setting camera parameters, after:" << std::endl
+                  << "Shutter: " << shutter << " us" << std::endl;
+                  //<< "Gain: " << settings.gain << " dB" << std::endl;
+    }
 }
 
 size_t CameraVimba::getFrameSizeBytes(){
