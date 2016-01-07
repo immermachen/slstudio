@@ -35,6 +35,7 @@ class SLTriangulatorWorker : public QObject {
         //void finished();
     private:
         unsigned int frameWidth, frameHeight;
+        unsigned int idxCam;
         bool writeToDisk;
         CalibrationData *calibration;
         Triangulator *triangulator;

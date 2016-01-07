@@ -249,22 +249,22 @@ void SLStudio::updateDisplayRate(){
 }
 
 void SLStudio::receiveNewPointCloud(PointCloudConstPtr pointCloud){
-    //register two point clouds
-    if(ui->pointCloudWidget->pointCloudPCL)
-    {
-        std::cout<< "Beginning PCL Registration!" << std::endl;
-        if(!ui->pointCloudWidget->pointCloudPCL->points.empty() )
-            pointCloud = ui->pointCloudWidget->registerPointCloud(pointCloud);
-    }
+//    //register two point clouds
+//    if(ui->pointCloudWidget->pointCloudPCL)
+//    {
+//        std::cout<< "Beginning PCL Registration!" << std::endl;
+//        if(!ui->pointCloudWidget->pointCloudPCL->points.empty() )
+//            pointCloud = ui->pointCloudWidget->registerPointCloud(pointCloud);
+//    }
 
     std::cout<< "Beginning PCL Creation!" << std::endl;
 
-    // Display point cloud in widget
-    if(ui->actionUpdatePointClouds->isChecked())
-        ui->pointCloudWidget->updatePointCloud(pointCloud);
+//    // Display point cloud in widget
+//    if(ui->actionUpdatePointClouds->isChecked())
+//        ui->pointCloudWidget->updatePointCloud(pointCloud);
 
-    if(trackerDialog->isVisible())
-        trackerDialog->receiveNewPointCloud(pointCloud);
+//    if(trackerDialog->isVisible())
+//        trackerDialog->receiveNewPointCloud(pointCloud);
 }
 
 void SLStudio::closeEvent(QCloseEvent *event){

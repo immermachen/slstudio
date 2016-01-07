@@ -8,9 +8,11 @@
 
 #include <pcl/filters/statistical_outlier_removal.h>
 #include <pcl/io/pcd_io.h>
+#include <pcl/io/ply_io.h>
 
 void SLTriangulatorWorker::setup(int iCam){
 
+    idxCam = iCam;
     // Initialize triangulator with calibration
     calibration = new CalibrationData;
     if(iCam)
@@ -118,9 +120,12 @@ void SLTriangulatorWorker::triangulatePointCloud(cv::Mat up, cv::Mat vp, cv::Mat
     std::cout << "Triangulator: " << time.elapsed() << "ms" << std::endl;
 
     if(writeToDisk){
-        QString fileName = QDateTime::currentDateTime().toString("yyyyMMdd_HHmmsszzz");
-        fileName.append(".pcd");
-        pcl::io::savePCDFileBinary(fileName.toStdString(), *pointCloudPCL);
+        QString fileName = QString("cam_%1").arg(idxCam,1);// = QDateTime::currentDateTime().toString("yyyyMMdd_HHmmsszzz");
+        fileName.append(".ply");
+        //pcl::io::savePCDFileBinary(fileName.toStdString(), *pointCloudPCL);
+        pcl::PLYWriter w;
+        // Write to ply in binary without camera
+        w.write<pcl::PointXYZRGB> (fileName.toStdString(), *pointCloudPCL, true, false);
     }
 
     //emit finished();
