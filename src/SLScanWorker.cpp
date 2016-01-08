@@ -46,11 +46,11 @@ void SLScanWorker::setup(){
         std::cerr << "SLScanWorker: invalid trigger mode " << sTriggerMode.toStdString() << std::endl;
 
     // Create camera
-    int iNum = settings.value("camera/interfaceNumber", 0).toInt();
-    int cNum = settings.value("camera/cameraNumber", 0).toInt();
+    iNum = settings.value("camera/interfaceNumber", 0).toInt();
+    cNum = settings.value("camera/cameraNumber", 0).toInt();
     std::cout<<"InterfaceNumber and cameraNumber: "<< iNum << ", " << cNum<<std::endl;
 
-    if(iNum != -1)
+    if(iNum == 0)
     {
         if(cNum<2)
         {
@@ -64,7 +64,7 @@ void SLScanWorker::setup(){
             }
         }
     }
-    else
+    else if(iNum == -1)
     {
         if(cNum<2)
         {
@@ -262,7 +262,7 @@ void SLScanWorker::doWork(){
 
         for(int c=0;c<camera.size();c++)
         {
-            setupProjector(c);
+            setupProjector(cNum);
 
             // Acquire patterns
             for(unsigned int i=0; i<N; i++)
@@ -278,16 +278,24 @@ void SLScanWorker::doWork(){
                     QTest::qSleep(1);
                 }
 
-                CameraFrame frame = camera[c]->getFrame();
-                if(!frame.memory){
-                    std::cerr << "SLScanWorker: missed frame!" << std::endl;
-                    success = false;
+                cv::Mat frameCV;
+                if(iNum==0)
+                {
+                    CameraFrame frame = camera[c]->getFrame();
+                    if(!frame.memory){
+                        std::cerr << "SLScanWorker: missed frame!" << std::endl;
+                        success = false;
+                    }
+                    cv::Mat curframeCV(frame.height, frame.width, CV_8UC1, frame.memory);
+                    frameCV = curframeCV;
                 }
-                cv::Mat frameCV(frame.height, frame.width, CV_8UC1, frame.memory);
-
-//                std::stringstream oss;
-//                oss << "data/aCam"<<c+1<<"-15/Capture-" << i <<".bmp";
-//                cv::Mat frameCV = cv::imread(oss.str(), CV_LOAD_IMAGE_GRAYSCALE);
+                else if(iNum = -1)
+                {
+                    QString filename=QString("../../data/%1_%2.bmp").arg(cNum,1).arg(i,2);
+                    frameCV = cv::imread(filename.toStdString().c_str(), CV_LOAD_IMAGE_GRAYSCALE);
+                }
+                else if(iNum == 2)
+                {}
 
                 frameCV = frameCV.clone();
 
@@ -315,7 +323,7 @@ void SLScanWorker::doWork(){
             for(int i=0; i<frameSeq[0].size(); i++){
                 for(int c=0;c<camera.size();c++)
                 {
-                    QString filename = QString("data/%1_%2.bmp").arg(c, 1).arg(i, 2);//,10,QChar('0'));
+                    QString filename = QString("../../captured/%1_%2.bmp").arg(cNum, 1).arg(i, 2);//,10,QChar('0'));
                     cv::imwrite(filename.toStdString(), frameSeq[c][i]);
                 }
             }
@@ -323,7 +331,7 @@ void SLScanWorker::doWork(){
 
         // Pass frame sequence to decoder
         emit newFrameSeq(frameSeq[0]);
-        emit newFrameSeq2(frameSeq[1]);
+        //emit newFrameSeq2(frameSeq[1]);
 
         // Calculate and show histogram of sumimage
         float range[] = {0, 255};

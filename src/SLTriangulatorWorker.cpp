@@ -10,14 +10,19 @@
 #include <pcl/io/pcd_io.h>
 #include <pcl/io/ply_io.h>
 
-void SLTriangulatorWorker::setup(int iCam){
+void SLTriangulatorWorker::setup(){
 
     std::cout << "SLTriangulatorWorker::setup::------------------------------->" << std::endl;
 
-    idxCam = iCam;
+    QSettings settings("SLStudio");
+    writeToDisk = settings.value("writeToDisk/pointclouds",false).toBool();
+
+    iNum = settings.value("camera/interfaceNumber", 0).toInt();
+    cNum = settings.value("camera/cameraNumber", 0).toInt();
+
     // Initialize triangulator with calibration
     calibration = new CalibrationData;
-    if(iCam)
+    if(cNum)
     {
         std::cout << "SLTriangulatorWorker::setup:: Using Calibration_1.xml" << std::endl;
         calibration->load("calibration_1.xml");
@@ -30,8 +35,8 @@ void SLTriangulatorWorker::setup(int iCam){
 
     triangulator = new Triangulator(*calibration);
 
-    QSettings settings("SLStudio");
-    writeToDisk = settings.value("writeToDisk/pointclouds",false).toBool();
+
+
 
 }
 
@@ -128,7 +133,7 @@ void SLTriangulatorWorker::triangulatePointCloud(cv::Mat up, cv::Mat vp, cv::Mat
     std::cout << "Triangulator: " << time.elapsed() << "ms" << std::endl;
 
     if(writeToDisk){
-        QString fileName = QString("acam_%1").arg(idxCam,1);// = QDateTime::currentDateTime().toString("yyyyMMdd_HHmmsszzz");
+        QString fileName = QString("acam_%1").arg(cNum,1);// = QDateTime::currentDateTime().toString("yyyyMMdd_HHmmsszzz");
         fileName.append(".ply");
         //pcl::io::savePCDFileBinary(fileName.toStdString(), *pointCloudPCL);
         pcl::PLYWriter w;

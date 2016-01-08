@@ -41,6 +41,8 @@ class SLScanWorker : public QObject {
         void error(QString err);
         void finished();
     private:
+        int iNum;
+        int cNum;
         std::vector<cv::Mat> frameSeq[2];
         bool isWorking;
         std::vector<Camera*> camera;

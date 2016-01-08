@@ -23,7 +23,10 @@
 
 #include "cvtools.h"
 
-void SLDecoderWorker::setup(int iCam){
+void SLDecoderWorker::setup(){
+
+
+    std::cout << "SLDecoderWorker::setup::------------------------------->" << std::endl;
 
     // Initialize decoder
     QSettings settings("SLStudio");
@@ -33,11 +36,20 @@ void SLDecoderWorker::setup(int iCam){
         std::cerr << "SLDecoderWorker: invalid coding direction " << std::endl;
     bool diamondPattern = settings.value("projector/diamondPattern", false).toBool();
 
+    int iNum = settings.value("camera/interfaceNumber", 0).toInt();
+    int cNum = settings.value("camera/cameraNumber", 0).toInt();
+
     CalibrationData calib;    
-    if(iCam)
+    if(cNum)
+    {
+        std::cout << "SLDecoderWorker::setup:: Using Calibration_1.xml" << std::endl;
         calib.load("calibration_1.xml");
+    }
     else
+    {
+        std::cout << "SLDecoderWorker::setup:: Using Calibration_0.xml" << std::endl;
         calib.load("calibration_0.xml");
+    }
 
 
     if(diamondPattern){

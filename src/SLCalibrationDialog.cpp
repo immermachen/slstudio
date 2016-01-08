@@ -230,7 +230,7 @@ void SLCalibrationDialog::on_snapButton_clicked(){
 
             #if 1
                     int numSeqs = frameSeqs[0].size();
-                    QString filename = QString("caldata/aCam_%1_%2_%3.bmp").arg(numSeqs,2).arg(c, 1).arg(i, 2);
+                    QString filename = QString("~/caldata/aCam_%1_%2_%3.bmp").arg(numSeqs,2).arg(c, 1).arg(i, 2);
                     cv::imwrite(filename.toStdString(), curframeCV);
             #endif
 

@@ -20,7 +20,7 @@ class SLDecoderWorker : public QObject {
         SLDecoderWorker(): screenCols(0), screenRows(0){}
         ~SLDecoderWorker();
     public slots:
-        void setup(int iCam);
+        void setup();
         void decodeSequence(std::vector<cv::Mat> frameSeq);
     signals:
         void imshow(const char* windowName, cv::Mat mat, unsigned int x, unsigned int y);

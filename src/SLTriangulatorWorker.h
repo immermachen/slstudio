@@ -26,7 +26,7 @@ class SLTriangulatorWorker : public QObject {
         SLTriangulatorWorker() : frameWidth(0), frameHeight(0), writeToDisk(false){}
         ~SLTriangulatorWorker();
     public slots:
-        void setup(int iCam);
+        void setup();
         void triangulatePointCloud(cv::Mat up, cv::Mat vp, cv::Mat mask, cv::Mat shading);
     signals:
         void imshow(const char* windowName, cv::Mat mat, unsigned int x, unsigned int y);
@@ -35,7 +35,7 @@ class SLTriangulatorWorker : public QObject {
         //void finished();
     private:
         unsigned int frameWidth, frameHeight;
-        unsigned int idxCam;
+        int iNum, cNum;
         bool writeToDisk;
         CalibrationData *calibration;
         Triangulator *triangulator;

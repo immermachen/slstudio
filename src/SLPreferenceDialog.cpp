@@ -34,14 +34,15 @@ SLPreferenceDialog::SLPreferenceDialog(QWidget *parent) : QDialog(parent), ui(ne
     for(unsigned int i=0; i<interfaceCameraList.size(); i++){
         vector<CameraInfo> cameraList = interfaceCameraList[i];
         for(unsigned int j=0; j<cameraList.size(); j++){
-            QString cameraString = QString("%1: %2").arg(cameraList[j].vendor.c_str()).arg(cameraList[j].model.c_str());
-            ui->cameraComboBox->addItem(cameraString, QPoint(i, j));
+            QString cameraString = QString("Cam%1:%2: %3").arg(j,1).arg(cameraList[j].vendor.c_str()).arg(cameraList[j].model.c_str());
+            ui->cameraComboBox->addItem(cameraString, QPoint(i, j)); //[0 0] and [0 1]
         }
     }
     // Add virtual camera option
-    ui->cameraComboBox->addItem("SLStudio Virtual Camera", QPoint(-1, -1));
-    ui->cameraComboBox->addItem("Two Vimba Cameras", QPoint(0, 2)); //2: use two cameras; 0: vimba camera interface
-    ui->cameraComboBox->addItem("Two Virtual Cameras", QPoint(-1, 2)); //2: use two cameras;
+    ui->cameraComboBox->addItem("SLStudio Virtual Camera0", QPoint(-1, 0));
+    ui->cameraComboBox->addItem("SLStudio Virtual Camera1", QPoint(-1, 1));
+    ui->cameraComboBox->addItem("SLStudio Two Virtual Cameras", QPoint(-1, 2)); //2: use two cameras;
+    ui->cameraComboBox->addItem("Two Vimba Cameras", QPoint(2, 2)); //2: use two cameras; 0: vimba camera interface
 
     // List pattern modes
     ui->patternModeComboBox->addItem("Gray and Phase Shift 4", "CodecGrayPhase4");
