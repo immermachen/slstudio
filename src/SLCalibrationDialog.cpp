@@ -27,6 +27,8 @@ SLCalibrationDialog::SLCalibrationDialog(SLStudio *parent) : QDialog(parent), ui
 
     QSettings settings("SLStudio");
 
+    writeToDisk = settings.value("writeToDisk/frames", false).toBool();
+
     //Checkerboard parameters
     float checkerSize = settings.value("calibration/checkerSize",10).toFloat();
     //ui->checkerSizeBox->setValue(checkerSize);
@@ -49,11 +51,11 @@ SLCalibrationDialog::SLCalibrationDialog(SLStudio *parent) : QDialog(parent), ui
         std::cerr << "SLCalibrationDialog: invalid trigger mode " << sTriggerMode.toStdString() << std::endl;
 
     // Create camera
-    int iNum = settings.value("camera/interfaceNumber", -1).toInt();
-    int cNum = settings.value("camera/cameraNumber", 2).toInt();
+    iNum = settings.value("camera/interfaceNumber", 0).toInt();
+    cNum = settings.value("camera/cameraNumber", 0).toInt();
     std::cout<<"InterfaceNumber and cameraNumber: "<< iNum << ", " << cNum<<std::endl;
 
-    if(iNum != -1)
+    if(iNum == 0)
     {
         if(cNum<2)
         {
@@ -64,12 +66,10 @@ SLCalibrationDialog::SLCalibrationDialog(SLStudio *parent) : QDialog(parent), ui
             for(int c=0;c<cNum;c++)
             {
                 camera.push_back(Camera::NewCamera(iNum,c,triggerMode));  //only note:cNum
-
-                std::cout<<"Add Camera: "<< c <<std::endl;
             }
         }
     }
-    else
+    else if(iNum == -1)
     {
         if(cNum<2)
         {
@@ -91,7 +91,7 @@ SLCalibrationDialog::SLCalibrationDialog(SLStudio *parent) : QDialog(parent), ui
     camSettings.shutter = settings.value("camera/shutter", 16.666).toFloat();
     camSettings.gain = 0.0;
 
-    for(int c=0;c<cNum;c++)
+    for(int c=0;c<camera.size();c++)
     {
         Camera * curCam = camera[c];
         curCam->setCameraSettings(camSettings);
@@ -169,16 +169,28 @@ void SLCalibrationDialog::timerEvent(QTimerEvent *event){
 
     QApplication::processEvents();
 
-    CameraFrame frame = camera[0]->getFrame();
-    cv::Mat frameCV(frame.height, frame.width, CV_8UC1, frame.memory);
-    frameCV = frameCV.clone();
-    ui->videoWidget->showFrameCV(frameCV);
+    if(iNum==0)
+    {
+        if(cNum<2)
+        {
+            CameraFrame frame = camera[0]->getFrame();
+            cv::Mat frameCV(frame.height, frame.width, CV_8UC1, frame.memory);
+            frameCV = frameCV.clone();
+            if(cNum==0)
+                ui->videoWidget->showFrameCV(frameCV);
+            else
+                ui->videoWidget2->showFrameCV(frameCV);
+        }
+        else
+        {
+            //            CameraFrame frame2 = camera[1]->getFrame();
+            //            cv::Mat frameCV2(frame2.height, frame2.width, CV_8UC1, frame2.memory);
+            //            frameCV2 = frameCV2.clone();
 
-
-    CameraFrame frame2 = camera[1]->getFrame();
-    cv::Mat frameCV2(frame2.height, frame2.width, CV_8UC1, frame2.memory);
-    frameCV2 = frameCV2.clone();
-    ui->videoWidget2->showFrameCV(frameCV2);
+        }
+    }
+    else if(iNum == -1)
+    {}
 
     QApplication::processEvents();
 }
@@ -228,36 +240,43 @@ void SLCalibrationDialog::on_snapButton_clicked(){
 
             frameCV.push_back(curframeCV);
 
-            #if 1
-                    int numSeqs = frameSeqs[0].size();
-                    QString filename = QString("~/caldata/aCam_%1_%2_%3.bmp").arg(numSeqs,2).arg(c, 1).arg(i, 2);
-                    cv::imwrite(filename.toStdString(), curframeCV);
-            #endif
-
+            if(writeToDisk)
+            {
+                int numSeqs = frameSeqs[0].size();
+                QString filename = QString("../../caldata/%1_%2_%3.bmp").arg(numSeqs,2, 10, QChar('0')).arg(cNum, 1).arg(i, 2, 10, QChar('0'));
+                cv::imwrite(filename.toStdString(), curframeCV);
+            }
         }
 
         // Show frame
-        ui->videoWidget->showFrameCV(frameCV[0]);
-        ui->videoWidget2->showFrameCV(frameCV[1]);
-
+        if(iNum==0 && cNum<2)
+        {
+            if(cNum == 0)
+                ui->videoWidget->showFrameCV(frameCV[0]);
+            else
+                ui->videoWidget2->showFrameCV(frameCV[0]);
+        }
         // Save frame
-        frameSeq[0].push_back(frameCV[0]);
-        frameSeq[1].push_back(frameCV[1]);
+        frameSeq[cNum].push_back(frameCV[0]);
     }
 
     // Store frame sequence
-    frameSeqs[0].push_back(frameSeq[0]);
-    frameSeqs[1].push_back(frameSeq[1]);
+    frameSeqs[cNum].push_back(frameSeq[cNum]);
 
-    // Add identifier to list
-    QListWidgetItem* item = new QListWidgetItem(QString("Sequence %1").arg(frameSeqs[0].size()), ui->listWidget);
-    item->setFlags(item->flags() | Qt::ItemIsUserCheckable); // set checkable flag
-    item->setCheckState(Qt::Checked); // AND initialize check state
-
-    // Add identifier to list
-    QListWidgetItem* item2 = new QListWidgetItem(QString("Sequence %1").arg(frameSeqs[1].size()), ui->listWidget2);
-    item2->setFlags(item2->flags() | Qt::ItemIsUserCheckable); // set checkable flag
-    item2->setCheckState(Qt::Checked); // AND initialize check state
+    if(cNum == 0)
+    {
+        // Add identifier to list
+        QListWidgetItem* item = new QListWidgetItem(QString("Sequence %1").arg(frameSeqs[0].size()), ui->listWidget);
+        item->setFlags(item->flags() | Qt::ItemIsUserCheckable); // set checkable flag
+        item->setCheckState(Qt::Checked); // AND initialize check state
+    }
+    else
+    {
+        // Add identifier to list
+        QListWidgetItem* item2 = new QListWidgetItem(QString("Sequence %1").arg(frameSeqs[1].size()), ui->listWidget2);
+        item2->setFlags(item2->flags() | Qt::ItemIsUserCheckable); // set checkable flag
+        item2->setCheckState(Qt::Checked); // AND initialize check state
+    }
 
     //    // Allow calibration if enough frame pairs
     //    if(ui->listWidget->count() >= 3)
@@ -286,33 +305,37 @@ void SLCalibrationDialog::on_calibrateButton_clicked(){
     ui->snapButton->setText("Live View");
 
     std::cout<< "----------------Calibrate Camear1-----------------------"<<std::endl;
-    calibrator[0]->reset();
-    // Note which frame sequences are used
-    activeFrameSeqs[0].clear();
-    for(int i=0; i<ui->listWidget->count(); i++){
-        if(ui->listWidget->item(i)->checkState() == Qt::Checked){
-            vector<cv::Mat> frameSeq(frameSeqs[0][i].begin(), frameSeqs[0][i].begin() + calibrator[0]->getNPatterns());
-            calibrator[0]->addFrameSequence(frameSeq);
-            activeFrameSeqs[0].push_back(i);
+    if(cNum == 0)
+    {
+        calibrator[0]->reset();
+        // Note which frame sequences are used
+        activeFrameSeqs[0].clear();
+        for(int i=0; i<ui->listWidget->count(); i++){
+            if(ui->listWidget->item(i)->checkState() == Qt::Checked){
+                vector<cv::Mat> frameSeq(frameSeqs[0][i].begin(), frameSeqs[0][i].begin() + calibrator[0]->getNPatterns());
+                calibrator[0]->addFrameSequence(frameSeq);
+                activeFrameSeqs[0].push_back(i);
+            }
         }
+        // Perform calibration
+        calib[0] = calibrator[0]->calibrate();
     }
-    // Perform calibration
-    calib[0] = calibrator[0]->calibrate();
-
-
-    std::cout<< "----------------Calibrate Camear2-----------------------"<<std::endl;
-    calibrator[1]->reset();
-    // Note which frame sequences are used
-    activeFrameSeqs[1].clear();
-    for(int i=0; i<ui->listWidget2->count(); i++){
-        if(ui->listWidget2->item(i)->checkState() == Qt::Checked){
-            vector<cv::Mat> frameSeq(frameSeqs[1][i].begin(), frameSeqs[1][i].begin() + calibrator[0]->getNPatterns());
-            calibrator[1]->addFrameSequence(frameSeq);
-            activeFrameSeqs[1].push_back(i);
+    else if(cNum==1)
+    {
+        std::cout<< "----------------Calibrate Camear2-----------------------"<<std::endl;
+        calibrator[1]->reset();
+        // Note which frame sequences are used
+        activeFrameSeqs[1].clear();
+        for(int i=0; i<ui->listWidget2->count(); i++){
+            if(ui->listWidget2->item(i)->checkState() == Qt::Checked){
+                vector<cv::Mat> frameSeq(frameSeqs[1][i].begin(), frameSeqs[1][i].begin() + calibrator[0]->getNPatterns());
+                calibrator[1]->addFrameSequence(frameSeq);
+                activeFrameSeqs[1].push_back(i);
+            }
         }
+        // Perform calibration
+        calib[1] = calibrator[1]->calibrate();
     }
-    // Perform calibration
-    calib[1] = calibrator[1]->calibrate();
 
     // Re-enable interface elements
     ui->calibrateButton->setEnabled(true);
@@ -356,19 +379,17 @@ void SLCalibrationDialog::on_saveButton_clicked(){
     unsigned int screenResX, screenResY;
     projector->getScreenRes(&screenResX, &screenResY);
 
-    for(int c=0;c<camera.size();c++)
-    {
-        calib[c].frameWidth = camera[c]->getFrameWidth();
-        calib[c].frameHeight = camera[c]->getFrameHeight();
-        calib[c].screenResX = screenResX;
-        calib[c].screenResY = screenResY;
-        calib[c].calibrationDateTime = QDateTime::currentDateTime().toString("DD.MM.YYYY HH:MM:SS").toStdString();
+    calib[cNum].frameWidth = camera[0]->getFrameWidth();
+    calib[cNum].frameHeight = camera[0]->getFrameHeight();
+    calib[cNum].screenResX = screenResX;
+    calib[cNum].screenResY = screenResY;
+    calib[cNum].calibrationDateTime = QDateTime::currentDateTime().toString("DD.MM.YYYY HH:MM:SS").toStdString();
 
-        //QString filename = QString("frameSeq_cal_%1_%2.bmp").arg(seqNum, 2, 10, QChar('0')).arg(i, 2, 10, QChar('0'));
-        //arg(int a, int fieldWidth = 0, int base = 10, QChar fillChar = QLatin1Char( ' ' )) const
-        QString calFilename = QString("calibration_%1.xml").arg(c,1);
-        calib[c].save(calFilename);
-    }
+    //QString filename = QString("frameSeq_cal_%1_%2.bmp").arg(seqNum, 2, 10, QChar('0')).arg(i, 2, 10, QChar('0'));
+    //arg(int a, int fieldWidth = 0, int base = 10, QChar fillChar = QLatin1Char( ' ' )) const
+    QString calFilename = QString("calibration_%1.xml").arg(cNum,1);
+            calib[cNum].save(calFilename);
+
     this->close();
 }
 
@@ -420,8 +441,9 @@ void SLCalibrationDialog::closeEvent(QCloseEvent *){
     // Stop live view
     killTimer(liveViewTimer);
 
-    delete camera[0];
-    delete camera[1];
+    for(int c=0; c<camera.size();c++)
+        delete camera[c];
+
     delete projector;
     delete calibrator[0];
     delete calibrator[1];

@@ -9,17 +9,12 @@
 #endif
 
 static unsigned int nPhases = 16;
-static unsigned int Nhorz = 11;
-static unsigned int Nvert = 11;
+static unsigned int Nhorz = 0;
+static unsigned int Nvert = 0;
 static unsigned int num_fringes = 8;
 static float intensity_threshold = 0.1;
 static unsigned int fringe_interval = 1;
-//int get_num_bits(int direction) const {
-//    if (direction)
-//        return  ceilf(logf(projector_height) / logf(2));
-//    else
-//        return  ceilf(logf(projector_width) / logf(2));
-//}
+
 
 
 #ifndef log2f
@@ -27,6 +22,15 @@ static unsigned int fringe_interval = 1;
 #endif
 
 using namespace std;
+
+
+static int get_num_bits(int direction,   unsigned int screenval) {
+
+    if (direction)
+        return  ceilf(logf(screenval) / logf(2));//projector_height
+    else
+        return  ceilf(logf(screenval) / logf(2));//projector_width
+}
 
 /*
  * The purpose of this function is to convert an unsigned
@@ -90,6 +94,8 @@ static inline int powi(int num, unsigned int exponent){
 EncoderGrayPhase::EncoderGrayPhase(unsigned int _screenCols, unsigned int _screenRows, CodecDir _dir) : Encoder(_screenCols, _screenRows, _dir)
 {
 
+    Nhorz = get_num_bits(0, _screenCols);
+    Nvert = get_num_bits(1, _screenRows);
     N = 2;
 
     // Set total pattern number
@@ -185,6 +191,10 @@ cv::Mat EncoderGrayPhase::getEncodingPattern(unsigned int depth)
 //------------------------------------------------Decoder-------------------------------------------------------------------------
 DecoderGrayPhase::DecoderGrayPhase(unsigned int _screenCols, unsigned int _screenRows, CodecDir _dir) : Decoder(_screenCols, _screenRows, _dir)
 {
+
+    Nhorz = get_num_bits(0, _screenCols);
+    Nvert = get_num_bits(1, _screenRows);
+
     N = 2;
 
     if(dir & CodecDirHorizontal)
@@ -271,12 +281,13 @@ void DecoderGrayPhase::generate_mask(int direction)
 void DecoderGrayPhase::decodeFrames(cv::Mat &up, cv::Mat &vp, cv::Mat &mask, cv::Mat &shading)
 {
 
-    shading = frames[60];    // Get shading (max) image
+    int framesize=frames.size();
+    shading = frames[framesize-2];    // Get shading (max) image
     shading.convertTo(shading, CV_8UC1);
 
-    cv::Mat minImage = frames[61]; // Get min image
+    cv::Mat minImage = frames[framesize-1]; // Get min image
 
-    std::cout<< "decodeFrames begin." <<std::endl;
+    std::cout<< "decodeFrames begin.......";
 
     if(dir & CodecDirHorizontal){ // Construct up image.
         vector<cv::Mat> images(frames.begin(), frames.begin() + Nhorz*2);
@@ -293,25 +304,25 @@ void DecoderGrayPhase::decodeFrames(cv::Mat &up, cv::Mat &vp, cv::Mat &mask, cv:
         double minVal,maxVal;
         Mat tmp = m_gray_map[0].clone();
         cv::minMaxIdx(tmp,&minVal,&maxVal);
-        std::cout<< "DecodeFrame: Max-Min = " << maxVal << "-" << minVal << std::endl;
+        //std::cout<< "DecodeFrame: Max-Min = " << maxVal << "-" << minVal << std::endl;
         tmp.convertTo(tmp,CV_16U, 65535/(maxVal-minVal),-65535*minVal/(maxVal-minVal));
         cv::imwrite("am_map_gray0.png", tmp);   // gray_map is CV_16U using PNG
 
         tmp = m_gray_error[0].clone();
         cv::minMaxIdx(tmp,&minVal,&maxVal);
-        std::cout<< "DecodeFrame: Max-Min = " << maxVal << "-" << minVal << std::endl;
+        //std::cout<< "DecodeFrame: Max-Min = " << maxVal << "-" << minVal << std::endl;
         tmp.convertTo(tmp,CV_8U, 255/(maxVal-minVal),-225*minVal/(maxVal-minVal));
         cv::imwrite("am_gray_error0.png", tmp);  //gray_error is CV_8U using BMP
 
         tmp = m_phase_map[0].clone();
         cv::minMaxIdx(tmp,&minVal,&maxVal);
-        std::cout<< "DecodeFrame: Max-Min = " << maxVal << "-" << minVal << std::endl;
+        //std::cout<< "DecodeFrame: Max-Min = " << maxVal << "-" << minVal << std::endl;
         tmp.convertTo(tmp,CV_16U, 65535/(maxVal-minVal),-65535*minVal/(maxVal-minVal));
         cv::imwrite("am_phase_map0.png", tmp);   // gray_map is CV_16U using PNG
 
         tmp = m_mask[0].clone();
         cv::minMaxIdx(tmp,&minVal,&maxVal);
-        std::cout<< "DecodeFrame: Max-Min = " << maxVal << "-" << minVal << std::endl;
+        //std::cout<< "DecodeFrame: Max-Min = " << maxVal << "-" << minVal << std::endl;
         //tmp.convertTo(tmp,CV_8U, 255/(maxVal-minVal),-255*min/(maxVal-minVal));
         tmp.convertTo(tmp,CV_8U,255.0/(maxVal-minVal),-255.0*minVal/(maxVal-minVal));
         cv::imwrite("am_mask0.BMP", tmp);  //gray_error is CV_8U using BMP
@@ -328,21 +339,21 @@ void DecoderGrayPhase::decodeFrames(cv::Mat &up, cv::Mat &vp, cv::Mat &mask, cv:
 
         Mat tmp = m_phase_map[0].clone();
         cv::minMaxIdx(tmp,&minVal,&maxVal);
-        std::cout<< "m_phase_map: Max-Min = " << maxVal << "-" << minVal << std::endl;
+        //std::cout<< "m_phase_map: Max-Min = " << maxVal << "-" << minVal << std::endl;
         tmp.convertTo(tmp,CV_16U, 65535/(maxVal-minVal),-65535*minVal/(maxVal-minVal));
         //tmp.convertTo(tmp,CV_16U, 65535/(maxVal),0);
         cv::imwrite("am_map_phase_unwraped.png", tmp);   // gray_map is CV_16U using PNG
 
         tmp = m_phase_error[0].clone();
         cv::minMaxIdx(tmp,&minVal,&maxVal);
-        std::cout<< "m_phase_error: Max-Min = " << maxVal << "-" << minVal << std::endl;
+        //std::cout<< "m_phase_error: Max-Min = " << maxVal << "-" << minVal << std::endl;
         tmp.convertTo(tmp,CV_16U, 65535/(maxVal-minVal),-65535*minVal/(maxVal-minVal));
         //tmp.convertTo(tmp,CV_16U, 65535/(maxVal),0);
         cv::imwrite("am_phase_error0.png", tmp);   // gray_map is CV_16U using PNG
 
         tmp = m_reliable_mask[0].clone();
         cv::minMaxIdx(tmp,&minVal,&maxVal);
-        std::cout<< "m_reliable_mask: Max-Min = " << maxVal << "-" << minVal << std::endl;
+        //std::cout<< "m_reliable_mask: Max-Min = " << maxVal << "-" << minVal << std::endl;
         tmp.convertTo(tmp,CV_8U,255.0/(maxVal-minVal),-255.0*minVal/(maxVal-minVal));
         //tmp.convertTo(tmp,CV_8U,255,0);
         cv::imwrite("am_mask_reliable0.BMP", tmp);  //gray_error is CV_8U using BMP
@@ -352,7 +363,9 @@ void DecoderGrayPhase::decodeFrames(cv::Mat &up, cv::Mat &vp, cv::Mat &mask, cv:
     }
 
 //    cvtools::writeMat(up, "up.mat", "up");
-    std::cout<< "decodeFrames begin00-CodecDirVertical=." << CodecDirVertical <<std::endl;
+
+    //std::cout<< "decodeFrames begin00-CodecDirVertical=." << CodecDirVertical <<std::endl;
+
     if(dir & CodecDirVertical){
         // Construct vp image.
         vector<cv::Mat> images(frames.begin() + Nhorz*2 + num_fringes, frames.begin() + Nhorz*2 + num_fringes + Nvert*2);
@@ -368,25 +381,25 @@ void DecoderGrayPhase::decodeFrames(cv::Mat &up, cv::Mat &vp, cv::Mat &mask, cv:
         double minVal,maxVal;
         Mat tmp = m_gray_map[1].clone();
         cv::minMaxIdx(tmp,&minVal,&maxVal);
-        std::cout<< "DecodeFrame: Max-Min = " << maxVal << "-" << minVal << std::endl;
+        //std::cout<< "DecodeFrame: Max-Min = " << maxVal << "-" << minVal << std::endl;
         tmp.convertTo(tmp,CV_16U, 65535/(maxVal-minVal),-65535*minVal/(maxVal-minVal));
         cv::imwrite("am_map_gray1.png", tmp);   // gray_map is CV_16U using PNG
 
         tmp = m_gray_error[1].clone();
         cv::minMaxIdx(tmp,&minVal,&maxVal);
-        std::cout<< "DecodeFrame: Max-Min = " << maxVal << "-" << minVal << std::endl;
+        //std::cout<< "DecodeFrame: Max-Min = " << maxVal << "-" << minVal << std::endl;
         tmp.convertTo(tmp,CV_8U, 255/(maxVal-minVal),-225*minVal/(maxVal-minVal));
         cv::imwrite("am_gray_error1.png", tmp);  //gray_error is CV_8U using BMP
 
         tmp = m_phase_map[1].clone();
         cv::minMaxIdx(tmp,&minVal,&maxVal);
-        std::cout<< "DecodeFrame: Max-Min = " << maxVal << "-" << minVal << std::endl;
+        //std::cout<< "DecodeFrame: Max-Min = " << maxVal << "-" << minVal << std::endl;
         tmp.convertTo(tmp,CV_16U, 65535/(maxVal-minVal),-65535*minVal/(maxVal-minVal));
         cv::imwrite("am_phase_map1.png", tmp);   // gray_map is CV_16U using PNG
 
         tmp = m_mask[1].clone();
         cv::minMaxIdx(tmp,&minVal,&maxVal);
-        std::cout<< "DecodeFrame: Max-Min = " << maxVal << "-" << minVal << std::endl;
+        //std::cout<< "DecodeFrame: Max-Min = " << maxVal << "-" << minVal << std::endl;
         //tmp.convertTo(tmp,CV_8U, 255/(maxVal-minVal),-255*min/(maxVal-minVal));
         tmp.convertTo(tmp,CV_8U,255.0/(maxVal-minVal),-255.0*minVal/(maxVal-minVal));
         cv::imwrite("am_mask1.BMP", tmp);  //gray_error is CV_8U using BMP
@@ -403,21 +416,21 @@ void DecoderGrayPhase::decodeFrames(cv::Mat &up, cv::Mat &vp, cv::Mat &mask, cv:
 
         Mat tmp = m_phase_map[1].clone();
         cv::minMaxIdx(tmp,&minVal,&maxVal);
-        std::cout<< "m_phase_map: Max-Min = " << maxVal << "-" << minVal << std::endl;
+        //std::cout<< "m_phase_map: Max-Min = " << maxVal << "-" << minVal << std::endl;
         tmp.convertTo(tmp,CV_16U, 65535/(maxVal-minVal),-65535*minVal/(maxVal-minVal));
         //tmp.convertTo(tmp,CV_16U, 65535/(maxVal),0);
         cv::imwrite("am_map_phase_unwraped1.png", tmp);   // gray_map is CV_16U using PNG
 
         tmp = m_phase_error[1].clone();
         cv::minMaxIdx(tmp,&minVal,&maxVal);
-        std::cout<< "m_phase_error: Max-Min = " << maxVal << "-" << minVal << std::endl;
+        //std::cout<< "m_phase_error: Max-Min = " << maxVal << "-" << minVal << std::endl;
         tmp.convertTo(tmp,CV_16U, 65535/(maxVal-minVal),-65535*minVal/(maxVal-minVal));
         //tmp.convertTo(tmp,CV_16U, 65535/(maxVal),0);
         cv::imwrite("am_phase_error1.png", tmp);   // gray_map is CV_16U using PNG
 
         tmp = m_reliable_mask[1].clone();
         cv::minMaxIdx(tmp,&minVal,&maxVal);
-        std::cout<< "m_reliable_mask: Max-Min = " << maxVal << "-" << minVal << std::endl;
+        //std::cout<< "m_reliable_mask: Max-Min = " << maxVal << "-" << minVal << std::endl;
         tmp.convertTo(tmp,CV_8U,255.0/(maxVal-minVal),-255.0*minVal/(maxVal-minVal));
         //tmp.convertTo(tmp,CV_8U,255,0);
         cv::imwrite("am_mask_reliable1.BMP", tmp);  //gray_error is CV_8U using BMP
@@ -426,7 +439,7 @@ void DecoderGrayPhase::decodeFrames(cv::Mat &up, cv::Mat &vp, cv::Mat &mask, cv:
 
     }
 
-    std::cout<< "decodeFrames begin00-CodecDirBoth=." << CodecDirBoth <<std::endl;
+    //std::cout<< "decodeFrames begin00-CodecDirBoth=." << CodecDirBoth <<std::endl;
 
 
     // merge masks and reliable maps
@@ -455,7 +468,7 @@ void DecoderGrayPhase::decodeFrames(cv::Mat &up, cv::Mat &vp, cv::Mat &mask, cv:
     double minVal,maxVal;
     Mat tmp = mask.clone();
     cv::minMaxIdx(tmp,&minVal,&maxVal);
-    std::cout<< "m_mask_final: Max-Min = " << maxVal << "-" << minVal << std::endl;
+    //std::cout<< "m_mask_final: Max-Min = " << maxVal << "-" << minVal << std::endl;
     tmp.convertTo(tmp,CV_8U,255.0/(maxVal-minVal),-255.0*minVal/(maxVal-minVal));
     cv::imwrite("am_mask_final.BMP", tmp);  //gray_error is CV_8U using BMP
 #endif

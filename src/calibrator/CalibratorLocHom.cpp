@@ -52,9 +52,9 @@ CalibrationData CalibratorLocHom::calibrate(){
                 cv::imwrite(QString("m_frames[%1].png").arg(f).toStdString(), frames[f]);
             #endif
         }
-        std::cout << "decodeFrames begin.....--------------------.>> "<<std::endl;
+        std::cout << "decodeFrames begin.....----.>>   ";
         decoder->decodeFrames(up[i], vp[i], mask[i], shading[i]);
-        std::cout << "decodeFrames end-----------------------------||."<<std::endl;
+        std::cout << "   decodeFrames end-------------||."<<std::endl;
         #if 0
             cvtools::writeMat(shading[i], QString("shading[%1].mat").arg(i).toLocal8Bit());
             cvtools::writeMat(up[i], QString("up[%1].mat").arg(i).toLocal8Bit());

@@ -54,6 +54,9 @@ class SLCalibrationDialog : public QDialog {
         bool diamondPattern;
         unsigned int screenCols;
         unsigned int screenRows;
+        int iNum;
+        int cNum;
+        bool writeToDisk;
 };
 
 #endif // SLCALIBRATAIONDIALOG_H

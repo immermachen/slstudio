@@ -34,7 +34,9 @@ SLPreferenceDialog::SLPreferenceDialog(QWidget *parent) : QDialog(parent), ui(ne
     for(unsigned int i=0; i<interfaceCameraList.size(); i++){
         vector<CameraInfo> cameraList = interfaceCameraList[i];
         for(unsigned int j=0; j<cameraList.size(); j++){
-            QString cameraString = QString("Cam%1:%2: %3").arg(j,1).arg(cameraList[j].vendor.c_str()).arg(cameraList[j].model.c_str());
+            string cam = "Left";
+            if(j==1) cam = "Right";
+            QString cameraString = QString("%4Cam%1:%2: %3").arg(j,1).arg(cameraList[j].vendor.c_str()).arg(cameraList[j].model.c_str()).arg(cam.c_str());
             ui->cameraComboBox->addItem(cameraString, QPoint(i, j)); //[0 0] and [0 1]
         }
     }

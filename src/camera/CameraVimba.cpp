@@ -14,8 +14,7 @@
 using namespace AVT::VmbAPI;
 
 CameraFrame CameraVimba::getFrame(){
-    const char *    pFileName   = NULL;             // The filename for the bitmap to save
-    pFileName = "frameSeq_Debug.bmp";
+
     CameraFrame frame;
     FramePtr pFrame;
     VmbErrorType err;
@@ -37,8 +36,6 @@ CameraFrame CameraVimba::getFrame(){
         std::cout<< "AcquireSingleImage-->GetReceiveStatus err="<< ErrorCodeToMessage(err).c_str()<<std::endl;
         return frame;
     }
-
-    std::cout<<"getFrame --> GetFrame() works!  "<<std::endl;
 
     VmbPixelFormatType ePixelFormat = VmbPixelFormatMono8;
     err = pFrame->GetPixelFormat( ePixelFormat );
@@ -98,7 +95,7 @@ CameraFrame CameraVimba::getFrame(){
     frame.memory = pBitmapBuffer;
 
 
-    std::cout<<"getFrame --> GetFrame-->End. size="<< frame.sizeBytes << ", Height=" << frame.height << ", width=" << frame.width  << ", stamp="<< stamp<<std::endl;
+    //std::cout<<"getFrame --> GetFrame-->End. size="<< frame.sizeBytes << ", Height=" << frame.height << ", width=" << frame.width  << ", stamp="<< stamp<<std::endl;
 
 
     return frame;
@@ -125,12 +122,12 @@ bool CameraVimba::Init(unsigned int camNum)
 
             if (cameras.size()>0) {
                 if (cameras.size()>1) {
-                    std::cout << "Cameras found: " << cameras.size();  // should also implement Qinputdialog to let the user choose which one to use
+                    //std::cout << "Cameras found: " << cameras.size();  // should also implement Qinputdialog to let the user choose which one to use
                     for (uint i=0;i<cameras.size();i++) {
-                        CameraPtr cam=cameras[i];
-                        std::string namestr;
-                        err=cam->GetName(namestr);
-                        std::cout<<"Next Camera is: "<<namestr;
+                        CameraPtr cam=cameras[i];                        
+                        std::string model;
+                        cam->GetSerialNumber(model);
+                        std::cout<<" Next Camera model = "<<model << std::endl;
                     }
                 }
 
@@ -138,17 +135,16 @@ bool CameraVimba::Init(unsigned int camNum)
                 m_pCamera=cameras[camNum];
                 std::string camID;
                 std::string namestr;
+                std::string model;
                 err=m_pCamera->GetName(namestr);
                 err=m_pCamera->GetID(camID);
+                m_pCamera->GetSerialNumber(model);
                 if( VmbErrorSuccess == err )    {
-                    std::cout<<"Opening camera "<<namestr;
+                    std::cout<<"Opening camera model= "<<model <<std::endl;
 
                     err=m_pCamera->Open(VmbAccessModeFull);
 
                     if (err==VmbErrorSuccess) {
-                        //camera successfully opened. Now do some camera initialisation steps
-                        std::cout<<"camera successfully opened";
-
                         // Set the GeV packet size to the highest possible value
                         // (In this example we do not test whether this cam actually is a GigE cam)
                         FeaturePtr pCommandFeature;
@@ -179,10 +175,6 @@ bool CameraVimba::Init(unsigned int camNum)
                         settings.shutter = 16.66;
                         settings.gain = 0.0;
                         this->setCameraSettings(settings);
-
-
-                        std::cout<<"camera successfully opened --> Set/Get finished!";
-
                     } else {
                         std::cout<<"camera did not open successfully";
                         return false;
@@ -213,8 +205,6 @@ bool CameraVimba::Init(unsigned int camNum)
 
 void CameraVimba::startCapture()
 {
-    std::cout << "startCapture --> "<<std::endl;
-
     VmbErrorType err;
     FeaturePtr pFeature;
 
@@ -232,7 +222,7 @@ void CameraVimba::startCapture()
         }
     }
 
-    std::cout<<"startCapture --> RunCommand -->AcquisitionStart ";
+    //std::cout<<"startCapture --> RunCommand -->AcquisitionStart ";
     capturing = true;
 }
 
@@ -272,7 +262,7 @@ std::vector<CameraInfo> CameraVimba::getCameraList()
     std::vector<CameraInfo> ret;
 
     VimbaSystem&    sys = VimbaSystem::GetInstance();  // Get a reference to the VimbaSystem singleton
-    std::cout<<"Vimba Version V"<<sys<<"\n";           // Print out version of Vimba
+    //std::cout<<"Vimba Version V"<<sys<<"\n";           // Print out version of Vimba
     VmbErrorType    err = sys.Startup();               // Initialize the Vimba API
     CameraPtrVector cameras;                           // A vector of std::shared_ptr<AVT::VmbAPI::Camera> objects
 
@@ -288,7 +278,7 @@ std::vector<CameraInfo> CameraVimba::getCameraList()
     if( VmbErrorSuccess == err )
     {
         unsigned int numCameras = cameras.size();
-        std::cout << "Cameras found: " << cameras.size() <<"\n\n";
+        //std::cout << "Cameras found: " << cameras.size() <<"\n\n";
 
         // Query all static details of all known cameras and print them out.
         // We don't have to open the cameras for that.
@@ -302,7 +292,7 @@ std::vector<CameraInfo> CameraVimba::getCameraList()
             cam->GetSerialNumber(info.model);
             std::string cameraID;
             cam->GetID(cameraID);
-            std::cout << "cameraID: " << cameraID <<"\n\n";
+            //std::cout << "cameraID: " << cameraID <<"\n\n";
             info.busID = atoi(cameraID.c_str());
             ret.push_back(info);
         }
@@ -350,8 +340,7 @@ void CameraVimba::setCameraSettings(CameraSettings settings){
         double shutter;
         err=pFeature->GetValue(shutter);
 
-        std::cout << "Setting camera parameters, beginning:" << std::endl
-                  << "Shutter: " << shutter << " us" << std::endl;
+        std::cout << "beginning: Shutter: " << shutter << " us" << std::endl;
                   //<< "Gain: " << settings.gain << " dB" << std::endl;
     }
 
@@ -364,8 +353,7 @@ void CameraVimba::setCameraSettings(CameraSettings settings){
         double shutter;
         err=pFeature->GetValue(shutter);
 
-        std::cout << "Setting camera parameters, after:" << std::endl
-                  << "Shutter: " << shutter << " us" << std::endl;
+        std::cout << "after: Shutter: " << shutter << " us" << std::endl;
                   //<< "Gain: " << settings.gain << " dB" << std::endl;
     }
 }

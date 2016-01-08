@@ -323,7 +323,7 @@ void SLScanWorker::doWork(){
             for(int i=0; i<frameSeq[0].size(); i++){
                 for(int c=0;c<camera.size();c++)
                 {
-                    QString filename = QString("../../captured/%1_%2.bmp").arg(cNum, 1).arg(i, 2);//,10,QChar('0'));
+                    QString filename = QString("../../captured/%1_%2.bmp").arg(cNum, 1).arg(i, 2, 10, QChar('0'));//,10,QChar('0'));
                     cv::imwrite(filename.toStdString(), frameSeq[c][i]);
                 }
             }
