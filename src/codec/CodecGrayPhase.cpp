@@ -1,3 +1,8 @@
+//Yang Zhang: The combination of Gray code and phase shift from:
+//Shuntaro Yamazaki, Masaaki Mochimaru, and Takeo Kanade, "Simultaneous
+//self-calibration of a projector and a camera using structured light",
+//In Proc. Projector Camera Systems 2011, pp. 67-74, June 2011
+
 #include "CodecGrayPhase.h"
 #include <cmath>
 #include <iomanip>
@@ -14,8 +19,6 @@ static unsigned int Nvert = 0;
 static unsigned int num_fringes = 8;
 static float intensity_threshold = 0.1;
 static unsigned int fringe_interval = 1;
-
-
 
 #ifndef log2f
 #define log2f(x) (log(x)/log(2.0))

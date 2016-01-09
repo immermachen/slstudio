@@ -2,8 +2,13 @@
 
 #include <QTime>
 #include <QTest>
+#include <QSettings>
 
 SLProjectorVirtual::SLProjectorVirtual(unsigned int){
+    QSettings settings("SLStudio");
+    screenResX = settings.value("projectorVirtual/screenResX", 1024).toInt();
+    screenResY = settings.value("projectorVirtual/screenResY", 768).toInt();
+
     time = new QTime();
     time->start();
 }
@@ -35,8 +40,8 @@ void SLProjectorVirtual::displayWhite(){
 }
 
 void SLProjectorVirtual::getScreenRes(unsigned int *nx, unsigned int *ny){
-    *nx = 1024;
-    *ny = 768;
+    *nx = screenResX;
+    *ny = screenResY;
 }
 
 SLProjectorVirtual::~SLProjectorVirtual(){

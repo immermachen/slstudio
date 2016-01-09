@@ -288,16 +288,19 @@ void SLScanWorker::doWork(){
                     }
                     cv::Mat curframeCV(frame.height, frame.width, CV_8UC1, frame.memory);
                     frameCV = curframeCV;
+                    frameCV = frameCV.clone();
                 }
                 else if(iNum = -1)
                 {
-                    QString filename=QString("../../data/%1_%2.bmp").arg(cNum,1).arg(i,2);
+                    QString filename=QString("dataCapturedForTest/%1_%2.bmp").arg(cNum,1).arg(i,2,10,QChar('0'));
                     frameCV = cv::imread(filename.toStdString().c_str(), CV_LOAD_IMAGE_GRAYSCALE);
+                    frameCV = frameCV.clone();
+
+                    if(cNum==1)
+                        cv::flip(frameCV,frameCV,-1);//0: flip aroud x-axis;1: flip around Y-axis; -1:flip both directions
                 }
                 else if(iNum == 2)
                 {}
-
-                frameCV = frameCV.clone();
 
                 if(triggerMode == triggerModeHardware)
                     frameSeq[c][(i+N-shift)%N] = frameCV;
@@ -323,7 +326,7 @@ void SLScanWorker::doWork(){
             for(int i=0; i<frameSeq[0].size(); i++){
                 for(int c=0;c<camera.size();c++)
                 {
-                    QString filename = QString("../../captured/%1_%2.bmp").arg(cNum, 1).arg(i, 2, 10, QChar('0'));//,10,QChar('0'));
+                    QString filename = QString("dataCaptured/%1_%2.bmp").arg(cNum, 1).arg(i, 2, 10, QChar('0'));//,10,QChar('0'));
                     cv::imwrite(filename.toStdString(), frameSeq[c][i]);
                 }
             }

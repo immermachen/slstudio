@@ -15,7 +15,8 @@ class Calibrator : public QObject {
         virtual unsigned int getNPatterns(){return N;}
         virtual cv::Mat getCalibrationPattern(unsigned int depth){return patterns[depth];}
         virtual void addFrameSequence(std::vector<cv::Mat> frameSeq){frameSeqs.push_back(frameSeq);}
-        virtual void reset(){frameSeqs.clear();}
+        virtual void addFrameSequence(std::vector<std::string> frameSeq){frameSeqsFromFile.push_back(frameSeq);}
+        virtual void reset(){frameSeqs.clear(); frameSeqsFromFile.clear();}
         virtual CalibrationData calibrate() = 0;
         virtual ~Calibrator(){}
     signals:
@@ -25,6 +26,7 @@ class Calibrator : public QObject {
         unsigned int N;
         vector<cv::Mat> patterns;
         vector< vector<cv::Mat> > frameSeqs;
+        vector< vector<std::string> > frameSeqsFromFile;
 };
 
 #endif // CALIBRATOR_H

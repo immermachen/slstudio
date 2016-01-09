@@ -19,7 +19,9 @@ SLPreferenceDialog::SLPreferenceDialog(QWidget *parent) : QDialog(parent), ui(ne
         ui->projectorComboBox->addItem(screenString, i);
     }
     // Add virtual projector option
-    ui->projectorComboBox->addItem("SLStudio Virtual Screen", -1);
+    ui->projectorComboBox->addItem("SLStudio Virtual Screen 1024*768", -1);
+    // Add virtual projector option
+    ui->projectorComboBox->addItem("SLStudio Virtual Screen 1920*1080", -4);
     // Add LC3000 option
     #ifdef WITH_LC3000API
         ui->projectorComboBox->addItem("LC3000 API", -2);
@@ -41,10 +43,10 @@ SLPreferenceDialog::SLPreferenceDialog(QWidget *parent) : QDialog(parent), ui(ne
         }
     }
     // Add virtual camera option
-    ui->cameraComboBox->addItem("SLStudio Virtual Camera0", QPoint(-1, 0));
-    ui->cameraComboBox->addItem("SLStudio Virtual Camera1", QPoint(-1, 1));
+    ui->cameraComboBox->addItem("SLStudio Virtual LeftCamera0", QPoint(-1, 0));
+    ui->cameraComboBox->addItem("SLStudio Virtual RightCamera1", QPoint(-1, 1));
     ui->cameraComboBox->addItem("SLStudio Two Virtual Cameras", QPoint(-1, 2)); //2: use two cameras;
-    ui->cameraComboBox->addItem("Two Vimba Cameras", QPoint(2, 2)); //2: use two cameras; 0: vimba camera interface
+    ui->cameraComboBox->addItem("Two Vimba Cameras", QPoint(0, 2)); //2: use two cameras; 0: vimba camera interface
 
     // List pattern modes
     ui->patternModeComboBox->addItem("Gray and Phase Shift 4", "CodecGrayPhase4");
@@ -151,6 +153,16 @@ void SLPreferenceDialog::on_buttonBox_accepted(){
     settings.setValue("projector/diamondPattern", diamondPattern);
     //bool verticalBaseline = ui->verticalBaselineCheckbox->isChecked();
     //settings.setValue("projector/verticalBaseline", verticalBaseline);
+    if(proj==-1)
+    {
+        settings.setValue("projectorVirtual/screenResX", 1024);
+        settings.setValue("projectorVirtual/screenResY", 768);
+    }
+    if(proj==-4)
+    {
+        settings.setValue("projectorVirtual/screenResX", 1920);
+        settings.setValue("projectorVirtual/screenResY", 1080);
+    }
 
     // Camera
     QPoint cam = ui->cameraComboBox->itemData(ui->cameraComboBox->currentIndex()).toPoint();

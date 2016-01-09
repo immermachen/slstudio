@@ -46,7 +46,8 @@ class SLCalibrationDialog : public QDialog {
         vector< Calibrator * > calibrator; //add two camera support
         CalibrationData calib[2]; //add two camera support
         int liveViewTimer;
-        vector< vector<cv::Mat> > frameSeqs[2]; //n vectors of 62 vectors of Mat
+        //vector< vector<cv::Mat> > frameSeqs[2]; //n vectors of 62 vectors of Mat
+        vector< vector<std::string> > frameSeqs[2]; //n vectors of 62 vectors of Mat
         vector<unsigned int> activeFrameSeqs[2]; //add two camera support
         bool reviewMode;
         unsigned int timerInterval; //ms

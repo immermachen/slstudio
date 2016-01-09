@@ -118,8 +118,11 @@ PointCloudConstPtr SLPointCloudWidget::registerPointCloud(PointCloudConstPtr _po
     pcl::IterativeClosestPoint<pcl::PointXYZRGB, pcl::PointXYZRGB> registration; //TODO: check this pcl function
     registration.setInputSource(pointCloudPCL);
     registration.setInputTarget(_pointCloudPCL);
+    //set params, see Meshlab align function:
+    //registration.setMaximumIterations(50);
 
     registration.align(*finalCloud); //very slowly
+
 
     if (registration.hasConverged())
     {

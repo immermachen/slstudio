@@ -1,3 +1,10 @@
+//Yang Zhang: The combination of Gray code and phase shift from:
+//Shuntaro Yamazaki, Masaaki Mochimaru, and Takeo Kanade, "Simultaneous
+//self-calibration of a projector and a camera using structured light",
+//In Proc. Projector Camera Systems 2011, pp. 67-74, June 2011
+
+
+
 #include "GrayPhase.h"
 
 

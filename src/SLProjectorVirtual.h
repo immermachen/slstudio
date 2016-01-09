@@ -27,6 +27,8 @@ class SLProjectorVirtual: public Projector {
     private:
         void waitForProjection();
         QTime *time;
+        unsigned int screenResX;
+        unsigned int screenResY;
 };
 
 #endif
