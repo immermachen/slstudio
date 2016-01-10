@@ -11,9 +11,6 @@
 #include <pcl/io/ply_io.h>
 
 void SLTriangulatorWorker::setup(){
-
-    std::cout << "SLTriangulatorWorker::setup::------------------------------->" << std::endl;
-
     QSettings settings("SLStudio");
     writeToDisk = settings.value("writeToDisk/pointclouds",false).toBool();
 
@@ -34,12 +31,7 @@ void SLTriangulatorWorker::setup(){
     }
 
     triangulator = new Triangulator(*calibration);
-
-
-
-
 }
-
 
 void SLTriangulatorWorker::triangulatePointCloud(cv::Mat up, cv::Mat vp, cv::Mat mask, cv::Mat shading){
 
@@ -139,9 +131,10 @@ void SLTriangulatorWorker::triangulatePointCloud(cv::Mat up, cv::Mat vp, cv::Mat
         pcl::PLYWriter w;
         // Write to ply in binary without camera
         w.write<pcl::PointXYZRGB> (fileName.toStdString(), *pointCloudPCL, true, false);
+        std::cout << "Save PLY: " << fileName.toStdString() << std::endl;
     }
 
-    //emit finished();
+    emit finished();
 }
 
 SLTriangulatorWorker::~SLTriangulatorWorker(){

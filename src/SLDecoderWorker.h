@@ -29,7 +29,7 @@ class SLDecoderWorker : public QObject {
         void showDecoderVp(cv::Mat mat);
         void newUpVp(cv::Mat up, cv::Mat vp, cv::Mat mask, cv::Mat shading);
         void error(QString err);
-        //void finished();
+        void finished();
     private:
         Decoder *decoder;
         unsigned int screenCols, screenRows;

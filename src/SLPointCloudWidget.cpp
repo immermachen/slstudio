@@ -228,4 +228,5 @@ SLPointCloudWidget::~SLPointCloudWidget(){
 
     //delete visualizer;
 
+    std::cout<<"SLPointCloudWidget deleted\n"<<std::flush;
 }

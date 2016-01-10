@@ -80,7 +80,7 @@ signals:
         SLVideoDialog *histogramDialog, *shadingDialog, *decoderUpDialog, *decoderVpDialog;
         SLTrackerDialog *trackerDialog;
 
-        unsigned int iNum, cNum, nPCL;
+        unsigned int nPCL;
     public:
 
 };

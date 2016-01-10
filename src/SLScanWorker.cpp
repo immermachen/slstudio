@@ -407,5 +407,7 @@ SLScanWorker::~SLScanWorker(){
     for(int c=0;c<camera.size();c++)
         delete camera[c];
     delete projector;
+    delete encoder;
 
+    std::cout<<"scanWorker deleted\n"<<std::flush;
 }

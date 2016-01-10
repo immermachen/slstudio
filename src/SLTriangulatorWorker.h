@@ -33,7 +33,7 @@ class SLTriangulatorWorker : public QObject {
         void imshow(const char* windowName, cv::Mat mat, unsigned int x, unsigned int y);
         void newPointCloud(PointCloudPtr pointCloud, unsigned int cNum);
         void error(QString err);
-        //void finished();
+        void finished();
     private:
         unsigned int frameWidth, frameHeight;        
         bool writeToDisk;

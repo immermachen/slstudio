@@ -24,10 +24,6 @@
 #include "cvtools.h"
 
 void SLDecoderWorker::setup(){
-
-
-    std::cout << "SLDecoderWorker::setup::------------------------------->" << std::endl;
-
     // Initialize decoder
     QSettings settings("SLStudio");
 
@@ -143,6 +139,7 @@ void SLDecoderWorker::decodeSequence(std::vector<cv::Mat> frameSeq){
 
     std::cout << "Decoder: " << time.restart() << "ms" << std::endl;
 
+    emit finished();
 }
 
 SLDecoderWorker::~SLDecoderWorker(){
