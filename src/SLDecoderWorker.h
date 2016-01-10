@@ -17,7 +17,7 @@ class SLDecoderWorker : public QObject {
     Q_OBJECT
 
     public:
-        SLDecoderWorker(): screenCols(0), screenRows(0){}
+        SLDecoderWorker(unsigned int _cNum) : cNum(_cNum), screenCols(0), screenRows(0){}
         ~SLDecoderWorker();
     public slots:
         void setup();
@@ -33,6 +33,7 @@ class SLDecoderWorker : public QObject {
     private:
         Decoder *decoder;
         unsigned int screenCols, screenRows;
+        unsigned int cNum;
         QTime time;
         bool busy;
 };

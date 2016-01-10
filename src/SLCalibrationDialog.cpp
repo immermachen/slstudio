@@ -66,7 +66,7 @@ SLCalibrationDialog::SLCalibrationDialog(SLStudio *parent) : QDialog(parent), ui
         {
             for(int c=0;c<2;c++)
             {
-                camera.push_back(Camera::NewCamera(iNum,c,triggerMode));  //only note:cNum
+                camera.push_back(Camera::NewCamera(iNum,c,triggerMode));
             }
         }
     }
@@ -80,7 +80,7 @@ SLCalibrationDialog::SLCalibrationDialog(SLStudio *parent) : QDialog(parent), ui
         {
             for(int c=0;c<2;c++)
             {
-                camera.push_back(new SLCameraVirtual(c,triggerMode));  //only note:cNum
+                camera.push_back(new SLCameraVirtual(c,triggerMode));
             }
         }
     }

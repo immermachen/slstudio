@@ -17,8 +17,8 @@ void SLTriangulatorWorker::setup(){
     QSettings settings("SLStudio");
     writeToDisk = settings.value("writeToDisk/pointclouds",false).toBool();
 
-    iNum = settings.value("camera/interfaceNumber", 0).toInt();
-    cNum = settings.value("camera/cameraNumber", 0).toInt();
+    //iNum = settings.value("camera/interfaceNumber", 0).toInt();
+    //cNum = settings.value("camera/cameraNumber", 0).toInt();
 
     // Initialize triangulator with calibration
     calibration = new CalibrationData;
@@ -128,7 +128,7 @@ void SLTriangulatorWorker::triangulatePointCloud(cv::Mat up, cv::Mat vp, cv::Mat
 //    filter.filter(*pointCloudFiltered);
 
     // Emit result
-    emit newPointCloud(pointCloudPCL);
+    emit newPointCloud(pointCloudPCL, cNum);
 
     std::cout << "Triangulator: " << time.elapsed() << "ms" << std::endl;
 

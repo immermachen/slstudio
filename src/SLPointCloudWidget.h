@@ -26,7 +26,9 @@ class SLPointCloudWidget : public QVTKWidget {
     Q_OBJECT
     public:
         PointCloudConstPtr pointCloudPCL;
-        PointCloudConstPtr registerPointCloud(PointCloudConstPtr _pointCloudPCL);
+        PointCloudPtr pointCloudPCL_Left;
+        PointCloudPtr pointCloudPCL_Right;
+        bool registerPointCloud();
         explicit SLPointCloudWidget(QWidget *parent = 0);
         ~SLPointCloudWidget();
     protected:

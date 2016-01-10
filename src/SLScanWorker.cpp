@@ -58,9 +58,9 @@ void SLScanWorker::setup(){
         }
         else
         {
-            for(int c=0;c<cNum;c++)
+            for(int c=0;c<2;c++)
             {
-                camera.push_back(Camera::NewCamera(iNum,c,triggerMode));  //only note:cNum
+                camera.push_back(Camera::NewCamera(iNum,c,triggerMode));
             }
         }
     }
@@ -72,9 +72,9 @@ void SLScanWorker::setup(){
         }
         else
         {
-            for(int c=0;c<cNum;c++)
+            for(int c=0;c<2;c++)
             {
-                camera.push_back(new SLCameraVirtual(c,triggerMode));  //only note:cNum
+                camera.push_back(new SLCameraVirtual(c,triggerMode));
             }
         }
     }
@@ -179,6 +179,7 @@ void SLScanWorker::setup(){
 
 }
 
+//each camera use each calibration parameters to calibrate projector.
 void SLScanWorker::setupProjector(int c)
 {
     QSettings settings("SLStudio");
@@ -262,7 +263,10 @@ void SLScanWorker::doWork(){
 
         for(int c=0;c<camera.size();c++)
         {
-            setupProjector(cNum);
+            if(cNum<2)
+                setupProjector(cNum);
+            else
+                setupProjector(c);
 
             // Acquire patterns
             for(unsigned int i=0; i<N; i++)
@@ -291,21 +295,32 @@ void SLScanWorker::doWork(){
                     frameCV = frameCV.clone();
                 }
                 else if(iNum = -1)
-                {
+                {                    
                     QString filename=QString("dataCapturedForTest/%1_%2.bmp").arg(cNum,1).arg(i,2,10,QChar('0'));
+                    if(cNum==2)
+                        filename=QString("dataCapturedForTest/%1_%2.bmp").arg(c,1).arg(i,2,10,QChar('0'));
                     frameCV = cv::imread(filename.toStdString().c_str(), CV_LOAD_IMAGE_GRAYSCALE);
                     frameCV = frameCV.clone();
 
-                    if(cNum==1)
+                    if(cNum==1 || c==1)
                         cv::flip(frameCV,frameCV,-1);//0: flip aroud x-axis;1: flip around Y-axis; -1:flip both directions
                 }
-                else if(iNum == 2)
-                {}
 
                 if(triggerMode == triggerModeHardware)
-                    frameSeq[c][(i+N-shift)%N] = frameCV;
+                {
+
+                    if(cNum<2)
+                        frameSeq[cNum][(i+N-shift)%N] = frameCV;
+                    else
+                        frameSeq[c][(i+N-shift)%N] = frameCV;
+                }
                 else
-                    frameSeq[c][i] = frameCV;
+                {
+                    if(cNum<2)
+                        frameSeq[cNum][i] = frameCV;
+                    else
+                        frameSeq[c][i] = frameCV;
+                }
             }
         }
 
@@ -324,29 +339,44 @@ void SLScanWorker::doWork(){
         // Write frames to disk if desired
         if(writeToDisk){
             for(int i=0; i<frameSeq[0].size(); i++){
-                for(int c=0;c<camera.size();c++)
+                if(cNum < 2)
                 {
                     QString filename = QString("dataCaptured/%1_%2.bmp").arg(cNum, 1).arg(i, 2, 10, QChar('0'));//,10,QChar('0'));
-                    cv::imwrite(filename.toStdString(), frameSeq[c][i]);
+                    cv::imwrite(filename.toStdString(), frameSeq[cNum][i]);
+                }
+                else
+                {
+                    for(int c=0;c<2;c++)
+                    {
+                        QString filename = QString("dataCaptured/%1_%2.bmp").arg(c, 1).arg(i, 2, 10, QChar('0'));//,10,QChar('0'));
+                        cv::imwrite(filename.toStdString(), frameSeq[c][i]);
+                    }
                 }
             }
         }
 
         // Pass frame sequence to decoder
-        emit newFrameSeq(frameSeq[0]);
-        //emit newFrameSeq2(frameSeq[1]);
+        if(cNum==0 || cNum ==2)
+        {
+            emit newFrameSeq(frameSeq[0]);
+        }
+        if(cNum==1 || cNum == 2)
+        {
+            emit newFrameSeq2(frameSeq[1]);
+        }
 
-        // Calculate and show histogram of sumimage
-        float range[] = {0, 255};
-        const float* histRange = {range};
-        int histSize = 256;
-        cv::Mat histogram;
-        cv::Mat frameSeqArr[] = {frameSeq[0][0], frameSeq[0][1], frameSeq[0][2]};
-        const int channels[] = {0,1,2};
-        cv::calcHist(frameSeqArr, 3, channels, cv::Mat(), histogram, 1, &histSize, &histRange);
-        //emit hist("Histogram", histogram, 100, 50);
-        cv::Mat histogramImage = cvtools::histimage(histogram);
-        emit showHistogram(histogramImage);
+
+//        // Calculate and show histogram of sumimage
+//        float range[] = {0, 255};
+//        const float* histRange = {range};
+//        int histSize = 256;
+//        cv::Mat histogram;
+//        cv::Mat frameSeqArr[] = {frameSeq[0][0], frameSeq[0][1], frameSeq[0][2]};
+//        const int channels[] = {0,1,2};
+//        cv::calcHist(frameSeqArr, 3, channels, cv::Mat(), histogram, 1, &histSize, &histRange);
+//        //emit hist("Histogram", histogram, 100, 50);
+//        cv::Mat histogramImage = cvtools::histimage(histogram);
+//        emit showHistogram(histogramImage);
 
         // Increase iteration counter
         k += 1;

@@ -42,7 +42,7 @@ class SLStudio : public QMainWindow {
         void onActionExportCalibration();
 
         void updateDisplayRate();
-        void receiveNewPointCloud(PointCloudConstPtr pointCloud);
+        void receiveNewPointCloud(PointCloudPtr pointCloud, unsigned int _cNum);
 
         void imshow(const char* windowName, cv::Mat im, unsigned int x, unsigned int y);
         void hist(const char* windowName, cv::Mat im, unsigned int x, unsigned int y);
@@ -80,6 +80,7 @@ signals:
         SLVideoDialog *histogramDialog, *shadingDialog, *decoderUpDialog, *decoderVpDialog;
         SLTrackerDialog *trackerDialog;
 
+        unsigned int iNum, cNum, nPCL;
     public:
 
 };

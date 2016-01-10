@@ -31,6 +31,9 @@ SLStudio::SLStudio(QWidget *parent) : QMainWindow(parent), ui(new Ui::SLStudio),
     restoreGeometry(settings->value("geometry/mainwindow").toByteArray());
     restoreState(settings->value("state/mainwindow").toByteArray());
 
+    iNum = settings->value("camera/interfaceNumber", 0).toInt();
+    cNum = settings->value("camera/cameraNumber", 0).toInt();
+
     // Ui connections
     connect(ui->pointCloudWidget, SIGNAL(newPointCloudDisplayed()), this, SLOT(updateDisplayRate()));
 
@@ -97,7 +100,7 @@ void SLStudio::onActionStart(){
     connect(scanWorker, SIGNAL(finished()), this, SLOT(onScanWorkerFinished()));
 
     // Prepare decoderWorker on separate thread
-    decoderWorker = new SLDecoderWorker();
+    decoderWorker = new SLDecoderWorker(0);
     decoderThread = new QThread(this);
     decoderThread->setObjectName("decoderThread");
     decoderWorker->moveToThread(decoderThread);
@@ -105,16 +108,16 @@ void SLStudio::onActionStart(){
     connect(decoderThread, SIGNAL(finished()), decoderWorker, SLOT(deleteLater()));
     connect(decoderThread, SIGNAL(finished()), decoderThread, SLOT(deleteLater()));
 
-//    decoderWorker2 = new SLDecoderWorker();
-//    decoderThread2 = new QThread(this);
-//    decoderThread2->setObjectName("decoderThread2");
-//    decoderWorker2->moveToThread(decoderThread2);
-//    connect(decoderThread2, SIGNAL(started()), decoderWorker2, SLOT(setup()));
-//    connect(decoderThread2, SIGNAL(finished()), decoderWorker2, SLOT(deleteLater()));
-//    connect(decoderThread2, SIGNAL(finished()), decoderThread2, SLOT(deleteLater()));
+    decoderWorker2 = new SLDecoderWorker(1);
+    decoderThread2 = new QThread(this);
+    decoderThread2->setObjectName("decoderThread2");
+    decoderWorker2->moveToThread(decoderThread2);
+    connect(decoderThread2, SIGNAL(started()), decoderWorker2, SLOT(setup()));
+    connect(decoderThread2, SIGNAL(finished()), decoderWorker2, SLOT(deleteLater()));
+    connect(decoderThread2, SIGNAL(finished()), decoderThread2, SLOT(deleteLater()));
 
     // Prepare triangulatorWorker on separate thread
-    triangulatorWorker = new SLTriangulatorWorker();
+    triangulatorWorker = new SLTriangulatorWorker(0);
     triangulatorThread = new QThread(this);
     triangulatorThread->setObjectName("triangulatorThread");
     triangulatorWorker->moveToThread(triangulatorThread);
@@ -122,47 +125,51 @@ void SLStudio::onActionStart(){
     connect(triangulatorThread, SIGNAL(finished()), triangulatorWorker, SLOT(deleteLater()));
     connect(triangulatorThread, SIGNAL(finished()), triangulatorThread, SLOT(deleteLater()));
 
-//    triangulatorWorker2 = new SLTriangulatorWorker();
-//    triangulatorThread2 = new QThread(this);
-//    triangulatorThread2->setObjectName("triangulatorThread2");
-//    triangulatorWorker2->moveToThread(triangulatorThread2);
-//    connect(triangulatorThread2, SIGNAL(started()), triangulatorWorker2, SLOT(setup()));
-//    connect(triangulatorThread2, SIGNAL(finished()), triangulatorWorker2, SLOT(deleteLater()));
-//    connect(triangulatorThread2, SIGNAL(finished()), triangulatorThread2, SLOT(deleteLater()));
+    triangulatorWorker2 = new SLTriangulatorWorker(1);
+    triangulatorThread2 = new QThread(this);
+    triangulatorThread2->setObjectName("triangulatorThread2");
+    triangulatorWorker2->moveToThread(triangulatorThread2);
+    connect(triangulatorThread2, SIGNAL(started()), triangulatorWorker2, SLOT(setup()));
+    connect(triangulatorThread2, SIGNAL(finished()), triangulatorWorker2, SLOT(deleteLater()));
+    connect(triangulatorThread2, SIGNAL(finished()), triangulatorThread2, SLOT(deleteLater()));
 
     // Register metatypes
     qRegisterMetaType<cv::Mat>("cv::Mat");
     qRegisterMetaType< std::vector<cv::Mat> >("std::vector<cv::Mat>");
-    qRegisterMetaType< PointCloudConstPtr >("PointCloudConstPtr");
+    //qRegisterMetaType< PointCloudConstPtr >("PointCloudConstPtr");
+
+    //QObject::connect: Cannot queue arguments of type 'PointCloudPtr'
+    //(Make sure 'PointCloudPtr' is registered using qRegisterMetaType().)
+    qRegisterMetaType< PointCloudPtr >("PointCloudPtr");
 
     // Inter thread connections
     connect(scanWorker, SIGNAL(showHistogram(cv::Mat)), this, SLOT(onShowHistogram(cv::Mat)));
     connect(scanWorker, SIGNAL(newFrameSeq(std::vector<cv::Mat>)), decoderWorker, SLOT(decodeSequence(std::vector<cv::Mat>)));
-    //connect(scanWorker, SIGNAL(newFrameSeq2(std::vector<cv::Mat>)), decoderWorker2, SLOT(decodeSequence(std::vector<cv::Mat>)));
+    connect(scanWorker, SIGNAL(newFrameSeq2(std::vector<cv::Mat>)), decoderWorker2, SLOT(decodeSequence(std::vector<cv::Mat>)));
     connect(decoderWorker, SIGNAL(showShading(cv::Mat)), this, SLOT(onShowShading(cv::Mat)));
     connect(decoderWorker, SIGNAL(showDecoderUp(cv::Mat)), this, SLOT(onShowDecoderUp(cv::Mat)));
     connect(decoderWorker, SIGNAL(showDecoderVp(cv::Mat)), this, SLOT(onShowDecoderVp(cv::Mat)));
     connect(decoderWorker, SIGNAL(newUpVp(cv::Mat,cv::Mat,cv::Mat,cv::Mat)), triangulatorWorker, SLOT(triangulatePointCloud(cv::Mat,cv::Mat,cv::Mat,cv::Mat)));
-    connect(triangulatorWorker, SIGNAL(newPointCloud(PointCloudConstPtr)), this, SLOT(receiveNewPointCloud(PointCloudConstPtr)));
+    connect(triangulatorWorker, SIGNAL(newPointCloud(PointCloudPtr, unsigned int)), this, SLOT( receiveNewPointCloud(PointCloudPtr, unsigned int) ) );
     connect(triangulatorWorker, SIGNAL(imshow(const char*,cv::Mat,uint,uint)), this, SLOT(imshow(const char*,cv::Mat,uint,uint)));
 
-//    connect(decoderWorker2, SIGNAL(showShading(cv::Mat)), this, SLOT(onShowShading(cv::Mat)));
-//    connect(decoderWorker2, SIGNAL(showDecoderUp(cv::Mat)), this, SLOT(onShowDecoderUp(cv::Mat)));
-//    connect(decoderWorker2, SIGNAL(showDecoderVp(cv::Mat)), this, SLOT(onShowDecoderVp(cv::Mat)));
-//    connect(decoderWorker2, SIGNAL(newUpVp(cv::Mat,cv::Mat,cv::Mat,cv::Mat)), triangulatorWorker2, SLOT(triangulatePointCloud(cv::Mat,cv::Mat,cv::Mat,cv::Mat)));
-//    connect(triangulatorWorker2, SIGNAL(newPointCloud(PointCloudConstPtr)), this, SLOT(receiveNewPointCloud(PointCloudConstPtr)));
-//    connect(triangulatorWorker2, SIGNAL(imshow(const char*,cv::Mat,uint,uint)), this, SLOT(imshow(const char*,cv::Mat,uint,uint)));
+    connect(decoderWorker2, SIGNAL(showShading(cv::Mat)), this, SLOT(onShowShading(cv::Mat)));
+    connect(decoderWorker2, SIGNAL(showDecoderUp(cv::Mat)), this, SLOT(onShowDecoderUp(cv::Mat)));
+    connect(decoderWorker2, SIGNAL(showDecoderVp(cv::Mat)), this, SLOT(onShowDecoderVp(cv::Mat)));
+    connect(decoderWorker2, SIGNAL(newUpVp(cv::Mat,cv::Mat,cv::Mat,cv::Mat)), triangulatorWorker2, SLOT(triangulatePointCloud(cv::Mat,cv::Mat,cv::Mat,cv::Mat)));
+    connect(triangulatorWorker2, SIGNAL(newPointCloud(PointCloudPtr, unsigned int)), this, SLOT(receiveNewPointCloud(PointCloudPtr, unsigned int)));
+    connect(triangulatorWorker2, SIGNAL(imshow(const char*,cv::Mat,uint,uint)), this, SLOT(imshow(const char*,cv::Mat,uint,uint)));
 
     // Start threads
     decoderThread->start(QThread::LowPriority);
     triangulatorThread->start(QThread::LowPriority);
-    //decoderThread2->start(QThread::LowPriority);
-    //triangulatorThread2->start(QThread::LowPriority);
+    decoderThread2->start(QThread::LowPriority);
+    triangulatorThread2->start(QThread::LowPriority);
     scanWorkerThread->start(QThread::TimeCriticalPriority);
 
     // Setup and start processing
-    QMetaObject::invokeMethod(decoderWorker, "setup");//, Q_ARG(int,0));
-    QMetaObject::invokeMethod(triangulatorWorker, "setup");//, Q_ARG(int,0));
+    //QMetaObject::invokeMethod(decoderWorker, "setup");//, Q_ARG(int,0));
+    //QMetaObject::invokeMethod(triangulatorWorker, "setup");//, Q_ARG(int,0));
     //QMetaObject::invokeMethod(decoderWorker2, "setup");//, Q_ARG(int,1));
     //QMetaObject::invokeMethod(triangulatorWorker2, "setup");//, Q_ARG(int,1));
     QMetaObject::invokeMethod(scanWorker, "setup");
@@ -189,17 +196,17 @@ void SLStudio::onActionStop(){
     decoderThread->wait();
     std::cout<<"decoderThread deleted\n"<<std::flush;
 
-//    decoderThread2->quit();
-//    decoderThread2->wait();
-//    std::cout<<"decoderThread2 deleted\n"<<std::flush;
-
     triangulatorThread->quit();
     triangulatorThread->wait();
     std::cout<<"triangulatorThread deleted\n"<<std::flush;
 
-//    triangulatorThread2->quit();
-//    triangulatorThread2->wait();
-//    std::cout<<"triangulatorThread2 deleted\n"<<std::flush;
+    decoderThread2->quit();
+    decoderThread2->wait();
+    std::cout<<"decoderThread2 deleted\n"<<std::flush;
+
+    triangulatorThread2->quit();
+    triangulatorThread2->wait();
+    std::cout<<"triangulatorThread2 deleted\n"<<std::flush;
 }
 
 void SLStudio::onScanWorkerFinished(){
@@ -248,23 +255,52 @@ void SLStudio::updateDisplayRate(){
 
 }
 
-void SLStudio::receiveNewPointCloud(PointCloudConstPtr pointCloud){
-//    //register two point clouds
-//    if(ui->pointCloudWidget->pointCloudPCL)
-//    {
-//        std::cout<< "Beginning PCL Registration!" << std::endl;
-//        if(!ui->pointCloudWidget->pointCloudPCL->points.empty() )
-//            pointCloud = ui->pointCloudWidget->registerPointCloud(pointCloud);
-//    }
+void SLStudio::receiveNewPointCloud(PointCloudPtr pointCloud, unsigned int _cNum){
+    std::cout<< "Receiving PCL .........!" << std::endl;
+    iNum = settings->value("camera/interfaceNumber", 0).toInt();
+    cNum = settings->value("camera/cameraNumber", 0).toInt();
+    if(cNum == 2)
+    {
+//        //add point clouds
+//        if(_cNum == 0)
+//        {
+//            ui->pointCloudWidget->pointCloudPCL_Left = pointCloud;
+//            std::cout<< "Add pointCloudPCL_Left!" << std::endl;
+//            nPCL++;
+//        }
+//        else
+//        {
+//            ui->pointCloudWidget->pointCloudPCL_Right = pointCloud;
+//            std::cout<< "Add pointCloudPCL_Right!" << std::endl;
+//            nPCL++;
+//        }
 
-    std::cout<< "Beginning PCL Creation!" << std::endl;
+//        if(nPCL == 2)
+//        {
+//            std::cout<< "Beginning PCL Registration ....!" << std::endl;
+//            if(ui->pointCloudWidget->registerPointCloud())
+//            {
+//                std::cout<< "PCL Registration OK!" << std::endl;
+//                // Display point cloud in widget
+//                if(ui->actionUpdatePointClouds->isChecked())
+//                    ui->pointCloudWidget->updatePointCloud(pointCloud);
+//                std::cout<< "Received PCL Finished From Registration !" << std::endl;
+//            }
+//            nPCL = 0;
+//        }
+    }
 
-    // Display point cloud in widget
-    if(ui->actionUpdatePointClouds->isChecked())
-        ui->pointCloudWidget->updatePointCloud(pointCloud);
+    if(cNum<2)
+    {
+        // Display point cloud in widget
+        if(ui->actionUpdatePointClouds->isChecked())
+            ui->pointCloudWidget->updatePointCloud(pointCloud);
 
-    if(trackerDialog->isVisible())
-        trackerDialog->receiveNewPointCloud(pointCloud);
+        if(trackerDialog->isVisible())
+            trackerDialog->receiveNewPointCloud(pointCloud);
+
+        std::cout<< "Received PCL Finished From Camera=!"<< cNum << std::endl;
+    }    
 }
 
 void SLStudio::closeEvent(QCloseEvent *event){

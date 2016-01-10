@@ -36,8 +36,8 @@ void SLDecoderWorker::setup(){
         std::cerr << "SLDecoderWorker: invalid coding direction " << std::endl;
     bool diamondPattern = settings.value("projector/diamondPattern", false).toBool();
 
-    int iNum = settings.value("camera/interfaceNumber", 0).toInt();
-    int cNum = settings.value("camera/cameraNumber", 0).toInt();
+    //int iNum = settings.value("camera/interfaceNumber", 0).toInt();
+    //int cNum = settings.value("camera/cameraNumber", 0).toInt();
 
     CalibrationData calib;    
     if(cNum)

@@ -111,30 +111,52 @@ void SLPointCloudWidget::updatePointCloud(PointCloudConstPtr _pointCloudPCL){
 Registration using ICP: Iterative Closest Point;
 goal: aligning(registering) two point cloud;
 */
-PointCloudConstPtr SLPointCloudWidget::registerPointCloud(PointCloudConstPtr _pointCloudPCL)
+bool SLPointCloudWidget::registerPointCloud()
 {
+
     PointCloudPtr finalCloud(new pcl::PointCloud<pcl::PointXYZRGB>);
 
-    pcl::IterativeClosestPoint<pcl::PointXYZRGB, pcl::PointXYZRGB> registration; //TODO: check this pcl function
-    registration.setInputSource(pointCloudPCL);
-    registration.setInputTarget(_pointCloudPCL);
-    //set params, see Meshlab align function:
-    //registration.setMaximumIterations(50);
+    pcl::IterativeClosestPoint<pcl::PointXYZRGB, pcl::PointXYZRGB> icp; //TODO: check this pcl function
 
-    registration.align(*finalCloud); //very slowly
+    //pcl::io::loadPLYFile("acam_0.ply", *pointCloudPCL_Left);
+    //pcl::io::loadPLYFile("acam_1.ply", *pointCloudPCL_Right);
 
+    icp.setInputCloud(pointCloudPCL_Left);
+    icp.setInputTarget(pointCloudPCL_Right);
 
-    if (registration.hasConverged())
+    // Set the max correspondence distance to 5cm (e.g., correspondences with higher distances will be ignored)
+    icp.setMaxCorrespondenceDistance (0.05);
+    // Set the maximum number of iterations (criterion 1)
+    icp.setMaximumIterations (50);
+    // Set the transformation epsilon (criterion 2)
+    icp.setTransformationEpsilon (1e-8);
+    // Set the euclidean distance difference epsilon (criterion 3)
+    icp.setEuclideanFitnessEpsilon (1);
+
+    try
     {
-        cout << "ICP converged!" << endl << "The score is " << registration.getFitnessScore() << endl; //slowly
-        cout << "Transformation Matrix:" << endl << registration.getFinalTransformation() << endl;
-        return finalCloud;
+        //TODO:  error.....
+        icp.align(*finalCloud); //very slowly
+    }
+    catch(std::exception ex)
+    {
+        std::cout<< "registration.align error!" <<std::endl;
+    }
+
+    pointCloudPCL = finalCloud;
+
+    if (icp.hasConverged())
+    {
+        cout << "ICP converged!" << endl << "The score is " << icp.getFitnessScore() << endl; //slowly
+        cout << "Transformation Matrix:" << endl << icp.getFinalTransformation() << endl;
+        return true;
     }
     else
     {
         cout << "ICP did not converge!" << endl;
-        return pointCloudPCL;
+        return false;
     }
+
 }
 
 void SLPointCloudWidget::savePointCloud(){
