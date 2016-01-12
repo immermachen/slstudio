@@ -292,7 +292,12 @@ void SLScanWorker::doWork(){
                 cv::Mat frameCV;
                 if(iNum==0)
                 {
-                    CameraFrame frame = camera[c]->getFrame();
+                    CameraFrame frame;
+                    if(cNum<2)
+                        frame= camera[0]->getFrame();
+                    else
+                        frame= camera[c]->getFrame();
+
                     if(!frame.memory){
                         std::cerr << "SLScanWorker: missed frame!" << std::endl;
                         success = false;
