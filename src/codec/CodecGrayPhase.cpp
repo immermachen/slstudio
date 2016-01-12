@@ -290,7 +290,7 @@ void DecoderGrayPhase::decodeFrames(cv::Mat &up, cv::Mat &vp, cv::Mat &mask, cv:
 
     cv::Mat minImage = frames[framesize-1]; // Get min image
 
-    std::cout<< "decodeFrames begin.......";
+    //std::cout<< "decodeFrames begin.......";
 
     if(dir & CodecDirHorizontal){ // Construct up image.
         vector<cv::Mat> images(frames.begin(), frames.begin() + Nhorz*2);
@@ -460,7 +460,7 @@ void DecoderGrayPhase::decodeFrames(cv::Mat &up, cv::Mat &vp, cv::Mat &mask, cv:
     }
 
 
-    std::cout<< "decodeFrames ennnd." <<std::endl;
+//    std::cout<< "decodeFrames ennnd." <<std::endl;
     up = m_phase_map[0]*screenCols;
     vp = m_phase_map[1]*screenRows;
     mask = m_reliable_mask[0]>0;

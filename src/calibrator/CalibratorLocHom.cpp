@@ -43,7 +43,7 @@ CalibrationData CalibratorLocHom::calibrate()
     vector<cv::Mat> up(nFrameSeq), vp(nFrameSeq), shading(nFrameSeq), mask(nFrameSeq);
 
     // Decode frame sequences
-    std::cout << "Decode frame sequences: Num="<< nFrameSeq<<std::endl;
+    std::cout << "Decode frames: Num="<< nFrameSeq<< ", and begin.....>> ";
     for(unsigned int i=0; i<nFrameSeq; i++)
     {
         //vector<cv::Mat> frames = frameSeqs[i];
@@ -62,15 +62,18 @@ CalibrationData CalibratorLocHom::calibrate()
                 cv::imwrite(QString("m_frames_%1_%2.png").arg(i,2,10,QChar('0')).arg(f).toStdString(), frames[f]);
             #endif
         }
-        std::cout << "decodeFrames begin.....----.>>   ";
+
         decoder->decodeFrames(up[i], vp[i], mask[i], shading[i]);
-        std::cout << "   decodeFrames end-------------||."<<std::endl;
+
+        std::cout << i << ",";
+
         #if 0
             cvtools::writeMat(shading[i], QString("shading[%1].mat").arg(i).toLocal8Bit());
             cvtools::writeMat(up[i], QString("up[%1].mat").arg(i).toLocal8Bit());
             cvtools::writeMat(vp[i], QString("vp[%1].mat").arg(i).toLocal8Bit());
         #endif
     }
+    std::cout << "-->end||."<<std::endl;
 
     unsigned int frameWidth = up[0].cols;
     unsigned int frameHeight = up[0].rows;

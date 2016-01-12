@@ -171,27 +171,33 @@ void SLCalibrationDialog::timerEvent(QTimerEvent *event)
 
     QApplication::processEvents();
 
+    CameraFrame frame, frame2;
     if(iNum==0)
     {
         if(cNum<2)
         {
-            CameraFrame frame = camera[0]->getFrame();
+            frame = camera[0]->getFrame();
             cv::Mat frameCV(frame.height, frame.width, CV_8UC1, frame.memory);
-            frameCV = frameCV.clone();
+//            frameCV = frameCV.clone();
             if(cNum==0)
                 ui->videoWidget->showFrameCV(frameCV);
             else
+            {
+//                cv::flip(frameCV,frameCV,-1);
                 ui->videoWidget2->showFrameCV(frameCV);
+            }
         }
         else
         {
-            CameraFrame frame = camera[0]->getFrame();
+            frame = camera[0]->getFrame();
             cv::Mat frameCV(frame.height, frame.width, CV_8UC1, frame.memory);
-            frameCV = frameCV.clone();
+//            frameCV = frameCV.clone();
 
-            CameraFrame frame2 = camera[1]->getFrame();
+            frame2 = camera[1]->getFrame();
             cv::Mat frameCV2(frame2.height, frame2.width, CV_8UC1, frame2.memory);
-            frameCV2 = frameCV2.clone();
+//            frameCV2 = frameCV2.clone();
+            //0: flip aroud x-axis;1: flip around Y-axis; -1:flip both directions;
+//            cv::flip(frameCV2,frameCV2,-1);
 
             ui->videoWidget->showFrameCV(frameCV);
             ui->videoWidget2->showFrameCV(frameCV2);
@@ -200,6 +206,8 @@ void SLCalibrationDialog::timerEvent(QTimerEvent *event)
     else if(iNum == -1)
     {}
 
+    delete frame.memory;
+    delete frame2.memory;
     QApplication::processEvents();
 }
 
@@ -238,6 +246,7 @@ void SLCalibrationDialog::on_snapButton_clicked()
         // Effectuate sleep (necessary with some camera implementations)
         QApplication::processEvents();
 
+        CameraFrame frame, frame2;
 
         if(cNum == 0 || cNum == 2)
         {
@@ -248,15 +257,15 @@ void SLCalibrationDialog::on_snapButton_clicked()
 
             if(iNum==0)
             {
-                CameraFrame frame = camera[0]->getFrame();
+                frame = camera[0]->getFrame();
                 cv::Mat curframe(frame.height, frame.width, CV_8U, frame.memory);
                 curframeCV = curframe;
-                curframeCV = curframeCV.clone();
+//                curframeCV = curframeCV.clone();
             }
             else if(iNum == -1)
             {
                 curframeCV = cv::imread(filename.toStdString().c_str(), CV_LOAD_IMAGE_GRAYSCALE);
-                curframeCV = curframeCV.clone();
+//                curframeCV = curframeCV.clone();
             }
 
             //if(writeToDisk)
@@ -276,18 +285,19 @@ void SLCalibrationDialog::on_snapButton_clicked()
 
             if(iNum==0)
             {
-                CameraFrame frame = camera[1]->getFrame();
-                cv::Mat curframe(frame.height, frame.width, CV_8U, frame.memory);
+                unsigned int index = cNum < 2 ? 0 : 1;
+                frame2 = camera[index]->getFrame();
+                cv::Mat curframe(frame2.height, frame2.width, CV_8U, frame2.memory);
                 curframeCV = curframe;
-                curframeCV = curframeCV.clone();
+//                curframeCV = curframeCV.clone();
             }
             else if(iNum == -1)
             {
                 curframeCV = cv::imread(filename.toStdString().c_str(), CV_LOAD_IMAGE_GRAYSCALE);
-                curframeCV = curframeCV.clone();
+//                curframeCV = curframeCV.clone();
 
                 //0: flip aroud x-axis;1: flip around Y-axis; -1:flip both directions;
-                cv::flip(curframeCV,curframeCV,-1);
+//                cv::flip(curframeCV,curframeCV,-1);
             }
 
             //if(writeToDisk)
@@ -297,6 +307,9 @@ void SLCalibrationDialog::on_snapButton_clicked()
             frameSeq[1].push_back(datacal.toStdString());
             ui->videoWidget2->showFrameCV(curframeCV);
         }
+
+        delete frame.memory;
+        delete frame2.memory;
     }
 
     if(cNum == 0 || cNum == 2)
@@ -345,6 +358,11 @@ void SLCalibrationDialog::on_calibrateButton_clicked()
     killTimer(liveViewTimer);
     reviewMode = true;
     ui->snapButton->setText("Live View");
+
+//    //Create two QThread for each Calibrator
+//    QThread calThread1 = new QThread(this);
+//    QThread calThread2 = new QThread(this);
+
 
     if(cNum == 0 || cNum == 2)
     {

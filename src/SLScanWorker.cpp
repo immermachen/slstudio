@@ -208,6 +208,13 @@ void SLScanWorker::setupProjector(int c)
     cv::Size mapSize = cv::Size(screenCols, screenRows);
     cvtools::initDistortMap(calibration.Kp, calibration.kp, mapSize, map1, map2);
 
+    //flip map1 and map2 for camera1
+    if(0)
+    {
+        cv::flip(map1, map1,-1);
+        cv::flip(map2, map2,-1);
+    }
+
     // Upload patterns to projector/GPU
     for(unsigned int i=0; i<encoder->getNPatterns(); i++){
         cv::Mat pattern = encoder->getEncodingPattern(i);
@@ -293,6 +300,8 @@ void SLScanWorker::doWork(){
                     cv::Mat curframeCV(frame.height, frame.width, CV_8UC1, frame.memory);
                     frameCV = curframeCV;
                     frameCV = frameCV.clone();
+
+                    delete frame.memory;
                 }
                 else if(iNum = -1)
                 {                    
@@ -302,8 +311,8 @@ void SLScanWorker::doWork(){
                     frameCV = cv::imread(filename.toStdString().c_str(), CV_LOAD_IMAGE_GRAYSCALE);
                     frameCV = frameCV.clone();
 
-                    if(cNum==1 || c==1)
-                        cv::flip(frameCV,frameCV,-1);//0: flip aroud x-axis;1: flip around Y-axis; -1:flip both directions
+//                    if(cNum==1 || c==1)
+//                        cv::flip(frameCV,frameCV,-1);//0: flip aroud x-axis;1: flip around Y-axis; -1:flip both directions
                 }
 
                 if(triggerMode == triggerModeHardware)
