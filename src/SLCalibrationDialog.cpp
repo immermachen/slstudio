@@ -353,20 +353,21 @@ void SLCalibrationDialog::on_calibrateButton_clicked()
     ui->calibrateButton->setEnabled(false);
     ui->listWidget->setEnabled(false);
     ui->listWidget2->setEnabled(false);
+    numCalCount=0;
 
     // Stop live view
     killTimer(liveViewTimer);
     reviewMode = true;
     ui->snapButton->setText("Live View");
 
-//    //Create two QThread for each Calibrator
-//    QThread calThread1 = new QThread(this);
-//    QThread calThread2 = new QThread(this);
-
+    //Register Metatypes
+    //qRegisterMetaType<cv::Mat>("cv::Mat");
+    qRegisterMetaType<CalibrationData>("CalibrationData");
 
     if(cNum == 0 || cNum == 2)
     {
         std::cout<< "----------------Calibrate Camear1-----------------------"<<std::endl;
+
         calibrator[0]->reset();
         // Note which frame sequences are used
         activeFrameSeqs[0].clear();
@@ -379,7 +380,21 @@ void SLCalibrationDialog::on_calibrateButton_clicked()
             }
         }
         // Perform calibration
-        calib[0] = calibrator[0]->calibrate();
+        calThread1 = cv::makePtr<QThread>(this);
+        calThread1->setObjectName("calThread1");
+        calibrator[0]->moveToThread(calThread1);
+        //connect(calThread1, SIGNAL(started()), calibrator[0], SLOT(calibrate()));
+        connect(calibrator[0], SIGNAL(signal_calFinished(uint, CalibrationData)), this, SLOT(slot_ReceiveCalData(uint,CalibrationData)));
+        connect(this, SIGNAL(signal_Calibrate(uint)), calibrator[0], SLOT(slot_calibrateWrap(uint)));
+        connect(calibrator[0], SIGNAL(finished()), calThread1, SLOT(quit()));
+        connect(calibrator[0], SIGNAL(finished()), calibrator[0], SLOT(deleteLater()));
+        connect(calibrator[0], SIGNAL(finished()), this, SLOT(save()));
+        connect(calThread1, SIGNAL(finished()), calThread1, SLOT(deleteLater()));
+        calThread1->start();
+
+        //calib[0] = calibrator[0]->calibrate();
+        emit(signal_Calibrate(0));
+
     }
 
     if(cNum==1  || cNum == 2)
@@ -397,14 +412,38 @@ void SLCalibrationDialog::on_calibrateButton_clicked()
             }
         }
         // Perform calibration
-        calib[1] = calibrator[1]->calibrate();
+        calThread2 = cv::makePtr<QThread>(this);
+        calThread2->setObjectName("calThread2");
+        calibrator[1]->moveToThread(calThread2);
+        connect(calibrator[1], SIGNAL(signal_calFinished(uint, CalibrationData)), this, SLOT(slot_ReceiveCalData(uint,CalibrationData)));
+        connect(this, SIGNAL(signal_Calibrate(uint)), calibrator[1], SLOT(slot_calibrateWrap(uint)));
+        connect(calibrator[1], SIGNAL(finished()), calThread1, SLOT(quit()));
+        connect(calibrator[1], SIGNAL(finished()), calibrator[1], SLOT(deleteLater()));
+        connect(calibrator[1], SIGNAL(finished()), this, SLOT(save()));
+        connect(calThread2, SIGNAL(finished()), calThread2, SLOT(deleteLater()));
+        calThread2->start();
+
+        //calib[1] = calibrator[1]->calibrate();
+        emit(signal_Calibrate(1));
     }
 
     // Re-enable interface elements
-    ui->calibrateButton->setEnabled(true);
-    ui->listWidget->setEnabled(true);
-    ui->listWidget2->setEnabled(true);
-    ui->saveButton->setEnabled(true);
+    //TODO
+}
+
+void SLCalibrationDialog::slot_ReceiveCalData(uint numCam, CalibrationData calData)
+{
+    numCalCount++;
+    std::cout << "slot_ReceiveCalData: numCam = " << numCalCount << std::endl;
+    calib[numCam] = calData;
+    if(numCalCount == camera.size())
+    {
+        // Re-enable interface elements
+        ui->calibrateButton->setEnabled(true);
+        ui->listWidget->setEnabled(true);
+        ui->listWidget2->setEnabled(true);
+        ui->saveButton->setEnabled(true);
+    }
 }
 
 void SLCalibrationDialog::on_listWidget_itemSelectionChanged()

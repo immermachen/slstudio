@@ -24,6 +24,13 @@ CalibratorLocHom::CalibratorLocHom(unsigned int _screenCols, unsigned int _scree
 
 }
 
+void CalibratorLocHom::slot_calibrateWrap(unsigned int numCam)
+{
+    CalibrationData calData = calibrate();
+    emit signal_calFinished(numCam, calData);
+    emit finished();
+}
+
 CalibrationData CalibratorLocHom::calibrate()
 {
     QSettings settings("SLStudio");
@@ -51,7 +58,7 @@ CalibrationData CalibratorLocHom::calibrate()
         vector<std::string> framesFromFile= frameSeqsFromFile[i];
         for(unsigned int m=0; m<framesFromFile.size();m++)
         {
-            cv::Mat curFrame = cv::imread(framesFromFile[m],CV_LOAD_IMAGE_GRAYSCALE);
+            cv::Mat curFrame = cv::imread(framesFromFile[m],CV_LOAD_IMAGE_GRAYSCALE);            
             curFrame = curFrame.clone();
             frames.push_back(curFrame);
         }
@@ -100,7 +107,7 @@ CalibrationData CalibratorLocHom::calibrate()
         //cv::GaussianBlur(shading[i], shading[i], cv::Size(5,5), 2, 2);
         // Extract checker corners
 
-        std::cout << i << " findChessboardCorners......" << std::endl;
+        std::cout << i << ": findChessboardCorners......" << std::endl;
         bool success = cv::findChessboardCorners(shading[i], patternSize, qci,
                                                  cv::CALIB_CB_ADAPTIVE_THRESH+CV_CALIB_CB_NORMALIZE_IMAGE+CALIB_CB_FAST_CHECK );
         std::cout << " cv::findChessboardCorners: sucess = " << success << std::endl;
@@ -109,6 +116,7 @@ CalibrationData CalibratorLocHom::calibrate()
             std::cout << "Calibrator: could not extract chess board corners on frame seqence " << i << std::endl << std::flush;
         else
         {
+            std::cout << i << ": cornerSubPix......" << std::endl;
             // Refine corner locations
             cv::cornerSubPix(shading[i], qci, cv::Size(5, 5), cv::Size(1, 1),
                              cv::TermCriteria(cv::TermCriteria::EPS + cv::TermCriteria::MAX_ITER, 20, 0.01));
@@ -215,6 +223,7 @@ CalibrationData CalibratorLocHom::calibrate()
                                            cv::TermCriteria(cv::TermCriteria::COUNT + cv::TermCriteria::EPS, 50, DBL_EPSILON));
 
     //calibrate the projector
+    std::cout<< "calibrate the projector!" <<std::endl;
     cv::Mat Kp, kp;
     std::vector<cv::Mat> proj_rvecs, proj_tvecs;
     cv::Size screenSize(screenCols, screenRows);
@@ -222,9 +231,15 @@ CalibrationData CalibratorLocHom::calibrate()
                                             cv::TermCriteria(cv::TermCriteria::COUNT + cv::TermCriteria::EPS, 50, DBL_EPSILON));
 
     //stereo calibration
+    std::cout<< "stereo calibrate!" <<std::endl;
     cv::Mat Rp, Tp, E, F;
+    //Opencv2.x version
+    //double stereo_error = cv::stereoCalibrate(Q, qc, qp, Kc, kc, Kp, kp, frameSize, Rp, Tp, E, F,
+      //                                        cv::TermCriteria(cv::TermCriteria::COUNT + cv::TermCriteria::EPS, 100, DBL_EPSILON), cv::CALIB_FIX_INTRINSIC);
+
+    //Opencv3.x version
     double stereo_error = cv::stereoCalibrate(Q, qc, qp, Kc, kc, Kp, kp, frameSize, Rp, Tp, E, F,
-                                              cv::TermCriteria(cv::TermCriteria::COUNT + cv::TermCriteria::EPS, 100, DBL_EPSILON), cv::CALIB_FIX_INTRINSIC);
+                                              cv::CALIB_FIX_INTRINSIC,cv::TermCriteria(cv::TermCriteria::COUNT + cv::TermCriteria::EPS, 100, DBL_EPSILON));
 
     CalibrationData calData(Kc, kc, cam_error, Kp, kp, proj_error, Rp, Tp, stereo_error);
 

@@ -11,6 +11,7 @@
 #include <QDialog>
 #include <QModelIndex>
 #include <QListWidgetItem>
+#include <QThread>
 
 #include "Camera.h"
 #include "Projector.h"
@@ -29,6 +30,10 @@ class SLCalibrationDialog : public QDialog {
         ~SLCalibrationDialog();
         void timerEvent(QTimerEvent *event);
         void closeEvent(QCloseEvent *);
+    public slots:
+        void slot_ReceiveCalData(unsigned int numCam, CalibrationData calData);
+signals:
+        void signal_Calibrate(unsigned int numCam);
     private slots:
         void on_snapButton_clicked();
         void on_calibrateButton_clicked();
@@ -38,7 +43,7 @@ class SLCalibrationDialog : public QDialog {
         void onNewSequenceResult(cv::Mat img, unsigned int idx, bool success);
         void onNewSequenceResult2(cv::Mat img, unsigned int idx, bool success);
     signals:
-        void newCalibrationSaved(CalibrationData _calib);
+        void newCalibrationSaved(unsigned int numCam, CalibrationData _calib);
     private:
         Ui::SLCalibrationDialog *ui;
         vector< Camera * > camera; //add two camera support
@@ -58,6 +63,8 @@ class SLCalibrationDialog : public QDialog {
         int iNum;
         int cNum;
         bool writeToDisk;
+        unsigned int numCalCount;//count for calibration
+        cv::Ptr<QThread> calThread1, calThread2;
 };
 
 #endif // SLCALIBRATAIONDIALOG_H
