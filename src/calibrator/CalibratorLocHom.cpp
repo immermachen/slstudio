@@ -24,11 +24,19 @@ CalibratorLocHom::CalibratorLocHom(unsigned int _screenCols, unsigned int _scree
 
 }
 
-void CalibratorLocHom::slot_calibrateWrap(unsigned int numCam)
+
+void CalibratorLocHom::calibrateWrap(uint numCam)
+{
+    CalibrationData calData;// = calibrate();
+    emit signal_calFinished(numCam, calData);
+//    emit finished();
+}
+
+void CalibratorLocHom::slot_calibrateWrap(uint numCam)
 {
     CalibrationData calData = calibrate();
     emit signal_calFinished(numCam, calData);
-    emit finished();
+//    emit finished();
 }
 
 CalibrationData CalibratorLocHom::calibrate()

@@ -94,21 +94,22 @@ SLCalibrationDialog::SLCalibrationDialog(SLStudio *parent) : QDialog(parent), ui
 
     for(int c=0;c<camera.size();c++)
     {
-        Camera * curCam = camera[c];
-        curCam->setCameraSettings(camSettings);
-        curCam->startCapture();
+//        Camera * curCam = camera[c];
+        camera[c]->setCameraSettings(camSettings);
+        camera[c]->startCapture();
     }
 
     // Initialize projector
     int screenNum = settings.value("projector/screenNumber", -1).toInt();
     if(screenNum >= 0)
-        projector = new ProjectorOpenGL(screenNum);
+        //projector = new ProjectorOpenGL(screenNum);
+        projector = cv::makePtr<ProjectorOpenGL>(screenNum);
     else if(screenNum == -1 || screenNum == -4)  //  SLStudio Virtual Screen 1024*768" -1,  "SLStudio Virtual Screen 1920*1080", -4);
-        projector = new SLProjectorVirtual(screenNum);
+        projector = cv::makePtr<SLProjectorVirtual>(screenNum);
     else if(screenNum == -2)
-        projector = new ProjectorLC3000(0);
+        projector = cv::makePtr<ProjectorLC3000>(0);
     else if(screenNum == -3)
-        projector = new ProjectorLC4500(0);
+        projector = cv::makePtr<ProjectorLC4500>(0);
     else
         std::cerr << "SLCalibrationDialog: invalid projector id " << screenNum << std::endl;
 
@@ -129,12 +130,42 @@ SLCalibrationDialog::SLCalibrationDialog(SLStudio *parent) : QDialog(parent), ui
     }
 
     // Create calibrator
+//    calibrator.push_back(new CalibratorLocHom(screenCols, screenRows));
 
-    calibrator.push_back(new CalibratorLocHom(screenCols, screenRows));
-    calibrator.push_back(new CalibratorLocHom(screenCols, screenRows));
-
-    connect(calibrator[0], SIGNAL(newSequenceResult(cv::Mat, unsigned int, bool)), this, SLOT(onNewSequenceResult(cv::Mat,uint,bool)));
-    connect(calibrator[1], SIGNAL(newSequenceResult(cv::Mat, unsigned int, bool)), this, SLOT(onNewSequenceResult2(cv::Mat,uint,bool)));
+    //Register Metatypes
+    qRegisterMetaType<cv::Mat>("cv::Mat");
+    qRegisterMetaType<CalibrationData>("CalibrationData");
+    if(cNum==0 || cNum == 2)
+    {
+        calibrator[0] = cv::makePtr<CalibratorLocHom>(screenCols, screenRows);
+//        calThread1 = cv::makePtr<QThread>(this);
+//        calThread1 = new QThread(this);
+        calThread1.setObjectName("calThread1");
+        calibrator[0]->moveToThread(&calThread1);
+        //connect(calThread1, SIGNAL(started()), calibrator[0], SLOT(calibrate()));
+        connect(calibrator[0], SIGNAL(signal_calFinished(uint, CalibrationData)), this, SLOT(slot_ReceiveCalData(uint,CalibrationData)));
+        connect(this, SIGNAL(signal_Calibrate(uint)), calibrator[0], SLOT(slot_calibrateWrap(uint)));
+        connect(calibrator[0], SIGNAL(finished()), &calThread1, SLOT(quit()));
+        connect(calibrator[0], SIGNAL(finished()), calibrator[0], SLOT(deleteLater()));
+        connect(&calThread1, SIGNAL(finished()), &calThread1, SLOT(deleteLater()));
+        connect(calibrator[0], SIGNAL(newSequenceResult(cv::Mat, unsigned int, bool)), this, SLOT(onNewSequenceResult(cv::Mat,uint,bool)));
+        calThread1.start();
+    }
+    if(cNum==1  || cNum == 2)
+    {
+        calibrator[1] = cv::makePtr<CalibratorLocHom>(screenCols, screenRows);
+//        calThread2 = cv::makePtr<QThread>(this);
+//        calThread2 = new QThread(this);
+        calThread2.setObjectName("calThread2");
+        calibrator[1]->moveToThread(&calThread2);
+        connect(calibrator[1], SIGNAL(signal_calFinished(uint, CalibrationData)), this, SLOT(slot_ReceiveCalData(uint,CalibrationData)));
+        connect(this, SIGNAL(signal_Calibrate(uint)), calibrator[1], SLOT(slot_calibrateWrap(uint)));
+        connect(calibrator[1], SIGNAL(finished()), &calThread2, SLOT(quit()));
+        connect(calibrator[1], SIGNAL(finished()), calibrator[1], SLOT(deleteLater()));
+        connect(&calThread2, SIGNAL(finished()), &calThread2, SLOT(deleteLater()));
+        connect(calibrator[1], SIGNAL(newSequenceResult(cv::Mat, unsigned int, bool)), this, SLOT(onNewSequenceResult2(cv::Mat,uint,bool)));
+        calThread2.start();
+    }
 
     // Upload patterns to projector/GPU
     for(unsigned int i=0; i<calibrator[0]->getNPatterns(); i++){
@@ -159,6 +190,9 @@ SLCalibrationDialog::SLCalibrationDialog(SLStudio *parent) : QDialog(parent), ui
     // Start live view
     timerInterval = delay + camSettings.shutter;
     liveViewTimer = startTimer(timerInterval);
+
+
+
 }
 
 void SLCalibrationDialog::timerEvent(QTimerEvent *event)
@@ -213,7 +247,33 @@ void SLCalibrationDialog::timerEvent(QTimerEvent *event)
 
 SLCalibrationDialog::~SLCalibrationDialog()
 {
-    delete ui;
+    if(cNum==0  || cNum == 2)
+    {
+        calThread1.quit();
+        calThread1.wait();
+        calibrator[0]->deleteLater();
+        calThread1.deleteLater();
+    }
+    if(cNum==1  || cNum == 2)
+    {
+        calThread2.quit();
+        calThread2.wait();
+        calibrator[1]->deleteLater();;
+        calThread2.deleteLater();
+    }
+
+    for(int c=0; c<camera.size();c++)
+        delete camera[c];  //TODO this can be used by cv::Ptr.
+//    delete projector;    //for cv::Ptr do not need anymore!!!
+
+
+//    delete calThread1;
+//    delete calThread2;
+
+    this->deleteLater();
+
+
+//    delete ui;
 }
 
 void SLCalibrationDialog::on_snapButton_clicked()
@@ -360,10 +420,6 @@ void SLCalibrationDialog::on_calibrateButton_clicked()
     reviewMode = true;
     ui->snapButton->setText("Live View");
 
-    //Register Metatypes
-    //qRegisterMetaType<cv::Mat>("cv::Mat");
-    qRegisterMetaType<CalibrationData>("CalibrationData");
-
     if(cNum == 0 || cNum == 2)
     {
         std::cout<< "----------------Calibrate Camear1-----------------------"<<std::endl;
@@ -380,20 +436,9 @@ void SLCalibrationDialog::on_calibrateButton_clicked()
             }
         }
         // Perform calibration
-        calThread1 = cv::makePtr<QThread>(this);
-        calThread1->setObjectName("calThread1");
-        calibrator[0]->moveToThread(calThread1);
-        //connect(calThread1, SIGNAL(started()), calibrator[0], SLOT(calibrate()));
-        connect(calibrator[0], SIGNAL(signal_calFinished(uint, CalibrationData)), this, SLOT(slot_ReceiveCalData(uint,CalibrationData)));
-        connect(this, SIGNAL(signal_Calibrate(uint)), calibrator[0], SLOT(slot_calibrateWrap(uint)));
-        connect(calibrator[0], SIGNAL(finished()), calThread1, SLOT(quit()));
-        connect(calibrator[0], SIGNAL(finished()), calibrator[0], SLOT(deleteLater()));
-        connect(calibrator[0], SIGNAL(finished()), this, SLOT(save()));
-        connect(calThread1, SIGNAL(finished()), calThread1, SLOT(deleteLater()));
-        calThread1->start();
-
         //calib[0] = calibrator[0]->calibrate();
-        emit(signal_Calibrate(0));
+//        emit(signal_Calibrate(0));
+        QMetaObject::invokeMethod(calibrator[0], "slot_calibrateWrap", Q_ARG(uint,0));//, Q_ARG(int,1));
 
     }
 
@@ -412,19 +457,9 @@ void SLCalibrationDialog::on_calibrateButton_clicked()
             }
         }
         // Perform calibration
-        calThread2 = cv::makePtr<QThread>(this);
-        calThread2->setObjectName("calThread2");
-        calibrator[1]->moveToThread(calThread2);
-        connect(calibrator[1], SIGNAL(signal_calFinished(uint, CalibrationData)), this, SLOT(slot_ReceiveCalData(uint,CalibrationData)));
-        connect(this, SIGNAL(signal_Calibrate(uint)), calibrator[1], SLOT(slot_calibrateWrap(uint)));
-        connect(calibrator[1], SIGNAL(finished()), calThread1, SLOT(quit()));
-        connect(calibrator[1], SIGNAL(finished()), calibrator[1], SLOT(deleteLater()));
-        connect(calibrator[1], SIGNAL(finished()), this, SLOT(save()));
-        connect(calThread2, SIGNAL(finished()), calThread2, SLOT(deleteLater()));
-        calThread2->start();
-
         //calib[1] = calibrator[1]->calibrate();
-        emit(signal_Calibrate(1));
+//        emit(signal_Calibrate(1));
+        QMetaObject::invokeMethod(calibrator[1], "slot_calibrateWrap", Q_ARG(uint,1));//, Q_ARG(int,1));
     }
 
     // Re-enable interface elements
@@ -580,14 +615,6 @@ void SLCalibrationDialog::closeEvent(QCloseEvent *)
 {
     // Stop live view
     killTimer(liveViewTimer);
-
-    for(int c=0; c<camera.size();c++)
-        delete camera[c];
-
-    delete projector;
-    delete calibrator[0];
-    delete calibrator[1];
-    this->deleteLater();
 
     // Save calibration settings
     QSettings settings("SLStudio");

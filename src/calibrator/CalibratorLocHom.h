@@ -17,12 +17,14 @@ class CalibratorLocHom : public Calibrator {
     Q_OBJECT
     public:
         CalibratorLocHom(unsigned int _screenCols, unsigned int _screenRows);
-        CalibrationData calibrate();
+
+        void calibrateWrap(uint numCam);
         ~CalibratorLocHom(){delete encoder; delete decoder;}
 public slots:
-        void slot_calibrateWrap(unsigned int numCam);
+        CalibrationData calibrate();
+        void slot_calibrateWrap(uint numCam);
 signals:
-        void signal_calFinished(unsigned int numCam, CalibrationData calData);
+        void signal_calFinished(uint numCam, CalibrationData calData);
         void finished();
 
 

@@ -93,7 +93,7 @@ void SLScanWorker::setup(){
     int screenNum = settings.value("projector/screenNumber", -1).toInt();
     if(screenNum >= 0)
         projector = new ProjectorOpenGL(screenNum);
-    else if(screenNum == -1)
+    else if(screenNum == -1 || screenNum == -4)  //  SLStudio Virtual Screen 1024*768" -1,  "SLStudio Virtual Screen 1920*1080", -4);
         projector = new SLProjectorVirtual(screenNum);
     else if(screenNum == -2)
         projector = new ProjectorLC3000(0);

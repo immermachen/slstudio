@@ -19,6 +19,7 @@ class Calibrator : public QObject {
         virtual void reset(){frameSeqs.clear(); frameSeqsFromFile.clear();}
         virtual CalibrationData calibrate() = 0;
         virtual ~Calibrator(){}
+        unsigned int numCam;
     signals:
         void newSequenceResult(cv::Mat img, unsigned int idx, bool success);
     protected:

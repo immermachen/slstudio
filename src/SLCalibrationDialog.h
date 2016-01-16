@@ -45,10 +45,12 @@ signals:
     signals:
         void newCalibrationSaved(unsigned int numCam, CalibrationData _calib);
     private:
-        Ui::SLCalibrationDialog *ui;
+        //Ui::SLCalibrationDialog *ui;
+        cv::Ptr<Ui::SLCalibrationDialog> ui;
+        //vector< cv::Ptr< Camera > > camera; //add two camera support
         vector< Camera * > camera; //add two camera support
-        Projector *projector;
-        vector< Calibrator * > calibrator; //add two camera support
+        cv::Ptr< Projector > projector;
+        cv::Ptr< Calibrator > calibrator[2]; //add two camera support
         CalibrationData calib[2]; //add two camera support
         int liveViewTimer;
         //vector< vector<cv::Mat> > frameSeqs[2]; //n vectors of 62 vectors of Mat
@@ -64,7 +66,8 @@ signals:
         int cNum;
         bool writeToDisk;
         unsigned int numCalCount;//count for calibration
-        cv::Ptr<QThread> calThread1, calThread2;
+        QThread calThread1, calThread2;
+//        QThread *calThread1, *calThread2;
 };
 
 #endif // SLCALIBRATAIONDIALOG_H
