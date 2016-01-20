@@ -226,6 +226,12 @@ void SLScanWorker::setupProjector(int c)
         // correct for lens distortion
         cv::remap(pattern, pattern, map1, map2, CV_INTER_CUBIC);
 
+        if(1)
+        {
+            QString filename = QString("patternLensCorrection/%1_%2.bmp").arg(c, 1).arg(i, 2, 10, QChar('0'));
+            cv::imwrite(filename.toStdString(), pattern);
+        }
+
         if(diamondPattern)
             pattern=cvtools::diamondDownsample(pattern);
 
