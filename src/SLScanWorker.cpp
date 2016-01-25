@@ -208,6 +208,23 @@ void SLScanWorker::setupProjector(int c)
     cv::Size mapSize = cv::Size(screenCols, screenRows);
     cvtools::initDistortMap(calibration.Kp, calibration.kp, mapSize, map1, map2);
 
+    if(1)
+    {
+        double minVal,maxVal;
+        cv::Mat tmp = map1.clone();
+        cv::minMaxIdx(tmp,&minVal,&maxVal);
+        //std::cout<< "m_phase_map: Max-Min = " << maxVal << "-" << minVal << std::endl;
+        tmp.convertTo(tmp,CV_16U, 65535/(maxVal-minVal),-65535*minVal/(maxVal-minVal));
+        //tmp.convertTo(tmp,CV_16U, 65535/(maxVal),0);
+        cv::imwrite("aProjLensMap1.png", tmp);   // gray_map is CV_16U using PNG
+        tmp = map2.clone();
+        cv::minMaxIdx(tmp,&minVal,&maxVal);
+        //std::cout<< "m_phase_map: Max-Min = " << maxVal << "-" << minVal << std::endl;
+        tmp.convertTo(tmp,CV_16U, 65535/(maxVal-minVal),-65535*minVal/(maxVal-minVal));
+        //tmp.convertTo(tmp,CV_16U, 65535/(maxVal),0);
+        cv::imwrite("aProjLensMap2.png", tmp);   // gray_map is CV_16U using PNG
+    }
+
     //flip map1 and map2 for camera1
     if(0)
     {
