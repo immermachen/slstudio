@@ -45,6 +45,9 @@ void SLScanWorker::setup(){
     else
         std::cerr << "SLScanWorker: invalid trigger mode " << sTriggerMode.toStdString() << std::endl;
 
+
+    flip = settings.value("flip", 1).toInt();
+
     // Create camera
     iNum = settings.value("camera/interfaceNumber", 0).toInt();
     cNum = settings.value("camera/cameraNumber", 0).toInt();
@@ -328,6 +331,13 @@ void SLScanWorker::doWork(){
                     cv::Mat curframeCV(frame.height, frame.width, CV_8UC1, frame.memory);
                     frameCV = curframeCV;
                     frameCV = frameCV.clone();
+
+
+                    if(cNum==1 || (cNum==2 && c==1) )
+                    {
+                        if(flip)
+                            cv::flip(frameCV,frameCV,-1);
+                    }
 
                     delete frame.memory;
                 }

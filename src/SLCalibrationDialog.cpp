@@ -29,6 +29,7 @@ SLCalibrationDialog::SLCalibrationDialog(SLStudio *parent) : QDialog(parent), ui
     QSettings settings("SLStudio");
 
     writeToDisk = settings.value("writeToDisk/frames", false).toBool();
+    flip = settings.value("flip",1).toInt();
 
     //Checkerboard parameters
     float checkerSize = settings.value("calibration/checkerSize",10).toFloat();
@@ -225,7 +226,9 @@ void SLCalibrationDialog::timerEvent(QTimerEvent *event)
                 ui->videoWidget->showFrameCV(frameCV);
             else
             {
-//                cv::flip(frameCV,frameCV,-1);
+                if(flip==1)
+                    cv::flip(frameCV,frameCV,-1);
+
                 ui->videoWidget2->showFrameCV(frameCV);
             }
         }
@@ -239,7 +242,8 @@ void SLCalibrationDialog::timerEvent(QTimerEvent *event)
             cv::Mat frameCV2(frame2.height, frame2.width, CV_8UC1, frame2.memory);
 //            frameCV2 = frameCV2.clone();
             //0: flip aroud x-axis;1: flip around Y-axis; -1:flip both directions;
-//            cv::flip(frameCV2,frameCV2,-1);
+            if(flip==1)
+                cv::flip(frameCV2,frameCV2,-1);
 
             ui->videoWidget->showFrameCV(frameCV);
             ui->videoWidget2->showFrameCV(frameCV2);
@@ -358,6 +362,8 @@ void SLCalibrationDialog::on_snapButton_clicked()
                 cv::Mat curframe(frame2.height, frame2.width, CV_8U, frame2.memory);
                 curframeCV = curframe;
 //                curframeCV = curframeCV.clone();
+                if(flip)
+                    cv::flip(curframeCV,curframeCV,-1);
             }
             else if(iNum == -1)
             {

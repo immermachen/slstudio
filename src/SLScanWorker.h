@@ -43,6 +43,7 @@ class SLScanWorker : public QObject {
     private:
         int iNum;
         int cNum;
+        unsigned int flip;
         std::vector<cv::Mat> frameSeq[2];
         bool isWorking;
         std::vector<Camera*> camera;

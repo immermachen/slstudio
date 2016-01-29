@@ -72,6 +72,12 @@ SLPreferenceDialog::SLPreferenceDialog(QWidget *parent) : QDialog(parent), ui(ne
     else
         ui->aquisitionSingleRadioButton->setChecked(true);
 
+    unsigned int flip = settings.value("flip","1").toInt();
+    if(flip == 0)
+        ui->flipcamera0->setChecked(true);
+    else
+        ui->flipcamera1->setChecked(true);
+
     unsigned int patternModeIndex = ui->patternModeComboBox->findData(settings.value("pattern/mode"));
     ui->patternModeComboBox->setCurrentIndex(patternModeIndex);
 
@@ -129,6 +135,11 @@ void SLPreferenceDialog::on_buttonBox_accepted(){
         settings.setValue("aquisition", "continuous");
     else
         settings.setValue("aquisition", "single");
+
+    if(ui->flipcamera0->isChecked())
+        settings.setValue("flip","0");
+    else
+        settings.setValue("flip","1");
 
     // Pattern mode
     QString patternMode = ui->patternModeComboBox->itemData(ui->patternModeComboBox->currentIndex()).toString();
