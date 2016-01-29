@@ -150,6 +150,8 @@ SLCalibrationDialog::SLCalibrationDialog(SLStudio *parent) : QDialog(parent), ui
         connect(&calThread1, SIGNAL(finished()), &calThread1, SLOT(deleteLater()));
         connect(calibrator[0], SIGNAL(newSequenceResult(cv::Mat, unsigned int, bool)), this, SLOT(onNewSequenceResult(cv::Mat,uint,bool)));
         calThread1.start();
+
+        numPatterns = calibrator[0]->getNPatterns();
     }
     if(cNum==1  || cNum == 2)
     {
@@ -165,11 +167,17 @@ SLCalibrationDialog::SLCalibrationDialog(SLStudio *parent) : QDialog(parent), ui
         connect(&calThread2, SIGNAL(finished()), &calThread2, SLOT(deleteLater()));
         connect(calibrator[1], SIGNAL(newSequenceResult(cv::Mat, unsigned int, bool)), this, SLOT(onNewSequenceResult2(cv::Mat,uint,bool)));
         calThread2.start();
+
+        numPatterns = calibrator[1]->getNPatterns();
     }
 
     // Upload patterns to projector/GPU
-    for(unsigned int i=0; i<calibrator[0]->getNPatterns(); i++){
-        cv::Mat pattern = calibrator[0]->getCalibrationPattern(i);
+    for(unsigned int i=0; i < numPatterns; i++){
+        cv::Mat pattern;
+        if(cNum==0 || cNum==2)
+            pattern = calibrator[0]->getCalibrationPattern(i);
+        if(cNum==1)
+            pattern = calibrator[1]->getCalibrationPattern(i);
 
         // general repmat
         pattern = cv::repeat(pattern, screenRows/pattern.rows + 1, screenCols/pattern.cols + 1);
@@ -297,7 +305,7 @@ void SLCalibrationDialog::on_snapButton_clicked()
 
     vector<std::string> frameSeq[2];
 
-    for(unsigned int i=0; i<calibrator[0]->getNPatterns(); i++)
+    for(unsigned int i=0; i<numPatterns; i++)
     {
         // Project pattern
         projector->displayPattern(i);
@@ -430,7 +438,7 @@ void SLCalibrationDialog::on_calibrateButton_clicked()
         for(int i=0; i<ui->listWidget->count(); i++){
             if(ui->listWidget->item(i)->checkState() == Qt::Checked){
                 //vector<cv::Mat> frameSeq(frameSeqs[0][i].begin(), frameSeqs[0][i].begin() + calibrator[0]->getNPatterns());
-                vector<std::string> frameSeq(frameSeqs[0][i].begin(), frameSeqs[0][i].begin() + calibrator[0]->getNPatterns());
+                vector<std::string> frameSeq(frameSeqs[0][i].begin(), frameSeqs[0][i].begin() + numPatterns);
                 calibrator[0]->addFrameSequence(frameSeq);
                 activeFrameSeqs[0].push_back(i);
             }
@@ -451,7 +459,7 @@ void SLCalibrationDialog::on_calibrateButton_clicked()
         for(int i=0; i<ui->listWidget2->count(); i++){
             if(ui->listWidget2->item(i)->checkState() == Qt::Checked){
                 //vector<cv::Mat> frameSeq(frameSeqs[1][i].begin(), frameSeqs[1][i].begin() + calibrator[0]->getNPatterns());
-                vector<std::string> frameSeq(frameSeqs[1][i].begin(), frameSeqs[1][i].begin() + calibrator[0]->getNPatterns());
+                vector<std::string> frameSeq(frameSeqs[1][i].begin(), frameSeqs[1][i].begin() + numPatterns);
                 calibrator[1]->addFrameSequence(frameSeq);
                 activeFrameSeqs[1].push_back(i);
             }

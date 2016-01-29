@@ -66,6 +66,7 @@ signals:
         int cNum;
         bool writeToDisk;
         unsigned int numCalCount;//count for calibration
+        unsigned int numPatterns;//number for calibration patterns
         QThread calThread1, calThread2;
 //        QThread *calThread1, *calThread2;
 };
