@@ -65,6 +65,38 @@ Triangulator::Triangulator(CalibrationData _calibration) : calibration(_calibrat
 
 void Triangulator::triangulate(cv::Mat &up, cv::Mat &vp, cv::Mat &mask, cv::Mat &shading, cv::Mat &pointCloud){
 
+    if(1)
+    {
+        double minVal,maxVal;
+        cv::Mat tmp = up.clone();
+        cv::minMaxIdx(tmp,&minVal,&maxVal);
+        //std::cout<< "m_phase_map: Max-Min = " << maxVal << "-" << minVal << std::endl;
+        tmp.convertTo(tmp,CV_16U, 65535/(maxVal-minVal),-65535*minVal/(maxVal-minVal));
+        //tmp.convertTo(tmp,CV_16U, 65535/(maxVal),0);
+        cv::imwrite("aup_distorted.png", tmp);   // gray_map is CV_16U using PNG
+
+        tmp = vp.clone();
+        cv::minMaxIdx(tmp,&minVal,&maxVal);
+        //std::cout<< "m_phase_map: Max-Min = " << maxVal << "-" << minVal << std::endl;
+        tmp.convertTo(tmp,CV_16U, 65535/(maxVal-minVal),-65535*minVal/(maxVal-minVal));
+        //tmp.convertTo(tmp,CV_16U, 65535/(maxVal),0);
+        cv::imwrite("avp_distorted.png", tmp);   // gray_map is CV_16U using PNG
+
+
+        tmp = lensMap1.clone();
+        cv::minMaxIdx(tmp,&minVal,&maxVal);
+        //std::cout<< "m_phase_map: Max-Min = " << maxVal << "-" << minVal << std::endl;
+        tmp.convertTo(tmp,CV_16U, 65535/(maxVal-minVal),-65535*minVal/(maxVal-minVal));
+        //tmp.convertTo(tmp,CV_16U, 65535/(maxVal),0);
+        cv::imwrite("alensMap1.png", tmp);   // gray_map is CV_16U using PNG
+        tmp = lensMap2.clone();
+        cv::minMaxIdx(tmp,&minVal,&maxVal);
+        //std::cout<< "m_phase_map: Max-Min = " << maxVal << "-" << minVal << std::endl;
+        tmp.convertTo(tmp,CV_16U, 65535/(maxVal-minVal),-65535*minVal/(maxVal-minVal));
+        //tmp.convertTo(tmp,CV_16U, 65535/(maxVal),0);
+        cv::imwrite("alensMap2.png", tmp);   // gray_map is CV_16U using PNG
+    }
+
     // Undistort up, mask and shading
     if(!up.empty()){
         cv::Mat upUndistort;
@@ -82,6 +114,24 @@ void Triangulator::triangulate(cv::Mat &up, cv::Mat &vp, cv::Mat &mask, cv::Mat 
     cv::remap(shading, shadingUndistort, lensMap1, lensMap2, cv::INTER_LINEAR);
     mask = maskUndistort;
     shading = shadingUndistort;
+
+    if(1)
+    {
+        double minVal,maxVal;
+        cv::Mat tmp = up.clone();
+        cv::minMaxIdx(tmp,&minVal,&maxVal);
+        //std::cout<< "m_phase_map: Max-Min = " << maxVal << "-" << minVal << std::endl;
+        tmp.convertTo(tmp,CV_16U, 65535/(maxVal-minVal),-65535*minVal/(maxVal-minVal));
+        //tmp.convertTo(tmp,CV_16U, 65535/(maxVal),0);
+        cv::imwrite("aup_undistorted.png", tmp);   // gray_map is CV_16U using PNG
+
+        tmp = vp.clone();
+        cv::minMaxIdx(tmp,&minVal,&maxVal);
+        //std::cout<< "m_phase_map: Max-Min = " << maxVal << "-" << minVal << std::endl;
+        tmp.convertTo(tmp,CV_16U, 65535/(maxVal-minVal),-65535*minVal/(maxVal-minVal));
+        //tmp.convertTo(tmp,CV_16U, 65535/(maxVal),0);
+        cv::imwrite("avp_undistorted.png", tmp);   // gray_map is CV_16U using PNG
+    }
 
     // Triangulate
     cv::Mat xyz;

@@ -37,18 +37,23 @@ class SLScanWorker : public QObject {
         void showHistogram(cv::Mat im);
         void newFrame(cv::Mat frame);
         void newFrameSeq(std::vector<cv::Mat> frameSeq);
+        void newFrameSeq2(std::vector<cv::Mat> frameSeq);
         void error(QString err);
         void finished();
     private:
-
+        int iNum;
+        int cNum;
+        unsigned int flip;
+        std::vector<cv::Mat> frameSeq[2];
         bool isWorking;
-        Camera *camera;
-        Projector *projector;
+        std::vector<Camera*> camera;
+        Projector * projector;
         Encoder *encoder;
 
         CameraTriggerMode triggerMode;
         ScanAquisitionMode aquisition;
         bool writeToDisk;
+        void setupProjector(int c);
 };
 
 #endif

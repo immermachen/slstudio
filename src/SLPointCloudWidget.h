@@ -25,19 +25,22 @@ typedef pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr PointCloudConstPtr;
 class SLPointCloudWidget : public QVTKWidget {
     Q_OBJECT
     public:
+        PointCloudConstPtr pointCloudPCL;
+        PointCloudPtr pointCloudPCL_Left;
+        PointCloudPtr pointCloudPCL_Right;
+        bool registerPointCloud();
         explicit SLPointCloudWidget(QWidget *parent = 0);
         ~SLPointCloudWidget();
     protected:
         void keyPressEvent(QKeyEvent *event);
-    public slots:
+    public slots:        
         void updatePointCloud(PointCloudConstPtr _pointCloudPCL);
         void savePointCloud();
         void saveScreenShot();
     signals:
         void newPointCloudDisplayed();
-    private:
-        pcl::visualization::PCLVisualizer *visualizer;
-        PointCloudConstPtr pointCloudPCL;
+    private:        
+        pcl::visualization::PCLVisualizer *visualizer;        
         pcl::visualization::PointCloudColorHandler<pcl::PointXYZRGB>* colorHandler;
         bool surfaceReconstruction;
         pcl::OrganizedFastMesh<pcl::PointXYZRGB> *reconstructor;

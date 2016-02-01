@@ -97,9 +97,11 @@ void ProjectorOpenGL::setPattern(unsigned int patternNumber, const unsigned char
 
         GLint status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
         if (status != GL_FRAMEBUFFER_COMPLETE)
-          std::cout << "Error Framebuffer Complete" << std::endl;
+          std::cout << "Error Framebuffer Complete";// << std::endl;
         else
-          std::cout << "Framebuffer Complete" << std::endl;
+        {
+          //std::cout << patternNumber;// "Framebuffer Complete OK.";// << std::endl;
+        }
 
     } else if (patternNumber < frameBuffers.size()) {
 

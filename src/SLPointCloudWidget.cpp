@@ -18,6 +18,7 @@
 #include <pcl/io/vtk_io.h>
 #include <vtkPolyDataWriter.h>
 #include <pcl/conversions.h>
+#include <pcl/registration/icp.h>
 
 #include <fstream>
 
@@ -106,6 +107,58 @@ void SLPointCloudWidget::updatePointCloud(PointCloudConstPtr _pointCloudPCL){
 //    std::cout << "PCL Widget: " << time.restart() << "ms" << std::endl;
 }
 
+/*
+Registration using ICP: Iterative Closest Point;
+goal: aligning(registering) two point cloud;
+*/
+bool SLPointCloudWidget::registerPointCloud()
+{
+
+    PointCloudPtr finalCloud(new pcl::PointCloud<pcl::PointXYZRGB>);
+
+    pcl::IterativeClosestPoint<pcl::PointXYZRGB, pcl::PointXYZRGB> icp; //TODO: check this pcl function
+
+    //pcl::io::loadPLYFile("acam_0.ply", *pointCloudPCL_Left);
+    //pcl::io::loadPLYFile("acam_1.ply", *pointCloudPCL_Right);
+
+    icp.setInputCloud(pointCloudPCL_Left);
+    icp.setInputTarget(pointCloudPCL_Right);
+
+    // Set the max correspondence distance to 5cm (e.g., correspondences with higher distances will be ignored)
+    icp.setMaxCorrespondenceDistance (0.05);
+    // Set the maximum number of iterations (criterion 1)
+    icp.setMaximumIterations (50);
+    // Set the transformation epsilon (criterion 2)
+    icp.setTransformationEpsilon (1e-8);
+    // Set the euclidean distance difference epsilon (criterion 3)
+    icp.setEuclideanFitnessEpsilon (1);
+
+    try
+    {
+        //TODO:  error.....
+        icp.align(*finalCloud); //very slowly
+    }
+    catch(std::exception ex)
+    {
+        std::cout<< "registration.align error!" <<std::endl;
+    }
+
+    pointCloudPCL = finalCloud;
+
+    if (icp.hasConverged())
+    {
+        cout << "ICP converged!" << endl << "The score is " << icp.getFitnessScore() << endl; //slowly
+        cout << "Transformation Matrix:" << endl << icp.getFinalTransformation() << endl;
+        return true;
+    }
+    else
+    {
+        cout << "ICP did not converge!" << endl;
+        return false;
+    }
+
+}
+
 void SLPointCloudWidget::savePointCloud(){
 
     QString selectedFilter;
@@ -175,4 +228,5 @@ SLPointCloudWidget::~SLPointCloudWidget(){
 
     //delete visualizer;
 
+    std::cout<<"SLPointCloudWidget deleted\n"<<std::flush;
 }

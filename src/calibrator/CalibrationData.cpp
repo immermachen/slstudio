@@ -12,8 +12,7 @@
 CalibrationData::CalibrationData() : Kc(1.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,1.0), kc(0.0), cam_error(0.0),
                     Kp(1.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,1.0), kp(0.0), proj_error(0.0),
                     Rp(1.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,1.0), Tp(0.0), stereo_error(0.0),
-                    frameWidth(640), frameHeight(512), screenResX(0), screenResY(0) {
-
+                    frameWidth(0), frameHeight(0), screenResX(0), screenResY(0) {
 }
 
 CalibrationData::CalibrationData(cv::Matx33f _Kc, cv::Vec<float, 5> _kc, double _cam_error, cv::Matx33f _Kp, cv::Vec<float, 5> _kp,

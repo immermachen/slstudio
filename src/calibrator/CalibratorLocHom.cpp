@@ -1,6 +1,8 @@
 #include "CalibratorLocHom.h"
 #include "CodecCalibration.h"
 
+#include "CodecGrayPhase.h"
+
 #include "cvtools.h"
 
 #include <QSettings>
@@ -8,20 +10,37 @@
 CalibratorLocHom::CalibratorLocHom(unsigned int _screenCols, unsigned int _screenRows): Calibrator(_screenCols, _screenRows){
 
     // Create encoder/decoder
-    encoder = new EncoderCalibration(screenCols, screenRows, CodecDirBoth);
-    decoder = new DecoderCalibration(screenCols, screenRows, CodecDirBoth);
+    //encoder = new EncoderCalibration(screenCols, screenRows, CodecDirBoth);
+    //decoder = new DecoderCalibration(screenCols, screenRows, CodecDirBoth);
+    encoder = new EncoderGrayPhase(screenCols, screenRows, CodecDirBoth);
+    decoder = new DecoderGrayPhase(screenCols, screenRows, CodecDirBoth);
 
     this->N = encoder->getNPatterns();
 
-    frameSeqs.resize(N);
+    frameSeqsFromFile.resize(N);
 
     for(unsigned int i=0; i<N; i++)
         patterns.push_back(encoder->getEncodingPattern(i));
 
 }
 
-CalibrationData CalibratorLocHom::calibrate(){
 
+void CalibratorLocHom::calibrateWrap(uint numCam)
+{
+    CalibrationData calData;// = calibrate();
+    emit signal_calFinished(numCam, calData);
+//    emit finished();
+}
+
+void CalibratorLocHom::slot_calibrateWrap(uint numCam)
+{
+    CalibrationData calData = calibrate();
+    emit signal_calFinished(numCam, calData);
+//    emit finished();
+}
+
+CalibrationData CalibratorLocHom::calibrate()
+{
     QSettings settings("SLStudio");
 
     //Checkerboard parameters
@@ -34,32 +53,45 @@ CalibrationData CalibratorLocHom::calibrate(){
     cv::Size patternSize(checkerCols,checkerRows);
 
     // Number of calibration sequences
-    unsigned nFrameSeq = frameSeqs.size();
+    unsigned nFrameSeq = frameSeqsFromFile.size();
 
     vector<cv::Mat> up(nFrameSeq), vp(nFrameSeq), shading(nFrameSeq), mask(nFrameSeq);
 
     // Decode frame sequences
-    std::cout << "Decode frame sequences: Num="<< nFrameSeq<<std::endl;
-    for(unsigned int i=0; i<nFrameSeq; i++){
-        vector<cv::Mat> frames = frameSeqs[i];
+    std::cout << "Decode frames: Num="<< nFrameSeq<< ", and begin.....>> ";
+    for(unsigned int i=0; i<nFrameSeq; i++)
+    {
+        //vector<cv::Mat> frames = frameSeqs[i];
+        vector<cv::Mat> frames;
+        vector<std::string> framesFromFile= frameSeqsFromFile[i];
+        for(unsigned int m=0; m<framesFromFile.size();m++)
+        {
+            cv::Mat curFrame = cv::imread(framesFromFile[m],CV_LOAD_IMAGE_GRAYSCALE);            
+            curFrame = curFrame.clone();
+            frames.push_back(curFrame);
+        }
+
         for(unsigned int f=0; f<frames.size(); f++){
             decoder->setFrame(f, frames[f]);
             #if 0
-                cv::imwrite(QString("frames[%1].png").arg(f).toStdString(), frames[f]);
+                cv::imwrite(QString("m_frames_%1_%2.png").arg(i,2,10,QChar('0')).arg(f).toStdString(), frames[f]);
             #endif
         }
-        std::cout << "decodeFrames begin...... "<<std::endl;
+
         decoder->decodeFrames(up[i], vp[i], mask[i], shading[i]);
-        std::cout << "decodeFrames end."<<std::endl;
-        #if 1
+
+        std::cout << i << ",";
+
+        #if 0
             cvtools::writeMat(shading[i], QString("shading[%1].mat").arg(i).toLocal8Bit());
             cvtools::writeMat(up[i], QString("up[%1].mat").arg(i).toLocal8Bit());
             cvtools::writeMat(vp[i], QString("vp[%1].mat").arg(i).toLocal8Bit());
         #endif
     }
+    std::cout << "-->end||."<<std::endl;
 
-    unsigned int frameWidth = frameSeqs[0][0].cols;
-    unsigned int frameHeight = frameSeqs[0][0].rows;
+    unsigned int frameWidth = up[0].cols;
+    unsigned int frameHeight = up[0].rows;
 
     // Generate local calibration object coordinates [mm]
     std::cout << "Generate local calibration object coordinates"<<std::endl;
@@ -73,19 +105,29 @@ CalibrationData CalibratorLocHom::calibrate(){
 
     vector< vector<cv::Point2f> > qc, qp;
     vector< vector<cv::Point3f> > Q;
-    for(unsigned int i=0; i<nFrameSeq; i++){
+
+    for(unsigned int i=0; i<nFrameSeq; i++)
+    {
+
         //std::cout << i << " 1" << std::endl;
         vector<cv::Point2f> qci;
         // Aid checkerboard extraction by slight blur
         //cv::GaussianBlur(shading[i], shading[i], cv::Size(5,5), 2, 2);
         // Extract checker corners
-        std::cout << i << " findChessboardCorners" << std::endl;
-        bool success = cv::findChessboardCorners(shading[i], patternSize, qci, cv::CALIB_CB_ADAPTIVE_THRESH);
+
+        std::cout << i << ": findChessboardCorners......" << std::endl;
+        bool success = cv::findChessboardCorners(shading[i], patternSize, qci,
+                                                 cv::CALIB_CB_ADAPTIVE_THRESH+CV_CALIB_CB_NORMALIZE_IMAGE+CALIB_CB_FAST_CHECK );
+        std::cout << " cv::findChessboardCorners: sucess = " << success << std::endl;
+
         if(!success)
             std::cout << "Calibrator: could not extract chess board corners on frame seqence " << i << std::endl << std::flush;
-        else{
+        else
+        {
+            std::cout << i << ": cornerSubPix......" << std::endl;
             // Refine corner locations
-            cv::cornerSubPix(shading[i], qci, cv::Size(5, 5), cv::Size(1, 1),cv::TermCriteria(cv::TermCriteria::EPS + cv::TermCriteria::MAX_ITER, 20, 0.01));
+            cv::cornerSubPix(shading[i], qci, cv::Size(5, 5), cv::Size(1, 1),
+                             cv::TermCriteria(cv::TermCriteria::EPS + cv::TermCriteria::MAX_ITER, 20, 0.01));
         }
         // Draw colored chessboard
         cv::Mat shadingColor;
@@ -93,13 +135,13 @@ CalibrationData CalibratorLocHom::calibrate(){
         cv::drawChessboardCorners(shadingColor, patternSize, qci, success);
 
 #if 1
-        QString filename = QString("shadingColor%1.bmp").arg(i, 2, 10, QChar('0'));
+        QString filename = QString("am_shadingColor%1.bmp").arg(i, 2, 10, QChar('0'));
         cv::imwrite(filename.toStdString(), shadingColor);
-        filename = QString("shadingColor%1.png").arg(i, 2, 10, QChar('0'));
-        cv::imwrite(filename.toStdString(), shadingColor);
+//        filename = QString("am_shadingColor%1.png").arg(i, 2, 10, QChar('0'));
+//        cv::imwrite(filename.toStdString(), shadingColor);
 #endif
-        // Emit chessboard results
-        //std::cout << i << " newSequenceResult" << std::endl;
+
+        //Emit chessboard results
         emit newSequenceResult(shadingColor, i, success);
 
         if(success)
@@ -110,7 +152,8 @@ CalibrationData CalibratorLocHom::calibrate(){
             vector<cv::Point3f> Qi_a;
 
             // Loop through checkerboard corners
-            for(unsigned int j=0; j<qci.size(); j++){
+            for(unsigned int j=0; j<qci.size(); j++)
+            {
 
                 const cv::Point2f &qcij = qci[j];
 
@@ -124,10 +167,13 @@ CalibrationData CalibratorLocHom::calibrate(){
                 unsigned int startw = max(int(qcij.x+0.5)-WINDOW_SIZE, 0u);
                 unsigned int stopw  = min(int(qcij.x+0.5)+WINDOW_SIZE, frameWidth-1);
 
-                for(unsigned int h=starth; h<=stoph; h++){
-                    for(unsigned int w=startw; w<=stopw; w++){
+                for(unsigned int h=starth; h<=stoph; h++)
+                {
+                    for(unsigned int w=startw; w<=stopw; w++)
+                    {
                         // stay within mask
-                        if(mask[i].at<bool>(h,w)){
+                        if(mask[i].at<bool>(h,w))
+                        {
                             N_qcij.push_back(cv::Point2f(w, h));
 
                             float upijwh = up[i].at<float>(h,w);
@@ -138,11 +184,13 @@ CalibrationData CalibratorLocHom::calibrate(){
                 }
                 //std::cout << i << " findHomography " << N_qcij.size() << " " << N_qpij.size() << std::endl;
                 // if enough valid points to build homography
-                if(N_qpij.size() >= 50){
+                if(N_qpij.size() >= 50)
+                {
 //                    std::cout << i << " findHomography" << std::endl;
                     // translate qcij into qpij using local homography
                     cv::Mat H = cv::findHomography(N_qcij, N_qpij, cv::LMEDS);
-                    if(!H.empty()){
+                    if(!H.empty())
+                    {
                         cv::Point3d Q = cv::Point3d(cv::Mat(H*cv::Mat(cv::Point3d(qcij.x, qcij.y, 1.0))));
                         cv::Point2f qpij = cv::Point2f(Q.x/Q.z, Q.y/Q.z);
 
@@ -153,7 +201,8 @@ CalibrationData CalibratorLocHom::calibrate(){
                 }
             }
 
-            if(!Qi_a.empty()){
+            if(!Qi_a.empty())
+            {
                 // Store projector corner coordinates
                 qp.push_back(qpi_a);
 
@@ -164,7 +213,7 @@ CalibrationData CalibratorLocHom::calibrate(){
                 Q.push_back(Qi_a);
             }
         }
-    }    
+    }
 
     if(Q.size() < 1){
         std::cerr << "Error: not enough calibration sequences!" << std::endl;
@@ -182,6 +231,7 @@ CalibrationData CalibratorLocHom::calibrate(){
                                            cv::TermCriteria(cv::TermCriteria::COUNT + cv::TermCriteria::EPS, 50, DBL_EPSILON));
 
     //calibrate the projector
+    std::cout<< "calibrate the projector!" <<std::endl;
     cv::Mat Kp, kp;
     std::vector<cv::Mat> proj_rvecs, proj_tvecs;
     cv::Size screenSize(screenCols, screenRows);
@@ -189,9 +239,15 @@ CalibrationData CalibratorLocHom::calibrate(){
                                             cv::TermCriteria(cv::TermCriteria::COUNT + cv::TermCriteria::EPS, 50, DBL_EPSILON));
 
     //stereo calibration
+    std::cout<< "stereo calibrate!" <<std::endl;
     cv::Mat Rp, Tp, E, F;
+    //Opencv2.x version
+    //double stereo_error = cv::stereoCalibrate(Q, qc, qp, Kc, kc, Kp, kp, frameSize, Rp, Tp, E, F,
+      //                                        cv::TermCriteria(cv::TermCriteria::COUNT + cv::TermCriteria::EPS, 100, DBL_EPSILON), cv::CALIB_FIX_INTRINSIC);
+
+    //Opencv3.x version
     double stereo_error = cv::stereoCalibrate(Q, qc, qp, Kc, kc, Kp, kp, frameSize, Rp, Tp, E, F,
-                                              cv::TermCriteria(cv::TermCriteria::COUNT + cv::TermCriteria::EPS, 100, DBL_EPSILON), cv::CALIB_FIX_INTRINSIC);
+                                              cv::CALIB_FIX_INTRINSIC,cv::TermCriteria(cv::TermCriteria::COUNT + cv::TermCriteria::EPS, 100, DBL_EPSILON));
 
     CalibrationData calData(Kc, kc, cam_error, Kp, kp, proj_error, Rp, Tp, stereo_error);
 
@@ -227,5 +283,6 @@ CalibrationData CalibratorLocHom::calibrate(){
     }
 
     return calData;
-
+//                CalibrationData nanData;
+//                return nanData;
 }

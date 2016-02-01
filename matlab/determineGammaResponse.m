@@ -13,6 +13,7 @@ for i=0:255
     p.displayTexture(tex);
     pause(0.1);
     I = c.getFrame();
+    %I= I(900:1000,900:1000);
     response(i+1) = mean(I(:));
 end
 
@@ -20,3 +21,31 @@ figure;
 plot(response);
 xlabel('Input intensity');
 ylabel('Output intensity');
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

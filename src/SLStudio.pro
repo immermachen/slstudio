@@ -73,6 +73,8 @@ HEADERS  += SLStudio.h \
         tracker/TrackerPCL.h \
         tracker/PoseFilter.h \
         cvtools.h \
+    codec/CodecGrayPhase.h \
+    codec/GrayPhase.h
 
 SOURCES += main.cpp \
         SLStudio.cpp \
@@ -121,6 +123,8 @@ SOURCES += main.cpp \
         tracker/CorrRejectOrgBoundFast.cpp \
         tracker/TrackerPCL.cpp \
         tracker/PoseFilter.cpp \
+    codec/CodecGrayPhase.cpp \
+    codec/GrayPhase.cpp
 
 INCLUDEPATH += camera/ projector/ codec/ triangulator/ calibrator/ tracker/
 
@@ -136,6 +140,8 @@ unix:!macx {
     LIBS += -lQVTK -lvtkCommon -lvtkFiltering -lvtkRendering -lvtkIO -lvtkGraphics -lvtkHybrid
     # PCL pkg-config workaround
     LIBS += -lboost_system -lpcl_visualization -lpcl_common -lpcl_io -lpcl_search -lpcl_surface
+    #Yang:libippicv.a is dynamic library and static library together.
+    LIBS += -L/usr/local/share/OpenCV/3rdparty/lib -lippicv
     # PKG-config libs
     INCLUDEPATH += /usr/include/pcl-1.7 /usr/include/eigen3/
     PKGCONFIG += opencv pcl_registration-1.7 pcl_visualization-1.7 pcl_surface-1.7 pcl_search-1.7 pcl_filters-1.7 pcl_kdtree-1.7 pcl_tracking-1.7 flann eigen3
@@ -287,17 +293,17 @@ macx{
 
 # Compile with specific camera driver bindings
 #Vimba
-#/opt/Vimba_1_3/VimbaC/DynamicLib/x86_64bit/libVimbaC.so
+#/opt/Vimba_1_4/VimbaC/DynamicLib/x86_64bit/libVimbaC.so
 #Vimba C++ API (libVimbaCPP.so)                        1.3.0*
 #Image Transform Library (libAVTImageTransform.so)     1.2.0*
-# Vimba Camera: /opt/Vimba_1_3/VimbaCPP/Include
-#               /opt/Vimba_1_3/AVTImageTransform/Include
-#               /opt/Vimba_1_3/AVTImageTransform/DynamicLib/x86_64bit/libAVTImageTransform.so
-unix:!macx:exists(/opt/Vimba_1_3/VimbaCPP/Include/VimbaCPP.h){
+# Vimba Camera: /opt/Vimba_1_4/VimbaCPP/Include
+#               /opt/Vimba_1_4/AVTImageTransform/Include
+#               /opt/Vimba_1_4/AVTImageTransform/DynamicLib/x86_64bit/libAVTImageTransform.so
+unix:!macx:exists(/opt/Vimba_1_4/VimbaCPP/Include/VimbaCPP.h){
     DEFINES += WITH_CAMERAVIMBA
-    INCLUDEPATH += /opt/Vimba_1_3/VimbaCPP/Include \
-                   /opt/Vimba_1_3
-    LIBS += -L /opt/Vimba_1_3/VimbaCPP/DynamicLib/x86_64bit -lVimbaCPP -lVimbaC
+    INCLUDEPATH += /opt/Vimba_1_4/VimbaCPP/Include \
+                   /opt/Vimba_1_4
+    LIBS += -L /opt/Vimba_1_4/VimbaCPP/DynamicLib/x86_64bit -lVimbaCPP -lVimbaC
 }
 contains(DEFINES, WITH_CAMERAVIMBA) {
     HEADERS += camera/CameraVimba.h
@@ -395,6 +401,7 @@ unix:!macx{
     CONFIG += link_pkgconfig
     #PKGCONFIG += libudev
     PKGCONFIG += libusb-1.0 #Yang: sudo apt-get install libusb-1.0-0-dev
+    #PKGCONFIG -= libippicv #Yang: /usr/bin/ld: cannot find -lippicv
 }
 win32{
     SOURCES += projector/LC4500API/hid.Win.c

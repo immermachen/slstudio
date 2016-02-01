@@ -42,7 +42,7 @@ class SLStudio : public QMainWindow {
         void onActionExportCalibration();
 
         void updateDisplayRate();
-        void receiveNewPointCloud(PointCloudConstPtr pointCloud);
+        void receiveNewPointCloud(PointCloudPtr pointCloud, unsigned int _cNum);
 
         void imshow(const char* windowName, cv::Mat im, unsigned int x, unsigned int y);
         void hist(const char* windowName, cv::Mat im, unsigned int x, unsigned int y);
@@ -66,9 +66,13 @@ signals:
 
         SLDecoderWorker *decoderWorker;
         QThread *decoderThread;
+        SLDecoderWorker *decoderWorker2;
+        QThread *decoderThread2;
 
         SLTriangulatorWorker *triangulatorWorker;
         QThread *triangulatorThread;
+        SLTriangulatorWorker *triangulatorWorker2;
+        QThread *triangulatorThread2;
 
         QTime *time;
         QSettings *settings;
@@ -76,6 +80,7 @@ signals:
         SLVideoDialog *histogramDialog, *shadingDialog, *decoderUpDialog, *decoderVpDialog;
         SLTrackerDialog *trackerDialog;
 
+        unsigned int nPCL;
     public:
 
 };

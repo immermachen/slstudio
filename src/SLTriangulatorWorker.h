@@ -23,19 +23,21 @@ class SLTriangulatorWorker : public QObject {
     Q_OBJECT
 
     public:
-        SLTriangulatorWorker() : frameWidth(0), frameHeight(0), writeToDisk(false){}
+        SLTriangulatorWorker(unsigned int _cNum) : cNum(_cNum), frameWidth(0), frameHeight(0), writeToDisk(false){}
+
         ~SLTriangulatorWorker();
     public slots:
         void setup();
         void triangulatePointCloud(cv::Mat up, cv::Mat vp, cv::Mat mask, cv::Mat shading);
     signals:
         void imshow(const char* windowName, cv::Mat mat, unsigned int x, unsigned int y);
-        void newPointCloud(PointCloudConstPtr pointCloud);
+        void newPointCloud(PointCloudPtr pointCloud, unsigned int cNum);
         void error(QString err);
-        //void finished();
+        void finished();
     private:
-        unsigned int frameWidth, frameHeight;
+        unsigned int frameWidth, frameHeight;        
         bool writeToDisk;
+        unsigned int cNum;
         CalibrationData *calibration;
         Triangulator *triangulator;
         QTime time;

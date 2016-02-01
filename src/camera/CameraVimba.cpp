@@ -7,33 +7,20 @@
 **  should return the frame to the API by re-enqueuing it at the corresponding camera.
 
 ******************************************************************************/
-
-
 #include "CameraVimba.h"
 #include <stdlib.h>  //for atoi
 #include <sstream>
 
-//#include <qinputdialog.h>
-//#include <QDateTime>
-//#include <QSettings>
-
-//#include <opencv2/opencv.hpp>
-//#include "cvtools.h"
-
 using namespace AVT::VmbAPI;
 
-
-
-
 CameraFrame CameraVimba::getFrame(){
-    const char *    pFileName   = NULL;             // The filename for the bitmap to save
-    pFileName = "frameSeq_Debug.bmp";
+
     CameraFrame frame;
     FramePtr pFrame;
     VmbErrorType err;
     //QSettings settings("SLStudio");
     unsigned int shift = 0;//settings.value("trigger/shift", "0").toInt();
-    unsigned int delay = 100;//settings.value("trigger/delay", "100").toInt();
+    unsigned int delay = 5000;//settings.value("trigger/delay", "100").toInt();
     err = m_pCamera->AcquireSingleImage( pFrame, delay );//timeout=5000:The time to wait until the frame got filled
 
     if (err!=VmbErrorSuccess) {
@@ -49,8 +36,6 @@ CameraFrame CameraVimba::getFrame(){
         std::cout<< "AcquireSingleImage-->GetReceiveStatus err="<< ErrorCodeToMessage(err).c_str()<<std::endl;
         return frame;
     }
-
-    std::cout<<"getFrame --> GetFrame() works!  "<<std::endl;
 
     VmbPixelFormatType ePixelFormat = VmbPixelFormatMono8;
     err = pFrame->GetPixelFormat( ePixelFormat );
@@ -101,41 +86,6 @@ CameraFrame CameraVimba::getFrame(){
         return frame;
     }
 
-
-//    //------------------Debug-------------------------------------------------------------------
-//    AVTBitmap bitmap;
-//    bitmap.colorCode = ColorCodeMono8;
-//    bitmap.bufferSize = frame.sizeBytes;
-//    bitmap.width = width;
-//    bitmap.height = height;
-
-//    // Create the bitmap
-//    if ( 0 == AVTCreateBitmap( &bitmap, pImage ))
-//    {
-//        std::cout<<"Could not create bitmap.\n";
-//        err = VmbErrorResources;
-//    }
-//    else
-//    {
-//        // Save the bitmap
-//        if ( 0 == AVTWriteBitmapToFile( &bitmap, pFileName ))
-//        {
-//            std::cout<<"Could not write bitmap to file.\n";
-//            err = VmbErrorOther;
-//        }
-//        else
-//        {
-//            std::cout<<"Bitmap successfully written to file \""<<pFileName<<"\"\n" ;
-//            // Release the bitmap's buffer
-//            if ( 0 == AVTReleaseBitmap( &bitmap ))
-//            {
-//                std::cout<<"Could not release the bitmap.\n";
-//                err = VmbErrorInternalFault;
-//            }
-//        }
-//    }
-//    //-------------------------------------------------------------------------------------
-
     //frame.memory = (unsigned char*)pImage;
     unsigned char* pBitmapBuffer = new unsigned char[frame.sizeBytes];
     for(int i=0;i<frame.sizeBytes;i++)
@@ -145,7 +95,7 @@ CameraFrame CameraVimba::getFrame(){
     frame.memory = pBitmapBuffer;
 
 
-    std::cout<<"getFrame --> GetFrame-->End. size="<< frame.sizeBytes << ", Height=" << frame.height << ", width=" << frame.width  << ", stamp="<< stamp<<std::endl;
+    //std::cout<<"getFrame --> GetFrame-->End. size="<< frame.sizeBytes << ", Height=" << frame.height << ", width=" << frame.width  << ", stamp="<< stamp<<std::endl;
 
 
     return frame;
@@ -172,12 +122,12 @@ bool CameraVimba::Init(unsigned int camNum)
 
             if (cameras.size()>0) {
                 if (cameras.size()>1) {
-                    std::cout << "Cameras found: " << cameras.size();  // should also implement Qinputdialog to let the user choose which one to use
+                    //std::cout << "Cameras found: " << cameras.size();  // should also implement Qinputdialog to let the user choose which one to use
                     for (uint i=0;i<cameras.size();i++) {
-                        CameraPtr cam=cameras[i];
-                        std::string namestr;
-                        err=cam->GetName(namestr);
-                        std::cout<<"Next Camera is: "<<namestr;
+                        CameraPtr cam=cameras[i];                        
+                        std::string model;
+                        cam->GetSerialNumber(model);
+                        std::cout<<" Next Camera model = "<<model << std::endl;
                     }
                 }
 
@@ -185,17 +135,16 @@ bool CameraVimba::Init(unsigned int camNum)
                 m_pCamera=cameras[camNum];
                 std::string camID;
                 std::string namestr;
+                std::string model;
                 err=m_pCamera->GetName(namestr);
                 err=m_pCamera->GetID(camID);
+                m_pCamera->GetSerialNumber(model);
                 if( VmbErrorSuccess == err )    {
-                    std::cout<<"Opening camera "<<namestr;
+                    std::cout<<"Opening camera model= "<<model <<std::endl;
 
                     err=m_pCamera->Open(VmbAccessModeFull);
 
                     if (err==VmbErrorSuccess) {
-                        //camera successfully opened. Now do some camera initialisation steps
-                        std::cout<<"camera successfully opened";
-
                         // Set the GeV packet size to the highest possible value
                         // (In this example we do not test whether this cam actually is a GigE cam)
                         FeaturePtr pCommandFeature;
@@ -226,10 +175,6 @@ bool CameraVimba::Init(unsigned int camNum)
                         settings.shutter = 16.66;
                         settings.gain = 0.0;
                         this->setCameraSettings(settings);
-
-
-                        std::cout<<"camera successfully opened --> Set/Get finished!";
-
                     } else {
                         std::cout<<"camera did not open successfully";
                         return false;
@@ -260,8 +205,6 @@ bool CameraVimba::Init(unsigned int camNum)
 
 void CameraVimba::startCapture()
 {
-    std::cout << "startCapture --> "<<std::endl;
-
     VmbErrorType err;
     FeaturePtr pFeature;
 
@@ -279,8 +222,7 @@ void CameraVimba::startCapture()
         }
     }
 
-
-    std::cout<<"startCapture --> RunCommand -->AcquisitionStart ";
+    //std::cout<<"startCapture --> RunCommand -->AcquisitionStart ";
     capturing = true;
 }
 
@@ -300,6 +242,8 @@ void CameraVimba::stopCapture()
 
 CameraVimba::~CameraVimba()
 {
+    try
+    {
     VmbErrorType err=m_pCamera->Close();
     if (err!=VmbErrorSuccess) {
         std::cout<<"Problem closing the camera";
@@ -308,6 +252,8 @@ CameraVimba::~CameraVimba()
     if (err!=VmbErrorSuccess) {
         std::cout<<"Problem shutting down Vimba";
     }
+    }catch(std::exception ex)
+    {}
 }
 
 std::vector<CameraInfo> CameraVimba::getCameraList()
@@ -316,7 +262,7 @@ std::vector<CameraInfo> CameraVimba::getCameraList()
     std::vector<CameraInfo> ret;
 
     VimbaSystem&    sys = VimbaSystem::GetInstance();  // Get a reference to the VimbaSystem singleton
-    std::cout<<"Vimba Version V"<<sys<<"\n";           // Print out version of Vimba
+    //std::cout<<"Vimba Version V"<<sys<<"\n";           // Print out version of Vimba
     VmbErrorType    err = sys.Startup();               // Initialize the Vimba API
     CameraPtrVector cameras;                           // A vector of std::shared_ptr<AVT::VmbAPI::Camera> objects
 
@@ -332,7 +278,7 @@ std::vector<CameraInfo> CameraVimba::getCameraList()
     if( VmbErrorSuccess == err )
     {
         unsigned int numCameras = cameras.size();
-        std::cout << "Cameras found: " << cameras.size() <<"\n\n";
+        //std::cout << "Cameras found: " << cameras.size() <<"\n\n";
 
         // Query all static details of all known cameras and print them out.
         // We don't have to open the cameras for that.
@@ -346,7 +292,7 @@ std::vector<CameraInfo> CameraVimba::getCameraList()
             cam->GetSerialNumber(info.model);
             std::string cameraID;
             cam->GetID(cameraID);
-            std::cout << "cameraID: " << cameraID <<"\n\n";
+            //std::cout << "cameraID: " << cameraID <<"\n\n";
             info.busID = atoi(cameraID.c_str());
             ret.push_back(info);
         }
@@ -386,14 +332,30 @@ CameraSettings CameraVimba::getCameraSettings(){
 
 void CameraVimba::setCameraSettings(CameraSettings settings){
 
-//    // Set shutter (in us)
-//    xiSetParamInt(camera, XI_PRM_EXPOSURE, settings.shutter*1000);
-//    // Set gain (in dB)
-//    xiSetParamFloat(camera, XI_PRM_GAIN, settings.gain);
+    FeaturePtr pFeature;
+    VmbErrorType err;
 
-    std::cout << "Setting camera parameters:" << std::endl
-              << "Shutter: " << settings.shutter << " ms" << std::endl
-              << "Gain: " << settings.gain << " dB" << std::endl;
+    err = m_pCamera->GetFeatureByName( "ExposureTimeAbs", pFeature ); //it is microseconds
+    if ( VmbErrorSuccess == err ) {
+        double shutter;
+        err=pFeature->GetValue(shutter);
+
+        std::cout << "beginning: Shutter: " << shutter << " us" << std::endl;
+                  //<< "Gain: " << settings.gain << " dB" << std::endl;
+    }
+
+    if ( VmbErrorSuccess == err ) {
+        double shutter = settings.shutter * 1000.0; // from us to ms
+        err=pFeature->SetValue(shutter);
+    }
+
+    if ( VmbErrorSuccess == err ) {
+        double shutter;
+        err=pFeature->GetValue(shutter);
+
+        std::cout << "after: Shutter: " << shutter << " us" << std::endl;
+                  //<< "Gain: " << settings.gain << " dB" << std::endl;
+    }
 }
 
 size_t CameraVimba::getFrameSizeBytes(){

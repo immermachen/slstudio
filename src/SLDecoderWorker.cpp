@@ -12,6 +12,7 @@
 #include "CodecPhaseShiftMicro.h"
 #include "CodecFastRatio.h"
 #include "CodecGrayCode.h"
+#include "CodecGrayPhase.h"
 
 #include "CalibrationData.h"
 
@@ -23,17 +24,29 @@
 #include "cvtools.h"
 
 void SLDecoderWorker::setup(){
-
     // Initialize decoder
     QSettings settings("SLStudio");
 
-    CodecDir dir = (CodecDir)settings.value("pattern/direction", CodecDirHorizontal).toInt();
+    CodecDir dir = (CodecDir)settings.value("pattern/direction", CodecDirBoth).toInt();
     if(dir == CodecDirNone)
         std::cerr << "SLDecoderWorker: invalid coding direction " << std::endl;
     bool diamondPattern = settings.value("projector/diamondPattern", false).toBool();
 
-    CalibrationData calib;
-    calib.load("calibration.xml");
+    //int iNum = settings.value("camera/interfaceNumber", 0).toInt();
+    //int cNum = settings.value("camera/cameraNumber", 0).toInt();
+
+    CalibrationData calib;    
+    if(cNum)
+    {
+        std::cout << "SLDecoderWorker::setup:: Using Calibration_1.xml" << std::endl;
+        calib.load("calibration_1.xml");
+    }
+    else
+    {
+        std::cout << "SLDecoderWorker::setup:: Using Calibration_0.xml" << std::endl;
+        calib.load("calibration_0.xml");
+    }
+
 
     if(diamondPattern){
         screenCols = 2*calib.screenResX;
@@ -43,8 +56,10 @@ void SLDecoderWorker::setup(){
         screenRows = calib.screenResY;
     }
 
-    QString patternMode = settings.value("pattern/mode", "CodecPhaseShift3").toString();
-    if(patternMode == "CodecPhaseShift3")
+    QString patternMode = settings.value("pattern/mode", "CodecGrayPhase4").toString();
+    if(patternMode == "CodecGrayPhase4")
+        decoder = new DecoderGrayPhase(screenCols, screenRows, dir);
+    else if(patternMode == "CodecPhaseShift3")
         decoder = new DecoderPhaseShift3(screenCols, screenRows, dir);
     else if(patternMode == "CodecPhaseShift4")
         decoder = new DecoderPhaseShift4(screenCols, screenRows, dir);
@@ -124,6 +139,7 @@ void SLDecoderWorker::decodeSequence(std::vector<cv::Mat> frameSeq){
 
     std::cout << "Decoder: " << time.restart() << "ms" << std::endl;
 
+    emit finished();
 }
 
 SLDecoderWorker::~SLDecoderWorker(){

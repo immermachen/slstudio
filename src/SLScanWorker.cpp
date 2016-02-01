@@ -22,6 +22,7 @@
 #include "CodecPhaseShiftMicro.h"
 #include "CodecFastRatio.h"
 #include "CodecGrayCode.h"
+#include "CodecGrayPhase.h"
 
 #include "ProjectorOpenGL.h"
 #include "ProjectorLC3000.h"
@@ -44,25 +45,58 @@ void SLScanWorker::setup(){
     else
         std::cerr << "SLScanWorker: invalid trigger mode " << sTriggerMode.toStdString() << std::endl;
 
+
+    flip = settings.value("flip", 1).toInt();
+
     // Create camera
-    int iNum = settings.value("camera/interfaceNumber", -1).toInt();
-    int cNum = settings.value("camera/cameraNumber", -1).toInt();
-    if(iNum != -1)
-        camera = Camera::NewCamera(iNum,cNum,triggerMode);
-    else
-        camera = new SLCameraVirtual(cNum,triggerMode);
+    iNum = settings.value("camera/interfaceNumber", 0).toInt();
+    cNum = settings.value("camera/cameraNumber", 0).toInt();
+    std::cout<<"InterfaceNumber and cameraNumber: "<< iNum << ", " << cNum<<std::endl;
+
+    if(iNum == 0)
+    {
+        if(cNum<2)
+        {
+            camera.push_back(Camera::NewCamera(iNum,cNum,triggerMode));  //only note:cNum
+        }
+        else
+        {
+            for(int c=0;c<2;c++)
+            {
+                camera.push_back(Camera::NewCamera(iNum,c,triggerMode));
+            }
+        }
+    }
+    else if(iNum == -1)
+    {
+        if(cNum<2)
+        {
+            camera.push_back(new SLCameraVirtual(cNum,triggerMode));
+        }
+        else
+        {
+            for(int c=0;c<2;c++)
+            {
+                camera.push_back(new SLCameraVirtual(c,triggerMode));
+            }
+        }
+    }
 
     // Set camera settings
     CameraSettings camSettings;
     camSettings.shutter = settings.value("camera/shutter", 16.666).toFloat();
     camSettings.gain = 0.0;
-    camera->setCameraSettings(camSettings);
+
+    for(int c=0;c<camera.size();c++)
+    {
+        camera[c]->setCameraSettings(camSettings);
+    }
 
     // Initialize projector
     int screenNum = settings.value("projector/screenNumber", -1).toInt();
     if(screenNum >= 0)
         projector = new ProjectorOpenGL(screenNum);
-    else if(screenNum == -1)
+    else if(screenNum == -1 || screenNum == -4)  //  SLStudio Virtual Screen 1024*768" -1,  "SLStudio Virtual Screen 1920*1080", -4);
         projector = new SLProjectorVirtual(screenNum);
     else if(screenNum == -2)
         projector = new ProjectorLC3000(0);
@@ -73,7 +107,7 @@ void SLScanWorker::setup(){
 
     // Initialize encoder
     bool diamondPattern = settings.value("projector/diamondPattern", false).toBool();
-    QString patternMode = settings.value("pattern/mode", "CodecPhaseShift3").toString();
+    QString patternMode = settings.value("pattern/mode", "CodecGrayPhase4").toString();
 
     unsigned int screenResX, screenResY;
     projector->getScreenRes(&screenResX, &screenResY);
@@ -88,11 +122,13 @@ void SLScanWorker::setup(){
         screenRows = screenResY;
     }
 
-    CodecDir dir = (CodecDir)settings.value("pattern/direction", CodecDirHorizontal).toInt();
+    CodecDir dir = (CodecDir)settings.value("pattern/direction", CodecDirBoth).toInt();
     if(dir == CodecDirNone)
         std::cerr << "SLScanWorker: invalid coding direction " << std::endl;
 
-    if(patternMode == "CodecPhaseShift3")
+    if(patternMode == "CodecGrayPhase4")
+        encoder = new EncoderGrayPhase(screenCols, screenRows, dir);
+    else if(patternMode == "CodecPhaseShift3")
         encoder = new EncoderPhaseShift3(screenCols, screenRows, dir);
     else if(patternMode == "CodecPhaseShift4")
         encoder = new EncoderPhaseShift4(screenCols, screenRows, dir);
@@ -119,33 +155,7 @@ void SLScanWorker::setup(){
     else
         std::cerr << "SLScanWorker: invalid pattern mode " << patternMode.toStdString() << std::endl;
 
-
-    // Lens correction and upload patterns to projector/GPU
-    CalibrationData calibration;
-    calibration.load("calibration.xml");
-
-    cv::Mat map1, map2;
-    cv::Size mapSize = cv::Size(screenCols, screenRows);
-    cvtools::initDistortMap(calibration.Kp, calibration.kp, mapSize, map1, map2);
-
-    // Upload patterns to projector/GPU
-    for(unsigned int i=0; i<encoder->getNPatterns(); i++){
-        cv::Mat pattern = encoder->getEncodingPattern(i);
-
-        // general repmat
-        pattern = cv::repeat(pattern, screenRows/pattern.rows + 1, screenCols/pattern.cols + 1);
-        pattern = pattern(cv::Range(0, screenRows), cv::Range(0, screenCols));
-
-        // correct for lens distortion
-        cv::remap(pattern, pattern, map1, map2, CV_INTER_CUBIC);
-
-        if(diamondPattern)
-            pattern=cvtools::diamondDownsample(pattern);
-
-        projector->setPattern(i, pattern.ptr(), pattern.cols, pattern.rows);
-
-        //cv::imwrite(cv::format("pat_%d.png", i), pattern);
-    }
+    //setupProjector(0);
 
 //    // Upload patterns to projector/GPU without lens correction
 //    for(unsigned int i=0; i<encoder->getNPatterns(); i++){
@@ -172,6 +182,85 @@ void SLScanWorker::setup(){
 
 }
 
+//each camera use each calibration parameters to calibrate projector.
+void SLScanWorker::setupProjector(int c)
+{
+    QSettings settings("SLStudio");
+    // Initialize encoder
+    bool diamondPattern = settings.value("projector/diamondPattern", false).toBool();
+
+    unsigned int screenResX, screenResY;
+    projector->getScreenRes(&screenResX, &screenResY);
+
+    // Unique number of rows and columns
+    unsigned int screenCols, screenRows;
+    if(diamondPattern){
+        screenCols = 2*screenResX;
+        screenRows = screenResY;
+    } else {
+        screenCols = screenResX;
+        screenRows = screenResY;
+    }
+
+    // Lens correction and upload patterns to projector/GPU
+    CalibrationData calibration;
+    QString filename = QString("calibration_%1.xml").arg(c,1);
+    calibration.load(filename);
+
+    cv::Mat map1, map2;
+    cv::Size mapSize = cv::Size(screenCols, screenRows);
+    cvtools::initDistortMap(calibration.Kp, calibration.kp, mapSize, map1, map2);
+
+    if(1)
+    {
+        double minVal,maxVal;
+        cv::Mat tmp = map1.clone();
+        cv::minMaxIdx(tmp,&minVal,&maxVal);
+        //std::cout<< "m_phase_map: Max-Min = " << maxVal << "-" << minVal << std::endl;
+        tmp.convertTo(tmp,CV_16U, 65535/(maxVal-minVal),-65535*minVal/(maxVal-minVal));
+        //tmp.convertTo(tmp,CV_16U, 65535/(maxVal),0);
+        cv::imwrite("aProjLensMap1.png", tmp);   // gray_map is CV_16U using PNG
+        tmp = map2.clone();
+        cv::minMaxIdx(tmp,&minVal,&maxVal);
+        //std::cout<< "m_phase_map: Max-Min = " << maxVal << "-" << minVal << std::endl;
+        tmp.convertTo(tmp,CV_16U, 65535/(maxVal-minVal),-65535*minVal/(maxVal-minVal));
+        //tmp.convertTo(tmp,CV_16U, 65535/(maxVal),0);
+        cv::imwrite("aProjLensMap2.png", tmp);   // gray_map is CV_16U using PNG
+    }
+
+    //flip map1 and map2 for camera1
+    if(0)
+    {
+        cv::flip(map1, map1,-1);
+        cv::flip(map2, map2,-1);
+    }
+
+    // Upload patterns to projector/GPU
+    for(unsigned int i=0; i<encoder->getNPatterns(); i++){
+        cv::Mat pattern = encoder->getEncodingPattern(i);
+
+        // general repmat
+        pattern = cv::repeat(pattern, screenRows/pattern.rows + 1, screenCols/pattern.cols + 1);
+        pattern = pattern(cv::Range(0, screenRows), cv::Range(0, screenCols));
+
+        // correct for lens distortion
+        cv::remap(pattern, pattern, map1, map2, CV_INTER_CUBIC);
+
+        if(1)
+        {
+            QString filename = QString("patternLensCorrection/%1_%2.bmp").arg(c, 1).arg(i, 2, 10, QChar('0'));
+            cv::imwrite(filename.toStdString(), pattern);
+        }
+
+        if(diamondPattern)
+            pattern=cvtools::diamondDownsample(pattern);
+
+        projector->setPattern(i, pattern.ptr(), pattern.cols, pattern.rows);
+
+        //cv::imwrite(cv::format("pat_%d.png", i), pattern);
+    }
+ }
+
 void SLScanWorker::doWork(){
 
     // State variable
@@ -180,7 +269,11 @@ void SLScanWorker::doWork(){
     unsigned long k = 0;
 
     std::cout << "Starting capture!" << std::endl;
-    camera->startCapture();
+
+    for(int c=0;c<camera.size();c++)
+    {
+        camera[c]->startCapture();
+    }
 
     unsigned int N = encoder->getNPatterns();
 
@@ -191,44 +284,91 @@ void SLScanWorker::doWork(){
     QTime time; time.start();
 
     // Processing loop
-    do {
+    do
+    {
+        //std::vector<cv::Mat> frameSeq[2];
+        frameSeq[0].resize(N);
+        frameSeq[1].resize(N);
 
-        std::vector<cv::Mat> frameSeq(N);
         bool success = true;
 
         time.restart();
 
-        // Acquire patterns
-        for(unsigned int i=0; i<N; i++){
-
-            // Project coded pattern
-            projector->displayPattern(i);
-
-            if(triggerMode == triggerModeSoftware){
-                // Wait one frame period to rotate projector frame buffer
-                QTest::qSleep(delay);
-            } else {
-                // Wait a few milliseconds to allow camera to get ready
-                QTest::qSleep(1);
-            }
-            CameraFrame frame;
-            frame = camera->getFrame();
-
-
-            if(!frame.memory){
-                std::cerr << "SLScanWorker: missed frame!" << std::endl;
-                success = false;
-            }
-
-            // Create 8 bit OpenCV matrix
-            cv::Mat frameCV(frame.height, frame.width, CV_8UC1, frame.memory);
-            frameCV = frameCV.clone();
-
-            if(triggerMode == triggerModeHardware)
-                frameSeq[(i+N-shift)%N] = frameCV;
+        for(int c=0;c<camera.size();c++)
+        {
+            if(cNum<2)
+                setupProjector(cNum);
             else
-                frameSeq[i] = frameCV;
+                setupProjector(c);
 
+            // Acquire patterns
+            for(unsigned int i=0; i<N; i++)
+            {
+                // Project coded pattern
+                projector->displayPattern(i);
+
+                if(triggerMode == triggerModeSoftware){
+                    // Wait one frame period to rotate projector frame buffer
+                    QTest::qSleep(delay);
+                } else {
+                    // Wait a few milliseconds to allow camera to get ready
+                    QTest::qSleep(1);
+                }
+
+                cv::Mat frameCV;
+                if(iNum==0)
+                {
+                    CameraFrame frame;
+                    if(cNum<2)
+                        frame= camera[0]->getFrame();
+                    else
+                        frame= camera[c]->getFrame();
+
+                    if(!frame.memory){
+                        std::cerr << "SLScanWorker: missed frame!" << std::endl;
+                        success = false;
+                    }
+                    cv::Mat curframeCV(frame.height, frame.width, CV_8UC1, frame.memory);
+                    frameCV = curframeCV;
+                    frameCV = frameCV.clone();
+
+
+                    if(cNum==1 || (cNum==2 && c==1) )
+                    {
+                        if(flip)
+                            cv::flip(frameCV,frameCV,-1);
+                    }
+
+                    delete frame.memory;
+                }
+                else if(iNum = -1)
+                {                    
+                    QString filename=QString("dataCapturedForTest/%1_%2.bmp").arg(cNum,1).arg(i,2,10,QChar('0'));
+                    if(cNum==2)
+                        filename=QString("dataCapturedForTest/%1_%2.bmp").arg(c,1).arg(i,2,10,QChar('0'));
+                    frameCV = cv::imread(filename.toStdString().c_str(), CV_LOAD_IMAGE_GRAYSCALE);
+                    frameCV = frameCV.clone();
+
+//                    if(cNum==1 || c==1)
+//                        cv::flip(frameCV,frameCV,-1);//0: flip aroud x-axis;1: flip around Y-axis; -1:flip both directions
+                }
+
+                if(triggerMode == triggerModeHardware)
+                {
+
+                    if(cNum<2)
+                        frameSeq[cNum][(i+N-shift)%N] = frameCV;
+                    else
+                        frameSeq[c][(i+N-shift)%N] = frameCV;
+                }
+                else
+                {
+                    if(cNum<2)
+                        frameSeq[cNum][i] = frameCV;
+                    else
+                        frameSeq[c][i] = frameCV;
+                }
+            }
         }
 
         float sequenceTime = time.restart();
@@ -245,27 +385,45 @@ void SLScanWorker::doWork(){
 
         // Write frames to disk if desired
         if(writeToDisk){
-                for(int i=0; i<frameSeq.size(); i++){
-                    QString filename = QString("frameSeq_%1.bmp").arg(i, 2, 10, QChar('0'));
-                    cv::imwrite(filename.toStdString(), frameSeq[i]);
-
+            for(int i=0; i<frameSeq[0].size(); i++){
+                if(cNum < 2)
+                {
+                    QString filename = QString("dataCaptured/%1_%2.bmp").arg(cNum, 1).arg(i, 2, 10, QChar('0'));//,10,QChar('0'));
+                    cv::imwrite(filename.toStdString(), frameSeq[cNum][i]);
                 }
+                else
+                {
+                    for(int c=0;c<2;c++)
+                    {
+                        QString filename = QString("dataCaptured/%1_%2.bmp").arg(c, 1).arg(i, 2, 10, QChar('0'));//,10,QChar('0'));
+                        cv::imwrite(filename.toStdString(), frameSeq[c][i]);
+                    }
+                }
+            }
         }
 
         // Pass frame sequence to decoder
-        emit newFrameSeq(frameSeq);
+        if(cNum==0 || cNum ==2)
+        {
+            emit newFrameSeq(frameSeq[0]);
+        }
+        if(cNum==1 || cNum == 2)
+        {
+            emit newFrameSeq2(frameSeq[1]);
+        }
 
-        // Calculate and show histogram of sumimage
-        float range[] = {0, 255};
-        const float* histRange = {range};
-        int histSize = 256;
-        cv::Mat histogram;
-        cv::Mat frameSeqArr[] = {frameSeq[0], frameSeq[1], frameSeq[2]};
-        const int channels[] = {0,1,2};
-        cv::calcHist(frameSeqArr, 3, channels, cv::Mat(), histogram, 1, &histSize, &histRange);
-        //emit hist("Histogram", histogram, 100, 50);
-        cv::Mat histogramImage = cvtools::histimage(histogram);
-        emit showHistogram(histogramImage);
+
+//        // Calculate and show histogram of sumimage
+//        float range[] = {0, 255};
+//        const float* histRange = {range};
+//        int histSize = 256;
+//        cv::Mat histogram;
+//        cv::Mat frameSeqArr[] = {frameSeq[0][0], frameSeq[0][1], frameSeq[0][2]};
+//        const int channels[] = {0,1,2};
+//        cv::calcHist(frameSeqArr, 3, channels, cv::Mat(), histogram, 1, &histSize, &histRange);
+//        //emit hist("Histogram", histogram, 100, 50);
+//        cv::Mat histogramImage = cvtools::histimage(histogram);
+//        emit showHistogram(histogramImage);
 
         // Increase iteration counter
         k += 1;
@@ -276,7 +434,12 @@ void SLScanWorker::doWork(){
     } while (isWorking && (aquisition == aquisitionContinuous));
 
     if(triggerMode == triggerModeHardware)
-        camera->stopCapture();
+    {
+        for(int c=0;c<camera.size();c++)
+        {
+            camera[c]->stopCapture();
+        }
+    }
 
     // Emit message to e.g. initiate thread break down
     emit finished();
@@ -288,7 +451,10 @@ void SLScanWorker::stopWorking(){
 
 SLScanWorker::~SLScanWorker(){
 
-    delete camera;
+    for(int c=0;c<camera.size();c++)
+        delete camera[c];
     delete projector;
+    delete encoder;
 
+    std::cout<<"scanWorker deleted\n"<<std::flush;
 }

@@ -19,7 +19,9 @@ SLPreferenceDialog::SLPreferenceDialog(QWidget *parent) : QDialog(parent), ui(ne
         ui->projectorComboBox->addItem(screenString, i);
     }
     // Add virtual projector option
-    ui->projectorComboBox->addItem("SLStudio Virtual Screen", -1);
+    ui->projectorComboBox->addItem("SLStudio Virtual Screen 1024*768", -1);
+    // Add virtual projector option
+    ui->projectorComboBox->addItem("SLStudio Virtual Screen 1920*1080", -4);
     // Add LC3000 option
     #ifdef WITH_LC3000API
         ui->projectorComboBox->addItem("LC3000 API", -2);
@@ -34,14 +36,20 @@ SLPreferenceDialog::SLPreferenceDialog(QWidget *parent) : QDialog(parent), ui(ne
     for(unsigned int i=0; i<interfaceCameraList.size(); i++){
         vector<CameraInfo> cameraList = interfaceCameraList[i];
         for(unsigned int j=0; j<cameraList.size(); j++){
-            QString cameraString = QString("%1: %2").arg(cameraList[j].vendor.c_str()).arg(cameraList[j].model.c_str());
-            ui->cameraComboBox->addItem(cameraString, QPoint(i, j));
+            string cam = "Left";
+            if(j==1) cam = "Right";
+            QString cameraString = QString("%4Cam%1:%2: %3").arg(j,1).arg(cameraList[j].vendor.c_str()).arg(cameraList[j].model.c_str()).arg(cam.c_str());
+            ui->cameraComboBox->addItem(cameraString, QPoint(i, j)); //[0 0] and [0 1]
         }
     }
     // Add virtual camera option
-    ui->cameraComboBox->addItem("SLStudio Virtual Camera", QPoint(-1, -1));
+    ui->cameraComboBox->addItem("SLStudio Virtual LeftCamera0", QPoint(-1, 0));
+    ui->cameraComboBox->addItem("SLStudio Virtual RightCamera1", QPoint(-1, 1));
+    ui->cameraComboBox->addItem("SLStudio Two Virtual Cameras", QPoint(-1, 2)); //2: use two cameras;
+    ui->cameraComboBox->addItem("Two Vimba Cameras", QPoint(0, 2)); //2: use two cameras; 0: vimba camera interface
 
     // List pattern modes
+    ui->patternModeComboBox->addItem("Gray and Phase Shift 4", "CodecGrayPhase4");
     ui->patternModeComboBox->addItem("3 Pattern Phase Shift", "CodecPhaseShift3");
     ui->patternModeComboBox->addItem("4 Pattern Phase Shift", "CodecPhaseShift4");
     ui->patternModeComboBox->addItem("2x3 Pattern Phase Shift", "CodecPhaseShift2x3");
@@ -63,6 +71,12 @@ SLPreferenceDialog::SLPreferenceDialog(QWidget *parent) : QDialog(parent), ui(ne
         ui->aquisitioncontinuousRadioButton->setChecked(true);
     else
         ui->aquisitionSingleRadioButton->setChecked(true);
+
+    unsigned int flip = settings.value("flip","1").toInt();
+    if(flip == 0)
+        ui->flipcamera0->setChecked(true);
+    else
+        ui->flipcamera1->setChecked(true);
 
     unsigned int patternModeIndex = ui->patternModeComboBox->findData(settings.value("pattern/mode"));
     ui->patternModeComboBox->setCurrentIndex(patternModeIndex);
@@ -122,6 +136,11 @@ void SLPreferenceDialog::on_buttonBox_accepted(){
     else
         settings.setValue("aquisition", "single");
 
+    if(ui->flipcamera0->isChecked())
+        settings.setValue("flip","0");
+    else
+        settings.setValue("flip","1");
+
     // Pattern mode
     QString patternMode = ui->patternModeComboBox->itemData(ui->patternModeComboBox->currentIndex()).toString();
     settings.setValue("pattern/mode", patternMode);
@@ -145,6 +164,16 @@ void SLPreferenceDialog::on_buttonBox_accepted(){
     settings.setValue("projector/diamondPattern", diamondPattern);
     //bool verticalBaseline = ui->verticalBaselineCheckbox->isChecked();
     //settings.setValue("projector/verticalBaseline", verticalBaseline);
+    if(proj==-1)
+    {
+        settings.setValue("projectorVirtual/screenResX", 1024);
+        settings.setValue("projectorVirtual/screenResY", 768);
+    }
+    if(proj==-4)
+    {
+        settings.setValue("projectorVirtual/screenResX", 1920);
+        settings.setValue("projectorVirtual/screenResY", 1080);
+    }
 
     // Camera
     QPoint cam = ui->cameraComboBox->itemData(ui->cameraComboBox->currentIndex()).toPoint();

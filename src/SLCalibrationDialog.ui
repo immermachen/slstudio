@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>890</width>
+    <width>1550</width>
     <height>540</height>
    </rect>
   </property>
@@ -24,7 +24,7 @@
   </property>
   <property name="maximumSize">
    <size>
-    <width>890</width>
+    <width>1600</width>
     <height>540</height>
    </size>
   </property>
@@ -42,55 +42,26 @@
     <rect>
      <x>10</x>
      <y>10</y>
-     <width>651</width>
-     <height>471</height>
+     <width>600</width>
+     <height>500</height>
     </rect>
-   </property>
-  </widget>
-  <widget class="QPushButton" name="snapButton">
-   <property name="geometry">
-    <rect>
-     <x>205</x>
-     <y>500</y>
-     <width>241</width>
-     <height>27</height>
-    </rect>
-   </property>
-   <property name="text">
-    <string>Snap</string>
    </property>
   </widget>
   <widget class="QListWidget" name="listWidget">
    <property name="geometry">
     <rect>
-     <x>680</x>
+     <x>620</x>
      <y>10</y>
-     <width>181</width>
-     <height>281</height>
+     <width>150</width>
+     <height>311</height>
     </rect>
-   </property>
-  </widget>
-  <widget class="QPushButton" name="calibrateButton">
-   <property name="enabled">
-    <bool>false</bool>
-   </property>
-   <property name="geometry">
-    <rect>
-     <x>718</x>
-     <y>430</y>
-     <width>111</width>
-     <height>27</height>
-    </rect>
-   </property>
-   <property name="text">
-    <string>Calibrate</string>
    </property>
   </widget>
   <widget class="QWidget" name="layoutWidget">
    <property name="geometry">
     <rect>
-     <x>680</x>
-     <y>330</y>
+     <x>660</x>
+     <y>410</y>
      <width>181</width>
      <height>29</height>
     </rect>
@@ -115,8 +86,8 @@
   <widget class="QWidget" name="layoutWidget">
    <property name="geometry">
     <rect>
-     <x>680</x>
-     <y>360</y>
+     <x>660</x>
+     <y>440</y>
      <width>181</width>
      <height>29</height>
     </rect>
@@ -137,8 +108,8 @@
   <widget class="QWidget" name="layoutWidget">
    <property name="geometry">
     <rect>
-     <x>680</x>
-     <y>390</y>
+     <x>660</x>
+     <y>470</y>
      <width>181</width>
      <height>29</height>
     </rect>
@@ -159,13 +130,30 @@
   <widget class="QWidget" name="layoutWidget">
    <property name="geometry">
     <rect>
-     <x>690</x>
-     <y>480</y>
-     <width>181</width>
+     <x>560</x>
+     <y>510</y>
+     <width>431</width>
      <height>29</height>
     </rect>
    </property>
    <layout class="QHBoxLayout" name="horizontalLayout_4">
+    <item>
+     <widget class="QPushButton" name="snapButton">
+      <property name="text">
+       <string>Snap</string>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <widget class="QPushButton" name="calibrateButton">
+      <property name="enabled">
+       <bool>false</bool>
+      </property>
+      <property name="text">
+       <string>Calibrate</string>
+      </property>
+     </widget>
+    </item>
     <item>
      <widget class="QPushButton" name="cancelButton">
       <property name="text">
@@ -188,14 +176,37 @@
   <widget class="QPlainTextEdit" name="txtCheckSize">
    <property name="geometry">
     <rect>
-     <x>770</x>
-     <y>300</y>
+     <x>750</x>
+     <y>410</y>
      <width>81</width>
      <height>31</height>
     </rect>
    </property>
    <property name="plainText">
     <string>5.7</string>
+   </property>
+  </widget>
+  <widget class="QListWidget" name="listWidget2">
+   <property name="geometry">
+    <rect>
+     <x>780</x>
+     <y>10</y>
+     <width>150</width>
+     <height>311</height>
+    </rect>
+   </property>
+  </widget>
+  <widget class="SLVideoWidget" name="videoWidget2" native="true">
+   <property name="enabled">
+    <bool>true</bool>
+   </property>
+   <property name="geometry">
+    <rect>
+     <x>940</x>
+     <y>10</y>
+     <width>600</width>
+     <height>500</height>
+    </rect>
    </property>
   </widget>
  </widget>

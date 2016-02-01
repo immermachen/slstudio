@@ -8,19 +8,30 @@
 
 #include <pcl/filters/statistical_outlier_removal.h>
 #include <pcl/io/pcd_io.h>
+#include <pcl/io/ply_io.h>
 
 void SLTriangulatorWorker::setup(){
-
-    // Initialize triangulator with calibration
-    calibration = new CalibrationData;
-    calibration->load("calibration.xml");
-    triangulator = new Triangulator(*calibration);
-
     QSettings settings("SLStudio");
     writeToDisk = settings.value("writeToDisk/pointclouds",false).toBool();
 
-}
+    //iNum = settings.value("camera/interfaceNumber", 0).toInt();
+    //cNum = settings.value("camera/cameraNumber", 0).toInt();
 
+    // Initialize triangulator with calibration
+    calibration = new CalibrationData;
+    if(cNum)
+    {
+        std::cout << "SLTriangulatorWorker::setup:: Using Calibration_1.xml" << std::endl;
+        calibration->load("calibration_1.xml");
+    }
+    else
+    {
+        std::cout << "SLTriangulatorWorker::setup:: Using Calibration_0.xml" << std::endl;
+        calibration->load("calibration_0.xml");
+    }
+
+    triangulator = new Triangulator(*calibration);
+}
 
 void SLTriangulatorWorker::triangulatePointCloud(cv::Mat up, cv::Mat vp, cv::Mat mask, cv::Mat shading){
 
@@ -109,17 +120,21 @@ void SLTriangulatorWorker::triangulatePointCloud(cv::Mat up, cv::Mat vp, cv::Mat
 //    filter.filter(*pointCloudFiltered);
 
     // Emit result
-    emit newPointCloud(pointCloudPCL);
+    emit newPointCloud(pointCloudPCL, cNum);
 
     std::cout << "Triangulator: " << time.elapsed() << "ms" << std::endl;
 
     if(writeToDisk){
-        QString fileName = QDateTime::currentDateTime().toString("yyyyMMdd_HHmmsszzz");
-        fileName.append(".pcd");
-        pcl::io::savePCDFileBinary(fileName.toStdString(), *pointCloudPCL);
+        QString fileName = QString("acam_%1").arg(cNum,1);// = QDateTime::currentDateTime().toString("yyyyMMdd_HHmmsszzz");
+        fileName.append(".ply");
+        //pcl::io::savePCDFileBinary(fileName.toStdString(), *pointCloudPCL);
+        pcl::PLYWriter w;
+        // Write to ply in binary without camera
+        w.write<pcl::PointXYZRGB> (fileName.toStdString(), *pointCloudPCL, true, false);
+        std::cout << "Save PLY: " << fileName.toStdString() << std::endl;
     }
 
-    //emit finished();
+    emit finished();
 }
 
 SLTriangulatorWorker::~SLTriangulatorWorker(){
