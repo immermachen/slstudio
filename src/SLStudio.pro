@@ -61,6 +61,7 @@ HEADERS  += SLStudio.h \
         calibrator/CalibrationData.h \
         calibrator/Calibrator.h \
         calibrator/CalibratorLocHom.h \
+        calibrator/CalibratorCC.h \
         calibrator/CalibratorRBF.h \
         calibrator/CThinPlateSpline.h \
         calibrator/RBFInterpolator.h \
@@ -114,6 +115,7 @@ SOURCES += main.cpp \
         triangulator/Triangulator.cpp \
         calibrator/CalibrationData.cpp \
         calibrator/CalibratorLocHom.cpp \
+        calibrator/CalibratorCC.cpp \
         calibrator/CalibratorRBF.cpp \
         calibrator/CThinPlateSpline.cpp \
         calibrator/RBFInterpolator.cpp \
