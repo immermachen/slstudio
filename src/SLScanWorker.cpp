@@ -32,7 +32,8 @@
 #include "SLCameraVirtual.h"
 #include "SLPointCloudWidget.h"
 
-void SLScanWorker::setup(){
+void SLScanWorker::setup()
+{
 
     QSettings settings("SLStudio");
 
@@ -205,38 +206,34 @@ void SLScanWorker::setupProjector(int c)
     // Lens correction and upload patterns to projector/GPU
     CalibrationData calibration;
     QString filename = QString("calibration_%1.xml").arg(c,1);
-    calibration.load(filename);
-
     cv::Mat map1, map2;
     cv::Size mapSize = cv::Size(screenCols, screenRows);
-    cvtools::initDistortMap(calibration.Kp, calibration.kp, mapSize, map1, map2);
-
-    if(1)
+    if(c!=3)
     {
-        double minVal,maxVal;
-        cv::Mat tmp = map1.clone();
-        cv::minMaxIdx(tmp,&minVal,&maxVal);
-        //std::cout<< "m_phase_map: Max-Min = " << maxVal << "-" << minVal << std::endl;
-        tmp.convertTo(tmp,CV_16U, 65535/(maxVal-minVal),-65535*minVal/(maxVal-minVal));
-        //tmp.convertTo(tmp,CV_16U, 65535/(maxVal),0);
-        cv::imwrite("aProjLensMap1.png", tmp);   // gray_map is CV_16U using PNG
-        tmp = map2.clone();
-        cv::minMaxIdx(tmp,&minVal,&maxVal);
-        //std::cout<< "m_phase_map: Max-Min = " << maxVal << "-" << minVal << std::endl;
-        tmp.convertTo(tmp,CV_16U, 65535/(maxVal-minVal),-65535*minVal/(maxVal-minVal));
-        //tmp.convertTo(tmp,CV_16U, 65535/(maxVal),0);
-        cv::imwrite("aProjLensMap2.png", tmp);   // gray_map is CV_16U using PNG
+        calibration.load(filename);
+        cvtools::initDistortMap(calibration.Kp, calibration.kp, mapSize, map1, map2);
     }
 
-    //flip map1 and map2 for camera1
-    if(0)
-    {
-        cv::flip(map1, map1,-1);
-        cv::flip(map2, map2,-1);
-    }
+//    if(1)
+//    {
+//        double minVal,maxVal;
+//        cv::Mat tmp = map1.clone();
+//        cv::minMaxIdx(tmp,&minVal,&maxVal);
+//        //std::cout<< "m_phase_map: Max-Min = " << maxVal << "-" << minVal << std::endl;
+//        tmp.convertTo(tmp,CV_16U, 65535/(maxVal-minVal),-65535*minVal/(maxVal-minVal));
+//        //tmp.convertTo(tmp,CV_16U, 65535/(maxVal),0);
+//        cv::imwrite("aProjLensMap1.png", tmp);   // gray_map is CV_16U using PNG
+//        tmp = map2.clone();
+//        cv::minMaxIdx(tmp,&minVal,&maxVal);
+//        //std::cout<< "m_phase_map: Max-Min = " << maxVal << "-" << minVal << std::endl;
+//        tmp.convertTo(tmp,CV_16U, 65535/(maxVal-minVal),-65535*minVal/(maxVal-minVal));
+//        //tmp.convertTo(tmp,CV_16U, 65535/(maxVal),0);
+//        cv::imwrite("aProjLensMap2.png", tmp);   // gray_map is CV_16U using PNG
+//    }
 
     // Upload patterns to projector/GPU
-    for(unsigned int i=0; i<encoder->getNPatterns(); i++){
+    for(unsigned int i=0; i<encoder->getNPatterns(); i++)
+    {
         cv::Mat pattern = encoder->getEncodingPattern(i);
 
         // general repmat
@@ -244,9 +241,10 @@ void SLScanWorker::setupProjector(int c)
         pattern = pattern(cv::Range(0, screenRows), cv::Range(0, screenCols));
 
         // correct for lens distortion
-        cv::remap(pattern, pattern, map1, map2, CV_INTER_CUBIC);
+        if(c!=3)
+            cv::remap(pattern, pattern, map1, map2, CV_INTER_CUBIC);
 
-        if(1)
+        if(0)
         {
             QString filename = QString("patternLensCorrection/%1_%2.bmp").arg(c, 1).arg(i, 2, 10, QChar('0'));
             cv::imwrite(filename.toStdString(), pattern);
@@ -261,7 +259,8 @@ void SLScanWorker::setupProjector(int c)
     }
  }
 
-void SLScanWorker::doWork(){
+void SLScanWorker::doWork()
+{
 
     // State variable
     isWorking = true;
@@ -424,6 +423,142 @@ void SLScanWorker::doWork(){
 //        //emit hist("Histogram", histogram, 100, 50);
 //        cv::Mat histogramImage = cvtools::histimage(histogram);
 //        emit showHistogram(histogramImage);
+
+        // Increase iteration counter
+        k += 1;
+
+        // Process events to e.g. check for exit flag
+        QCoreApplication::processEvents();
+
+    } while (isWorking && (aquisition == aquisitionContinuous));
+
+    if(triggerMode == triggerModeHardware)
+    {
+        for(int c=0;c<camera.size();c++)
+        {
+            camera[c]->stopCapture();
+        }
+    }
+
+    // Emit message to e.g. initiate thread break down
+    emit finished();
+}
+
+
+void SLScanWorker::doWork_CC()
+{
+
+    // State variable
+    isWorking = true;
+
+    unsigned long k = 0;
+
+    std::cout << "Starting capture!" << std::endl;
+
+    for(int c=0;c<camera.size();c++)
+    {
+        camera[c]->startCapture();
+    }
+
+    unsigned int N = encoder->getNPatterns();
+
+    QSettings settings("SLStudio");
+    unsigned int shift = settings.value("trigger/shift", "0").toInt();
+    unsigned int delay = settings.value("trigger/delay", "100").toInt();
+
+    QTime time; time.start();
+
+    // Processing loop
+    do
+    {
+        //std::vector<cv::Mat> frameSeq[2];
+        frameSeq[0].resize(N);
+        frameSeq[1].resize(N);
+
+        bool success = true;
+
+        time.restart();
+
+        setupProjector(cNum);
+
+        // Acquire patterns
+        for(unsigned int i=0; i<N; i++)
+        {
+            // Project coded pattern
+            projector->displayPattern(i);
+
+            for(int c=0;c<camera.size();c++)
+            {
+                if(triggerMode == triggerModeSoftware){
+                    // Wait one frame period to rotate projector frame buffer
+                    QTest::qSleep(delay);
+                } else {
+                    // Wait a few milliseconds to allow camera to get ready
+                    QTest::qSleep(1);
+                }
+
+                cv::Mat frameCV;
+                if(iNum==0)
+                {
+                    CameraFrame frame;
+                    frame= camera[c]->getFrame();
+                    if(!frame.memory){
+                        std::cerr << "SLScanWorker: missed frame!" << std::endl;
+                        success = false;
+                    }
+                    cv::Mat curframeCV(frame.height, frame.width, CV_8UC1, frame.memory);
+                    frameCV = curframeCV;
+                    frameCV = frameCV.clone();
+
+                    if(c==1)
+                    {
+                        if(flip)
+                            cv::flip(frameCV,frameCV,-1);
+                    }
+
+                    delete frame.memory;
+                }
+                else if(iNum = -1)
+                {
+                    QString filename=QString("dataCapturedForTest/%1_%2.bmp").arg(cNum,1).arg(i,2,10,QChar('0'));
+                    if(cNum==2)
+                        filename=QString("dataCapturedForTest/%1_%2.bmp").arg(c,1).arg(i,2,10,QChar('0'));
+                    frameCV = cv::imread(filename.toStdString().c_str(), CV_LOAD_IMAGE_GRAYSCALE);
+                    frameCV = frameCV.clone();
+                }
+
+                if(triggerMode == triggerModeHardware)
+                {
+                }
+                else
+                {
+                    frameSeq[c][i] = frameCV;
+                }
+            }
+        }
+
+
+
+        float sequenceTime = time.restart();
+        cout << "Scan worker " << sequenceTime << "ms" << std::endl;
+
+
+        // Write frames to disk if desired
+        if(writeToDisk){
+            for(int i=0; i<frameSeq[0].size(); i++){
+                for(int c=0;c<2;c++)
+                {
+                    QString filename = QString("dataCaptured/%1_%2.bmp").arg(c, 1).arg(i, 2, 10, QChar('0'));//,10,QChar('0'));
+                    cv::imwrite(filename.toStdString(), frameSeq[c][i]);
+                }
+            }
+        }
+
+        // Pass frame sequence to decoder
+        if(cNum ==3)
+        {
+            emit newFrameSeq(frameSeq[0], frameSeq[1]);
+        }
 
         // Increase iteration counter
         k += 1;

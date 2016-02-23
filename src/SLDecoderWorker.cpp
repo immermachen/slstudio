@@ -41,10 +41,15 @@ void SLDecoderWorker::setup(){
         std::cout << "SLDecoderWorker::setup:: Using Calibration_1.xml" << std::endl;
         calib.load("calibration_1.xml");
     }
-    else
+    else if(cNum==0)
     {
         std::cout << "SLDecoderWorker::setup:: Using Calibration_0.xml" << std::endl;
         calib.load("calibration_0.xml");
+    }
+    else if(cNum==3)
+    {
+        std::cout << "SLDecoderWorker::setup:: Using Calibration_CC.xml" << std::endl;
+        calib.load("calibration_CC.xml");
     }
 
 
@@ -136,6 +141,78 @@ void SLDecoderWorker::decodeSequence(std::vector<cv::Mat> frameSeq){
 
     // Emit shading for display in GUI
     emit showShading(shading);
+
+    std::cout << "Decoder: " << time.restart() << "ms" << std::endl;
+
+    emit finished();
+}
+
+
+void SLDecoderWorker::decodeSequence(std::vector<cv::Mat> frameSeq0, std::vector<cv::Mat> frameSeq1)
+{
+    // Recursively call self until latest event is hit
+    busy = true;
+    QCoreApplication::sendPostedEvents(this, QEvent::MetaCall);
+    bool result = busy;
+    busy = false;
+    if(!result){
+        std::cerr << "SLDecoderWorker: dropped frame sequence!" << std::endl;
+        return;
+    }
+
+    time.restart();
+
+    // Decode frame sequence
+    cv::Mat mask0(frameSeq0[0].size(), cv::DataType<bool>::type);
+    cv::Mat shading0(frameSeq0[0].size(), CV_8U);
+    cv::Mat mask1(frameSeq0[0].size(), cv::DataType<bool>::type);
+    cv::Mat shading1(frameSeq0[0].size(), CV_8U);
+
+    cv::Mat up0, vp0, up1, vp1;;
+    if(decoder->getDir() & CodecDirHorizontal)
+    {
+        up0.create(frameSeq0[0].size(), CV_32FC1);
+        up1.create(frameSeq0[0].size(), CV_32FC1);
+    }
+    if(decoder->getDir() & CodecDirVertical)
+    {
+        vp0.create(frameSeq0[0].size(), CV_32FC1);
+        vp1.create(frameSeq0[0].size(), CV_32FC1);
+    }
+
+    std::cout << "Decoder0 begining: " << time.restart() << "ms" << std::endl;
+
+    for(unsigned int i=0; i<frameSeq0.size(); i++)
+        decoder->setFrame(i, frameSeq0[i]);
+    decoder->decodeFrames(up0, vp0, mask0, shading0);
+
+    std::cout << "Decoder0 End: " << time.restart() << "ms" << std::endl;
+    std::cout << "Decoder1 beginning: " << time.restart() << "ms" << std::endl;
+
+    for(unsigned int i=0; i<frameSeq1.size(); i++)
+        decoder->setFrame(i, frameSeq1[i]);
+    decoder->decodeFrames(up1, vp1, mask1, shading1);
+
+    std::cout << "Decoder1 End: " << time.restart() << "ms" << std::endl;
+
+    // Emit result
+    emit newUpVp(up0, vp0, mask0, shading0, up1, vp1, mask1, shading1);
+
+//    if(!up.empty()){
+//        cv::Mat upMasked;
+//        cv::add(up*(255.0/screenCols), 0.0, upMasked, mask);
+//        upMasked.convertTo(upMasked, CV_8U);
+//        emit showDecoderUp(upMasked);
+//    }
+//    if(!vp.empty()){
+//        cv::Mat vpMasked;
+//        cv::add(vp*(255.0/screenRows), 0.0, vpMasked, mask);
+//        vpMasked.convertTo(vpMasked, CV_8U);
+//        emit showDecoderVp(vpMasked);
+//    }
+
+//    // Emit shading for display in GUI
+//    emit showShading(shading);
 
     std::cout << "Decoder: " << time.restart() << "ms" << std::endl;
 

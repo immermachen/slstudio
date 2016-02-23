@@ -180,6 +180,38 @@ void SLStudio::onActionStart(){
         triangulatorThread2->start(QThread::LowPriority);
     }
 
+    if(cNum == 3)
+    {
+        decoderWorker = new SLDecoderWorker(3); //3: using calibration xml of CC
+        decoderThread = new QThread(this);
+        decoderThread->setObjectName("decoderThread");
+        decoderWorker->moveToThread(decoderThread);
+        connect(decoderThread, SIGNAL(started()), decoderWorker, SLOT(setup()));
+        connect(decoderWorker, SIGNAL(finished()), decoderThread, SLOT(quit()));
+        connect(decoderWorker, SIGNAL(finished()), decoderWorker, SLOT(deleteLater()));
+        connect(decoderThread, SIGNAL(finished()), decoderThread, SLOT(deleteLater()));
+
+        triangulatorWorker = new SLTriangulatorWorker(3);
+        triangulatorThread = new QThread(this);
+        triangulatorThread->setObjectName("triangulatorThread");
+        triangulatorWorker->moveToThread(triangulatorThread);
+        connect(triangulatorThread, SIGNAL(started()), triangulatorWorker, SLOT(setup()));
+        connect(triangulatorWorker, SIGNAL(finished()), triangulatorThread, SLOT(quit()));
+        connect(triangulatorWorker, SIGNAL(finished()), triangulatorWorker, SLOT(deleteLater()));
+        connect(triangulatorThread, SIGNAL(finished()), triangulatorThread, SLOT(deleteLater()));
+
+        connect(scanWorker, SIGNAL(newFrameSeq(std::vector<cv::Mat>, std::vector<cv::Mat>)), decoderWorker, SLOT(decodeSequence(std::vector<cv::Mat>, std::vector<cv::Mat>)));
+        connect(decoderWorker, SIGNAL(showShading(cv::Mat)), this, SLOT(onShowShading(cv::Mat)));
+        connect(decoderWorker, SIGNAL(showDecoderUp(cv::Mat)), this, SLOT(onShowDecoderUp(cv::Mat)));
+        connect(decoderWorker, SIGNAL(showDecoderVp(cv::Mat)), this, SLOT(onShowDecoderVp(cv::Mat)));
+        connect(decoderWorker, SIGNAL(newUpVp(cv::Mat,cv::Mat,cv::Mat,cv::Mat, cv::Mat,cv::Mat,cv::Mat,cv::Mat)), triangulatorWorker, SLOT(triangulatePointCloud(cv::Mat,cv::Mat,cv::Mat,cv::Mat, cv::Mat,cv::Mat,cv::Mat,cv::Mat)));
+        connect(triangulatorWorker, SIGNAL(newPointCloud(PointCloudPtr, unsigned int)), this, SLOT( receiveNewPointCloud(PointCloudPtr, unsigned int) ) );
+        connect(triangulatorWorker, SIGNAL(imshow(const char*,cv::Mat,uint,uint)), this, SLOT(imshow(const char*,cv::Mat,uint,uint)));
+
+        decoderThread->start(QThread::LowPriority);
+        triangulatorThread->start(QThread::LowPriority);
+    }
+
     scanWorkerThread->start(QThread::TimeCriticalPriority);
 
     // Setup and start processing
@@ -189,7 +221,10 @@ void SLStudio::onActionStart(){
     //QMetaObject::invokeMethod(triangulatorWorker2, "setup");//, Q_ARG(int,1));
 
     QMetaObject::invokeMethod(scanWorker, "setup");
-    QMetaObject::invokeMethod(scanWorker, "doWork");
+    if(cNum == 3)
+        QMetaObject::invokeMethod(scanWorker, "doWork_CC");
+    else
+        QMetaObject::invokeMethod(scanWorker, "doWork");
     time->start();
 
     // Change ui elements
@@ -308,7 +343,7 @@ void SLStudio::receiveNewPointCloud(PointCloudPtr pointCloud, unsigned int _cNum
 //        }
     }
 
-    if(cNum<2)
+    if(cNum<2 || cNum==3)
     {
         // Display point cloud in widget
         if(ui->actionUpdatePointClouds->isChecked())

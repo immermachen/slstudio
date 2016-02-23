@@ -63,6 +63,7 @@ Triangulator::Triangulator(CalibrationData _calibration) : calibration(_calibrat
     //cv::imwrite("map2.png", map2);
 }
 
+
 void Triangulator::triangulate(cv::Mat &up, cv::Mat &vp, cv::Mat &mask, cv::Mat &shading, cv::Mat &pointCloud){
 
     if(1)
@@ -148,6 +149,52 @@ void Triangulator::triangulate(cv::Mat &up, cv::Mat &vp, cv::Mat &mask, cv::Mat 
 
 }
 
+void Triangulator::triangulate(cv::Mat &up0, cv::Mat &vp0, cv::Mat &mask0, cv::Mat &shading0, cv::Mat &up1, cv::Mat &vp1, cv::Mat &mask1, cv::Mat &shading1, cv::Mat &pointCloud)
+{
+    // Undistort up, mask and shading
+    if(!up0.empty()){
+        cv::Mat upUndistort;
+        cv::remap(up0, upUndistort, lensMap1, lensMap2, cv::INTER_LINEAR);
+        up0 = upUndistort;
+    }
+    if(!up1.empty()){
+        cv::Mat upUndistort;
+        cv::remap(up1, upUndistort, lensMap1, lensMap2, cv::INTER_LINEAR);
+        up1 = upUndistort;
+    }
+    if(!vp0.empty()){
+        cv::Mat vpUndistort;
+        cv::remap(vp0, vpUndistort, lensMap1, lensMap2, cv::INTER_LINEAR);
+        vp0 = vpUndistort;
+    }
+    if(!vp1.empty()){
+        cv::Mat vpUndistort;
+        cv::remap(vp1, vpUndistort, lensMap1, lensMap2, cv::INTER_LINEAR);
+        vp1 = vpUndistort;
+    }
+
+    cv::Mat maskUndistort0, shadingUndistort0, maskUndistort1, shadingUndistort1;
+    cv::remap(mask0, maskUndistort0, lensMap1, lensMap2, cv::INTER_LINEAR);
+    cv::remap(shading0, shadingUndistort0, lensMap1, lensMap2, cv::INTER_LINEAR);
+    mask0 = maskUndistort0;
+    shading0 = shadingUndistort0;
+
+    cv::remap(mask1, maskUndistort1, lensMap1, lensMap2, cv::INTER_LINEAR);
+    cv::remap(shading1, shadingUndistort1, lensMap1, lensMap2, cv::INTER_LINEAR);
+    mask1 = maskUndistort1;
+    shading1 = shadingUndistort1;
+
+    // Triangulate
+    cv::Mat xyz;
+    triangulateFromUpVp(up0, vp0, up1, vp1, xyz);
+
+    // Aplly Mask
+    pointCloud = cv::Mat(up0.size(), CV_32FC3, cv::Scalar(NAN, NAN, NAN));
+    xyz.copyTo(pointCloud, mask0);
+    pointCloud.copyTo(pointCloud, mask1);
+
+}
+
 void Triangulator::triangulateFromUp(cv::Mat &up, cv::Mat &xyz){
 
     // Solve for xyzw using determinant tensor
@@ -188,7 +235,8 @@ void Triangulator::triangulateFromVp(cv::Mat &vp, cv::Mat &xyz){
 
 }
 
-void Triangulator::triangulateFromUpVp(cv::Mat &up, cv::Mat &vp, cv::Mat &xyz){
+void Triangulator::triangulateFromUpVp(cv::Mat &up, cv::Mat &vp, cv::Mat &xyz)
+{
 
     std::cerr << "WARNING! NOT FULLY IMPLEMENTED!" << std::endl;
     int N = up.rows * up.cols;
@@ -222,5 +270,42 @@ void Triangulator::triangulateFromUpVp(cv::Mat &up, cv::Mat &vp, cv::Mat &xyz){
     xyz = xyz.t();
     xyz = xyz.reshape(3, up.rows);
 }
+
+
+
+void Triangulator::triangulateFromUpVp(cv::Mat &up0, cv::Mat &vp0, cv::Mat &up1, cv::Mat &vp1, cv::Mat &xyz)
+{
+    int N = up0.rows * up0.cols;
+
+    cv::Mat projPointsCam(2, N, CV_32F);
+    up0.reshape(0,1).copyTo(projPointsCam.row(0));
+    vp0.reshape(0,1).copyTo(projPointsCam.row(1));
+
+    cv::Mat projPointsProj(2, N, CV_32F);
+    up1.reshape(0,1).copyTo(projPointsProj.row(0));
+    vp1.reshape(0,1).copyTo(projPointsProj.row(1));
+
+    cv::Mat Pc(3,4,CV_32F,cv::Scalar(0.0));
+    cv::Mat(calibration.Kc).copyTo(Pc(cv::Range(0,3), cv::Range(0,3)));
+
+    cv::Mat Pp(3,4,CV_32F), temp(3,4,CV_32F);
+    cv::Mat(calibration.Rp).copyTo(temp(cv::Range(0,3), cv::Range(0,3)));
+    cv::Mat(calibration.Tp).copyTo(temp(cv::Range(0,3), cv::Range(3,4)));
+    Pp = cv::Mat(calibration.Kp) * temp;
+
+    cv::Mat xyzw;
+    cv::triangulatePoints(Pc, Pp, projPointsCam, projPointsProj, xyzw);
+
+    xyz.create(3, N, CV_32F);
+    for(int i=0; i<N; i++){
+        xyz.at<float>(0,i) = xyzw.at<float>(0,i)/xyzw.at<float>(3,i);
+        xyz.at<float>(1,i) = xyzw.at<float>(1,i)/xyzw.at<float>(3,i);
+        xyz.at<float>(2,i) = xyzw.at<float>(2,i)/xyzw.at<float>(3,i);
+    }
+
+    xyz = xyz.t();
+    xyz = xyz.reshape(3, up0.rows);
+}
+
 
 

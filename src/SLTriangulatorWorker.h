@@ -29,6 +29,7 @@ class SLTriangulatorWorker : public QObject {
     public slots:
         void setup();
         void triangulatePointCloud(cv::Mat up, cv::Mat vp, cv::Mat mask, cv::Mat shading);
+        void triangulatePointCloud(cv::Mat up0, cv::Mat vp0, cv::Mat mask0, cv::Mat shading0, cv::Mat up1, cv::Mat vp1, cv::Mat mask1, cv::Mat shading1);
     signals:
         void imshow(const char* windowName, cv::Mat mat, unsigned int x, unsigned int y);
         void newPointCloud(PointCloudPtr pointCloud, unsigned int cNum);

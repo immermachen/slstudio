@@ -24,16 +24,22 @@ void SLTriangulatorWorker::setup(){
         std::cout << "SLTriangulatorWorker::setup:: Using Calibration_1.xml" << std::endl;
         calibration->load("calibration_1.xml");
     }
-    else
+    else if(cNum==0)
     {
         std::cout << "SLTriangulatorWorker::setup:: Using Calibration_0.xml" << std::endl;
         calibration->load("calibration_0.xml");
+    }
+    else if(cNum==3)
+    {
+        std::cout << "SLTriangulatorWorker::setup:: Using Calibration_CC.xml" << std::endl;
+        calibration->load("calibration_CC.xml");
     }
 
     triangulator = new Triangulator(*calibration);
 }
 
-void SLTriangulatorWorker::triangulatePointCloud(cv::Mat up, cv::Mat vp, cv::Mat mask, cv::Mat shading){
+void SLTriangulatorWorker::triangulatePointCloud(cv::Mat up, cv::Mat vp, cv::Mat mask, cv::Mat shading)
+{
 
     // Recursively call self until latest event is hit
     busy = true;
@@ -118,6 +124,68 @@ void SLTriangulatorWorker::triangulatePointCloud(cv::Mat up, cv::Mat vp, cv::Mat
 //    filter.setInputCloud(pointCloudPCL);
 //    pcl::PointCloud<pcl::PointXYZRGB>::Ptr pointCloudFiltered(new pcl::PointCloud<pcl::PointXYZRGB>);
 //    filter.filter(*pointCloudFiltered);
+
+    // Emit result
+    emit newPointCloud(pointCloudPCL, cNum);
+
+    std::cout << "Triangulator: " << time.elapsed() << "ms" << std::endl;
+
+    if(writeToDisk){
+        QString fileName = QString("acam_%1").arg(cNum,1);// = QDateTime::currentDateTime().toString("yyyyMMdd_HHmmsszzz");
+        fileName.append(".ply");
+        //pcl::io::savePCDFileBinary(fileName.toStdString(), *pointCloudPCL);
+        pcl::PLYWriter w;
+        // Write to ply in binary without camera
+        w.write<pcl::PointXYZRGB> (fileName.toStdString(), *pointCloudPCL, true, false);
+        std::cout << "Save PLY: " << fileName.toStdString() << std::endl;
+    }
+
+    emit finished();
+}
+
+
+void SLTriangulatorWorker::triangulatePointCloud(cv::Mat up0, cv::Mat vp0, cv::Mat mask0, cv::Mat shading0, cv::Mat up1, cv::Mat vp1, cv::Mat mask1, cv::Mat shading1)
+{
+    // Recursively call self until latest event is hit
+    busy = true;
+    QCoreApplication::sendPostedEvents(this, QEvent::MetaCall);
+    bool result = busy;
+    busy = false;
+    if(!result){
+        std::cerr << "SLTriangulatorWorker: dropped phase image!" << std::endl;
+        return;
+    }
+
+    time.restart();
+
+    // Reconstruct point cloud
+    cv::Mat pointCloud;
+    triangulator->triangulate(up0, vp0, mask0, shading0, up1, vp1, mask1, shading1, pointCloud);
+
+    // Convert point cloud to PCL format
+    PointCloudPtr pointCloudPCL(new pcl::PointCloud<pcl::PointXYZRGB>);
+
+    // Interprete as organized point cloud
+    pointCloudPCL->width = pointCloud.cols;
+    pointCloudPCL->height = pointCloud.rows;
+    pointCloudPCL->is_dense = false;
+
+    pointCloudPCL->points.resize(pointCloud.rows*pointCloud.cols);
+
+    for(int row=0; row<pointCloud.rows; row++){
+        int offset = row * pointCloudPCL->width;
+        for(int col=0; col<pointCloud.cols; col++){
+            const cv::Vec3f pnt = pointCloud.at<cv::Vec3f>(row,col);
+
+            unsigned char shade = shading0.at<unsigned char>(row,col);  //[Yang]: TODO, To use which texture?
+
+            pcl::PointXYZRGB point;
+            point.x = pnt[0]; point.y = pnt[1]; point.z = pnt[2];
+            point.r = shade; point.g = shade; point.b = shade;
+            pointCloudPCL->points[offset + col] = point;
+        }
+    }
+
 
     // Emit result
     emit newPointCloud(pointCloudPCL, cNum);

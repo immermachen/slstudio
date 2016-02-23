@@ -30,6 +30,7 @@ class SLScanWorker : public QObject {
     public slots:
         void setup();
         void doWork();
+        void doWork_CC();
         void stopWorking();
     signals:
         //void imshow(const char* windowName, cv::Mat mat, unsigned int x, unsigned int y);
@@ -37,6 +38,7 @@ class SLScanWorker : public QObject {
         void showHistogram(cv::Mat im);
         void newFrame(cv::Mat frame);
         void newFrameSeq(std::vector<cv::Mat> frameSeq);
+        void newFrameSeq(std::vector<cv::Mat> frameSeq0, std::vector<cv::Mat> frameSeq1);
         void newFrameSeq2(std::vector<cv::Mat> frameSeq);
         void error(QString err);
         void finished();
