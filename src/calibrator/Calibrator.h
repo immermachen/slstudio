@@ -22,6 +22,7 @@ class Calibrator : public QObject {
         unsigned int numCam;
     signals:
         void newSequenceResult(cv::Mat img, unsigned int idx, bool success);
+        void newSequenceResult(vector < cv::Mat >img, unsigned int idx, vector< bool > success);
     protected:
         unsigned int screenCols, screenRows;
         unsigned int N;

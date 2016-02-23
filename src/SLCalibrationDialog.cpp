@@ -13,6 +13,7 @@
 #include "SLProjectorVirtual.h"
 
 #include "CalibratorLocHom.h"
+#include "CalibratorCC.h"
 #include "CalibratorRBF.h"
 
 #include "cvtools.h"
@@ -22,26 +23,19 @@ SLCalibrationDialog::SLCalibrationDialog(SLStudio *parent) : QDialog(parent), ui
 {
     ui->setupUi(this);
     setSizeGripEnabled(false);
-
     // Release this dialog on close
     this->setAttribute(Qt::WA_DeleteOnClose);
-
     QSettings settings("SLStudio");
-
     writeToDisk = settings.value("writeToDisk/frames", false).toBool();
     flip = settings.value("flip",1).toInt();
-
     //Checkerboard parameters
     float checkerSize = settings.value("calibration/checkerSize",10).toFloat();
     //ui->checkerSizeBox->setValue(checkerSize);
     ui->txtCheckSize->setPlainText(settings.value("calibration/checkerSize",10).toString());
-
     unsigned int checkerRows = settings.value("calibration/checkerRows",6).toInt();
     ui->checkerRowsBox->setValue(checkerRows);
     unsigned int checkerCols = settings.value("calibration/checkerCols",9).toInt();
     ui->checkerColsBox->setValue(checkerCols);
-
-
     // Read trigger configuration
     CameraTriggerMode triggerMode;
     QString sTriggerMode = settings.value("trigger/mode", "Hardware").toString();
@@ -51,12 +45,10 @@ SLCalibrationDialog::SLCalibrationDialog(SLStudio *parent) : QDialog(parent), ui
         triggerMode = triggerModeSoftware;
     else
         std::cerr << "SLCalibrationDialog: invalid trigger mode " << sTriggerMode.toStdString() << std::endl;
-
     // Create camera
     iNum = settings.value("camera/interfaceNumber", 0).toInt();
     cNum = settings.value("camera/cameraNumber", 0).toInt();
     std::cout<<"InterfaceNumber and cameraNumber: "<< iNum << ", " << cNum<<std::endl;
-
     if(iNum == 0)
     {
         if(cNum<2)
@@ -85,14 +77,11 @@ SLCalibrationDialog::SLCalibrationDialog(SLStudio *parent) : QDialog(parent), ui
             }
         }
     }
-
     delay = settings.value("trigger/delay", "100").toInt();
-
     // Set camera settings
     CameraSettings camSettings;
     camSettings.shutter = settings.value("camera/shutter", 16.666).toFloat();
     camSettings.gain = 0.0;
-
     for(int c=0;c<camera.size();c++)
     {
 //        Camera * curCam = camera[c];
@@ -100,7 +89,7 @@ SLCalibrationDialog::SLCalibrationDialog(SLStudio *parent) : QDialog(parent), ui
         camera[c]->startCapture();
     }
 
-    // Initialize projector
+    //------------------------------------- Initialize projector---------------------------------
     int screenNum = settings.value("projector/screenNumber", -1).toInt();
     if(screenNum >= 0)
         //projector = new ProjectorOpenGL(screenNum);
@@ -113,14 +102,10 @@ SLCalibrationDialog::SLCalibrationDialog(SLStudio *parent) : QDialog(parent), ui
         projector = cv::makePtr<ProjectorLC4500>(0);
     else
         std::cerr << "SLCalibrationDialog: invalid projector id " << screenNum << std::endl;
-
     unsigned int screenResX, screenResY;
     projector->getScreenRes(&screenResX, &screenResY);
-
     std::cout<< screenResX << "-" << screenResY << std::endl;
-
     diamondPattern = settings.value("projector/diamondPattern", false).toBool();
-
     // Unique number of rows and columns
     if(diamondPattern){
         screenCols = 2*screenResX;
@@ -130,52 +115,59 @@ SLCalibrationDialog::SLCalibrationDialog(SLStudio *parent) : QDialog(parent), ui
         screenRows = screenResY;
     }
 
-    // Create calibrator
-//    calibrator.push_back(new CalibratorLocHom(screenCols, screenRows));
-
-    //Register Metatypes
-    qRegisterMetaType<cv::Mat>("cv::Mat");
-    qRegisterMetaType<CalibrationData>("CalibrationData");
-    if(cNum==0 || cNum == 2)
+    if(cNum==3) //for CC
     {
-        calibrator[0] = cv::makePtr<CalibratorLocHom>(screenCols, screenRows);
-//        calThread1 = cv::makePtr<QThread>(this);
-//        calThread1 = new QThread(this);
-        calThread1.setObjectName("calThread1");
-        calibrator[0]->moveToThread(&calThread1);
-        //connect(calThread1, SIGNAL(started()), calibrator[0], SLOT(calibrate()));
-        connect(calibrator[0], SIGNAL(signal_calFinished(uint, CalibrationData)), this, SLOT(slot_ReceiveCalData(uint,CalibrationData)));
-        connect(this, SIGNAL(signal_Calibrate(uint)), calibrator[0], SLOT(slot_calibrateWrap(uint)));
-        connect(calibrator[0], SIGNAL(finished()), &calThread1, SLOT(quit()));
-        connect(calibrator[0], SIGNAL(finished()), calibrator[0], SLOT(deleteLater()));
-        connect(&calThread1, SIGNAL(finished()), &calThread1, SLOT(deleteLater()));
-        connect(calibrator[0], SIGNAL(newSequenceResult(cv::Mat, unsigned int, bool)), this, SLOT(onNewSequenceResult(cv::Mat,uint,bool)));
-        calThread1.start();
-
+        calibrator[0] = cv::makePtr<CalibratorCC>(screenCols, screenRows);
+        connect(calibrator[0], SIGNAL(newSequenceResult(vector< cv::Mat >, unsigned int, vector< bool >)), this, SLOT(onNewSequenceResult(vector< cv::Mat >,uint, vector< bool >)));
         numPatterns = calibrator[0]->getNPatterns();
     }
-    if(cNum==1  || cNum == 2)
+    else   //for CP
     {
-        calibrator[1] = cv::makePtr<CalibratorLocHom>(screenCols, screenRows);
-//        calThread2 = cv::makePtr<QThread>(this);
-//        calThread2 = new QThread(this);
-        calThread2.setObjectName("calThread2");
-        calibrator[1]->moveToThread(&calThread2);
-        connect(calibrator[1], SIGNAL(signal_calFinished(uint, CalibrationData)), this, SLOT(slot_ReceiveCalData(uint,CalibrationData)));
-        connect(this, SIGNAL(signal_Calibrate(uint)), calibrator[1], SLOT(slot_calibrateWrap(uint)));
-        connect(calibrator[1], SIGNAL(finished()), &calThread2, SLOT(quit()));
-        connect(calibrator[1], SIGNAL(finished()), calibrator[1], SLOT(deleteLater()));
-        connect(&calThread2, SIGNAL(finished()), &calThread2, SLOT(deleteLater()));
-        connect(calibrator[1], SIGNAL(newSequenceResult(cv::Mat, unsigned int, bool)), this, SLOT(onNewSequenceResult2(cv::Mat,uint,bool)));
-        calThread2.start();
+        //Register Metatypes
+        qRegisterMetaType<cv::Mat>("cv::Mat");
+        qRegisterMetaType<CalibrationData>("CalibrationData");
+        if(cNum==0 || cNum == 2)
+        {
+            calibrator[0] = cv::makePtr<CalibratorLocHom>(screenCols, screenRows);
+    //        calThread1 = cv::makePtr<QThread>(this);
+    //        calThread1 = new QThread(this);
+            calThread1.setObjectName("calThread1");
+            calibrator[0]->moveToThread(&calThread1);
+            //connect(calThread1, SIGNAL(started()), calibrator[0], SLOT(calibrate()));
+            connect(calibrator[0], SIGNAL(signal_calFinished(uint, CalibrationData)), this, SLOT(slot_ReceiveCalData(uint,CalibrationData)));
+            connect(this, SIGNAL(signal_Calibrate(uint)), calibrator[0], SLOT(slot_calibrateWrap(uint)));
+            connect(calibrator[0], SIGNAL(finished()), &calThread1, SLOT(quit()));
+            connect(calibrator[0], SIGNAL(finished()), calibrator[0], SLOT(deleteLater()));
+            connect(&calThread1, SIGNAL(finished()), &calThread1, SLOT(deleteLater()));
+            connect(calibrator[0], SIGNAL(newSequenceResult(cv::Mat, unsigned int, bool)), this, SLOT(onNewSequenceResult(cv::Mat,uint,bool)));
+            calThread1.start();
 
-        numPatterns = calibrator[1]->getNPatterns();
+            numPatterns = calibrator[0]->getNPatterns();
+        }
+        if(cNum==1  || cNum == 2)
+        {
+            calibrator[1] = cv::makePtr<CalibratorLocHom>(screenCols, screenRows);
+    //        calThread2 = cv::makePtr<QThread>(this);
+    //        calThread2 = new QThread(this);
+            calThread2.setObjectName("calThread2");
+            calibrator[1]->moveToThread(&calThread2);
+            connect(calibrator[1], SIGNAL(signal_calFinished(uint, CalibrationData)), this, SLOT(slot_ReceiveCalData(uint,CalibrationData)));
+            connect(this, SIGNAL(signal_Calibrate(uint)), calibrator[1], SLOT(slot_calibrateWrap(uint)));
+            connect(calibrator[1], SIGNAL(finished()), &calThread2, SLOT(quit()));
+            connect(calibrator[1], SIGNAL(finished()), calibrator[1], SLOT(deleteLater()));
+            connect(&calThread2, SIGNAL(finished()), &calThread2, SLOT(deleteLater()));
+            connect(calibrator[1], SIGNAL(newSequenceResult(cv::Mat, unsigned int, bool)), this, SLOT(onNewSequenceResult2(cv::Mat,uint,bool)));
+            calThread2.start();
+
+            numPatterns = calibrator[1]->getNPatterns();
+        }
     }
 
     // Upload patterns to projector/GPU
-    for(unsigned int i=0; i < numPatterns; i++){
+    for(unsigned int i=0; i < numPatterns; i++)
+    {
         cv::Mat pattern;
-        if(cNum==0 || cNum==2)
+        if(cNum==0 || cNum==2 || cNum==3)
             pattern = calibrator[0]->getCalibrationPattern(i);
         if(cNum==1)
             pattern = calibrator[1]->getCalibrationPattern(i);
@@ -199,8 +191,6 @@ SLCalibrationDialog::SLCalibrationDialog(SLStudio *parent) : QDialog(parent), ui
     // Start live view
     timerInterval = delay + camSettings.shutter;
     liveViewTimer = startTimer(timerInterval);
-
-
 
 }
 
@@ -257,6 +247,7 @@ void SLCalibrationDialog::timerEvent(QTimerEvent *event)
     QApplication::processEvents();
 }
 
+
 SLCalibrationDialog::~SLCalibrationDialog()
 {
     if(cNum==0  || cNum == 2)
@@ -288,9 +279,9 @@ SLCalibrationDialog::~SLCalibrationDialog()
 //    delete ui;
 }
 
+
 void SLCalibrationDialog::on_snapButton_clicked()
 {
-
     // If in review mode
     if(reviewMode){
         reviewMode = false;
@@ -300,19 +291,25 @@ void SLCalibrationDialog::on_snapButton_clicked()
         ui->snapButton->setText("Snap");
         return;
     }
-
-    ui->snapButton->setEnabled(false);
-
-    // Stop live view
-    killTimer(liveViewTimer);
-
+    ui->snapButton->setEnabled(false);    
+    killTimer(liveViewTimer);// Stop live view
 
     vector<std::string> frameSeq[2];
 
-    for(unsigned int i=0; i<numPatterns; i++)
+    int numPat = numPatterns;
+    if(cNum == 3)
+        numPat = 1;
+
+    for(unsigned int i=0; i<numPat; i++)
     {
         // Project pattern
-        projector->displayPattern(i);
+        if(cNum == 3)
+        {
+            //projector->displayPattern(numPatterns-1); //only use full white pattern
+        }
+        else
+            projector->displayPattern(i);
+
         QTest::qSleep(delay);
 
         // Effectuate sleep (necessary with some camera implementations)
@@ -320,7 +317,7 @@ void SLCalibrationDialog::on_snapButton_clicked()
 
         CameraFrame frame, frame2;
 
-        if(cNum == 0 || cNum == 2)
+        if(cNum == 0 || cNum == 2 || cNum == 3)
         {
             int numCam = 0;
             int numSeqs = frameSeqs[0].size();
@@ -348,7 +345,7 @@ void SLCalibrationDialog::on_snapButton_clicked()
             ui->videoWidget->showFrameCV(curframeCV);
         }
 
-        if(cNum == 1 || cNum == 2)
+        if(cNum == 1 || cNum == 2 || cNum == 3)
         {
             int numCam = 1;
             int numSeqs = frameSeqs[1].size();
@@ -386,7 +383,7 @@ void SLCalibrationDialog::on_snapButton_clicked()
         delete frame2.memory;
     }
 
-    if(cNum == 0 || cNum == 2)
+    if(cNum == 0 || cNum == 2 || cNum == 3)
     {
         // Store frame sequence
         frameSeqs[0].push_back(frameSeq[0]);
@@ -396,7 +393,7 @@ void SLCalibrationDialog::on_snapButton_clicked()
         item->setFlags(item->flags() | Qt::ItemIsUserCheckable); // set checkable flag
         item->setCheckState(Qt::Checked); // AND initialize check state
     }
-    if(cNum == 1 || cNum == 2)
+    if(cNum == 1 || cNum == 2 || cNum == 3)
     {
         frameSeqs[1].push_back(frameSeq[1]);
 
@@ -419,6 +416,7 @@ void SLCalibrationDialog::on_snapButton_clicked()
     ui->snapButton->setEnabled(true);
 
 }
+
 
 void SLCalibrationDialog::on_calibrateButton_clicked()
 {
@@ -476,6 +474,30 @@ void SLCalibrationDialog::on_calibrateButton_clicked()
         QMetaObject::invokeMethod(calibrator[1], "slot_calibrateWrap", Q_ARG(uint,1));//, Q_ARG(int,1));
     }
 
+    if(cNum == 3)
+    {
+        std::cout<< "----------------Calibrate CC -----------------------"<<std::endl;
+
+        calibrator[0]->reset();
+        // Note which frame sequences are used
+        activeFrameSeqs[0].clear();
+        for(int i=0; i<ui->listWidget->count(); i++)
+        {
+            if(ui->listWidget->item(i)->checkState() == Qt::Checked)
+            {
+                //vector<cv::Mat> frameSeq(frameSeqs[0][i].begin(), frameSeqs[0][i].begin() + calibrator[0]->getNPatterns());
+                vector<std::string> frameSeq;
+                frameSeq.push_back(frameSeqs[0][i][0]);
+                frameSeq.push_back(frameSeqs[1][i][0]);
+                calibrator[0]->addFrameSequence(frameSeq);
+                activeFrameSeqs[0].push_back(i);
+            }
+        }
+        // Perform calibration
+        calib[0] = calibrator[0]->calibrate();
+
+        std::cout<< "----------------Calibrate CC Finished! -----------------------"<<std::endl;
+    }
     // Re-enable interface elements
     //TODO
 }
@@ -494,6 +516,7 @@ void SLCalibrationDialog::slot_ReceiveCalData(uint numCam, CalibrationData calDa
         ui->saveButton->setEnabled(true);
     }
 }
+
 
 void SLCalibrationDialog::on_listWidget_itemSelectionChanged()
 {
@@ -564,10 +587,22 @@ void SLCalibrationDialog::on_saveButton_clicked()
             calib[c].save(calFilename);
         }
     }
+    else if(cNum==3)
+    {
+        calib[0].frameWidth = camera[0]->getFrameWidth();
+        calib[0].frameHeight = camera[0]->getFrameHeight();
+        calib[0].screenResX = screenResX;
+        calib[0].screenResY = screenResY;
+        calib[0].calibrationDateTime = QDateTime::currentDateTime().toString("DD.MM.YYYY HH:MM:SS").toStdString();
+
+        //QString filename = QString("frameSeq_cal_%1_%2.bmp").arg(seqNum, 2, 10, QChar('0')).arg(i, 2, 10, QChar('0'));
+        //arg(int a, int fieldWidth = 0, int base = 10, QChar fillChar = QLatin1Char( ' ' )) const
+        QString calFilename = QString("calibration_CC.xml");
+        calib[0].save(calFilename);
+    }
 
     this->close();
 }
-
 
 void SLCalibrationDialog::onNewSequenceResult(cv::Mat img, unsigned int idx, bool success)
 {
@@ -597,9 +632,9 @@ void SLCalibrationDialog::onNewSequenceResult(cv::Mat img, unsigned int idx, boo
     QApplication::processEvents();
 }
 
+
 void SLCalibrationDialog::onNewSequenceResult2(cv::Mat img, unsigned int idx, bool success)
 {
-
     // Skip non-active frame sequences
     int idxListView = activeFrameSeqs[1][idx];
 
@@ -624,6 +659,37 @@ void SLCalibrationDialog::onNewSequenceResult2(cv::Mat img, unsigned int idx, bo
 
     QApplication::processEvents();
 }
+
+void SLCalibrationDialog::onNewSequenceResult(std::vector< cv::Mat > img, unsigned int idx, std::vector< bool > success)
+{
+    // Skip non-active frame sequences
+    int idxListView = activeFrameSeqs[0][idx];
+
+    int numCam = 0, numCam1 = 1;
+    QString filename = QString("dataCal/%1_%2.bmp").arg(idxListView,2, 10, QChar('0')).arg(numCam, 1);
+    cv::imwrite(filename.toStdString(), img[0]);
+
+    QString filename1 = QString("dataCal/%1_%2.bmp").arg(idxListView,2, 10, QChar('0')).arg(numCam1, 1);
+    cv::imwrite(filename1.toStdString(), img[1]);
+
+    frameSeqs[0][idxListView].push_back(filename.toStdString());
+    frameSeqs[1][idxListView].push_back(filename.toStdString());
+
+    if(!success[0]) // uncheck
+        ui->listWidget->item(idxListView)->setCheckState(Qt::Unchecked);
+    if(!success[1]) // uncheck
+        ui->listWidget2->item(idxListView)->setCheckState(Qt::Unchecked);
+
+    // Highlight
+    ui->listWidget->setCurrentRow(idxListView);
+    ui->listWidget->setFocus();
+    // Highlight
+    ui->listWidget2->setCurrentRow(idxListView);
+    ui->listWidget2->setFocus();
+
+    QApplication::processEvents();
+}
+
 
 void SLCalibrationDialog::closeEvent(QCloseEvent *)
 {

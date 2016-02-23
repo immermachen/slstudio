@@ -42,6 +42,7 @@ signals:
         void on_saveButton_clicked();
         void onNewSequenceResult(cv::Mat img, unsigned int idx, bool success);
         void onNewSequenceResult2(cv::Mat img, unsigned int idx, bool success);
+        void onNewSequenceResult(vector< cv::Mat > img, unsigned int idx, vector< bool > success);
     signals:
         void newCalibrationSaved(unsigned int numCam, CalibrationData _calib);
     private:

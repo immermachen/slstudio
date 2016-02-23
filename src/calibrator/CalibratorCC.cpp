@@ -14,11 +14,8 @@ CalibratorCC::CalibratorCC(unsigned int _screenCols, unsigned int _screenRows): 
     //decoder = new DecoderCalibration(screenCols, screenRows, CodecDirBoth);
     encoder = new EncoderGrayPhase(screenCols, screenRows, CodecDirBoth);
     decoder = new DecoderGrayPhase(screenCols, screenRows, CodecDirBoth);
-
     this->N = encoder->getNPatterns();
-
-    frameSeqsFromFile.resize(N);
-
+    //frameSeqsFromFile.resize(N);
     for(unsigned int i=0; i<N; i++)
         patterns.push_back(encoder->getEncodingPattern(i));
 }
@@ -40,7 +37,7 @@ CalibrationData CalibratorCC::calibrate()
     unsigned nFrameSeq = frameSeqsFromFile.size();
 
     // Read frame sequences
-    std::cout << "Decode frames: Num="<< nFrameSeq<< ", and begin.....>> ";
+    std::cout << "Load frames: Num="<< nFrameSeq<< ", and begin.....>> ";
     for(unsigned int i=0; i<nFrameSeq; i++)
     {
         vector<cv::Mat> frames;
@@ -77,20 +74,26 @@ CalibrationData CalibratorCC::calibrate()
     {
         vector<cv::Mat> shading = frameSeqs[i];
         //std::cout << i << " 1" << std::endl;
-        vector< vector<cv::Point2f> > qci;
+        vector<cv::Point2f> qci, qpi;
+        vector<bool> success;
         // Aid checkerboard extraction by slight blur
         //cv::GaussianBlur(shading[i], shading[i], cv::Size(5,5), 2, 2);
         // Extract checker corners
 
+        QString filename00 = QString("am_shading%1_1.bmp").arg(0, 2, 10, QChar('0'));
+        cv::imwrite(filename00.toStdString(), shading[0]);
+        filename00 = QString("am_shading%1_1.bmp").arg(1, 2, 10, QChar('0'));
+        cv::imwrite(filename00.toStdString(), shading[1]);
+
         std::cout << i << ": findChessboardCorners 1:  ......" << std::endl;
-        bool success0 = cv::findChessboardCorners(shading[0], patternSize, qci[0], cv::CALIB_CB_ADAPTIVE_THRESH+CV_CALIB_CB_NORMALIZE_IMAGE+CALIB_CB_FAST_CHECK );
-        std::cout << " cv::findChessboardCorners: sucess1 = " << success << std::endl;
+        success[0] = cv::findChessboardCorners(shading[0], patternSize, qci, cv::CALIB_CB_ADAPTIVE_THRESH+CV_CALIB_CB_NORMALIZE_IMAGE+CALIB_CB_FAST_CHECK );
+        std::cout << " cv::findChessboardCorners: sucess1 = " << success[0] << std::endl;
 
         std::cout << i << ": findChessboardCorners 2:  ......" << std::endl;
-        bool success1 = cv::findChessboardCorners(shading[1], patternSize, qci[1], cv::CALIB_CB_ADAPTIVE_THRESH+CV_CALIB_CB_NORMALIZE_IMAGE+CALIB_CB_FAST_CHECK );
-        std::cout << " cv::findChessboardCorners: sucess2 = " << success << std::endl;
+        success[1] = cv::findChessboardCorners(shading[1], patternSize, qpi, cv::CALIB_CB_ADAPTIVE_THRESH+CV_CALIB_CB_NORMALIZE_IMAGE+CALIB_CB_FAST_CHECK );
+        std::cout << " cv::findChessboardCorners: sucess2 = " << success[1] << std::endl;
 
-        if(!success0 || !success1)
+        if(!success[0] || !success[1])
             std::cout << "Calibrator: could not extract chess board corners on both frame seqences " << i << std::endl << std::flush;
         else
         {
@@ -102,9 +105,9 @@ CalibrationData CalibratorCC::calibrate()
         // Draw colored chessboard
         vector<cv::Mat> shadingColor;
         cv::cvtColor(shading[0], shadingColor[0], cv::COLOR_GRAY2RGB);
-        cv::drawChessboardCorners(shadingColor[0], patternSize, qci[0], success0);
+        cv::drawChessboardCorners(shadingColor[0], patternSize, qci, success[0]);
         cv::cvtColor(shading[1], shadingColor[1], cv::COLOR_GRAY2RGB);
-        cv::drawChessboardCorners(shadingColor[1], patternSize, qci[1], success1);
+        cv::drawChessboardCorners(shadingColor[1], patternSize, qpi, success[1]);
 
 #if 1
         QString filename0 = QString("am_shadingColor%1_0.bmp").arg(i, 2, 10, QChar('0'));
@@ -117,31 +120,18 @@ CalibrationData CalibratorCC::calibrate()
         //Emit chessboard results
         emit newSequenceResult(shadingColor, i, success);
 
-        if(success)
+        if(!success[0] || !success[1])
         {
-            // Vectors of accepted points for current view
-            vector<cv::Point2f> qpi_a;
-            vector<cv::Point2f> qci_a;
-            vector<cv::Point3f> Qi_a;
-
-            // Loop through checkerboard corners
-            for(unsigned int j=0; j<qci.size(); j++)
-            { 
-                qpi_a.push_back(qpi[j]);
-                qci_a.push_back(qci[j]);
-                Qi_a.push_back(Qi[j]);
-            }
-
-            if(!Qi_a.empty())
+            if(!Qi.empty())
             {
                 // Store projector corner coordinates
-                qp.push_back(qpi_a);
+                qp.push_back(qpi);
 
                 // Store camera corner coordinates
-                qc.push_back(qci_a);
+                qc.push_back(qci);
 
                 // Store world corner coordinates
-                Q.push_back(Qi_a);
+                Q.push_back(Qi);
             }
         }
     }
@@ -153,7 +143,7 @@ CalibrationData CalibratorCC::calibrate()
     }
 
     //calibrate the camera
-    std::cout<< "calibrate the camera!" <<std::endl;
+    std::cout<< "calibrate the camera0!" <<std::endl;
 
     cv::Mat Kc, kc;
     std::vector<cv::Mat> cam_rvecs, cam_tvecs;
@@ -162,20 +152,17 @@ CalibrationData CalibratorCC::calibrate()
                                            cv::TermCriteria(cv::TermCriteria::COUNT + cv::TermCriteria::EPS, 50, DBL_EPSILON));
 
     //calibrate the projector
-    std::cout<< "calibrate the projector!" <<std::endl;
+    std::cout<< "calibrate the camera1!" <<std::endl;
     cv::Mat Kp, kp;
     std::vector<cv::Mat> proj_rvecs, proj_tvecs;
-    cv::Size screenSize(screenCols, screenRows);
-    double proj_error = cv::calibrateCamera(Q, qp, screenSize, Kp, kp, proj_rvecs, proj_tvecs, cv::CALIB_FIX_ASPECT_RATIO + cv::CALIB_FIX_K2 + cv::CALIB_FIX_K3 + cv::CALIB_ZERO_TANGENT_DIST,
+    //cv::Size screenSize(screenCols, screenRows);
+    cv::Size screenSize(frameWidth, frameHeight);
+    double proj_error = cv::calibrateCamera(Q, qp, screenSize, Kp, kp, proj_rvecs, proj_tvecs, cv::CALIB_FIX_ASPECT_RATIO + cv::CALIB_FIX_PRINCIPAL_POINT + cv::CALIB_FIX_K2 + cv::CALIB_FIX_K3 + cv::CALIB_ZERO_TANGENT_DIST,
                                             cv::TermCriteria(cv::TermCriteria::COUNT + cv::TermCriteria::EPS, 50, DBL_EPSILON));
 
     //stereo calibration
     std::cout<< "stereo calibrate!" <<std::endl;
     cv::Mat Rp, Tp, E, F;
-    //Opencv2.x version
-    //double stereo_error = cv::stereoCalibrate(Q, qc, qp, Kc, kc, Kp, kp, frameSize, Rp, Tp, E, F,
-      //                                        cv::TermCriteria(cv::TermCriteria::COUNT + cv::TermCriteria::EPS, 100, DBL_EPSILON), cv::CALIB_FIX_INTRINSIC);
-
     //Opencv3.x version
     double stereo_error = cv::stereoCalibrate(Q, qc, qp, Kc, kc, Kp, kp, frameSize, Rp, Tp, E, F,
                                               cv::CALIB_FIX_INTRINSIC,cv::TermCriteria(cv::TermCriteria::COUNT + cv::TermCriteria::EPS, 100, DBL_EPSILON));
