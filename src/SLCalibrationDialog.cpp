@@ -496,6 +496,12 @@ void SLCalibrationDialog::on_calibrateButton_clicked()
         // Perform calibration
         calib[0] = calibrator[0]->calibrate();
 
+        // Re-enable interface elements
+        ui->calibrateButton->setEnabled(true);
+        ui->listWidget->setEnabled(true);
+        ui->listWidget2->setEnabled(true);
+        ui->saveButton->setEnabled(true);
+
         std::cout<< "----------------Calibrate CC Finished! -----------------------"<<std::endl;
     }
     // Re-enable interface elements

@@ -75,18 +75,21 @@ CalibrationData CalibratorCC::calibrate()
         vector<cv::Mat> shading = frameSeqs[i];
         //std::cout << i << " 1" << std::endl;
         vector<cv::Point2f> qci, qpi;
-        vector<bool> success;
+        vector<bool> success(2);
         // Aid checkerboard extraction by slight blur
         //cv::GaussianBlur(shading[i], shading[i], cv::Size(5,5), 2, 2);
         // Extract checker corners
 
-        QString filename00 = QString("am_shading%1_1.bmp").arg(0, 2, 10, QChar('0'));
-        cv::imwrite(filename00.toStdString(), shading[0]);
-        filename00 = QString("am_shading%1_1.bmp").arg(1, 2, 10, QChar('0'));
-        cv::imwrite(filename00.toStdString(), shading[1]);
+//        QString filename00 = QString("am_shading%1_1.bmp").arg(0, 2, 10, QChar('0'));
+//        cv::imwrite(filename00.toStdString(), shading[0]);
+//        filename00 = QString("am_shading%1_1.bmp").arg(1, 2, 10, QChar('0'));
+//        cv::imwrite(filename00.toStdString(), shading[1]);
 
         std::cout << i << ": findChessboardCorners 1:  ......" << std::endl;
         success[0] = cv::findChessboardCorners(shading[0], patternSize, qci, cv::CALIB_CB_ADAPTIVE_THRESH+CV_CALIB_CB_NORMALIZE_IMAGE+CALIB_CB_FAST_CHECK );
+        //success[0] = cv::findChessboardCorners(shading[0], patternSize, qci, cv::CALIB_CB_ADAPTIVE_THRESH+CV_CALIB_CB_NORMALIZE_IMAGE );
+        //vector<CvPoint2D32f> temp(54);
+        //success[0] =  cvFindChessboardCorners(&shading[0], patternSize, &temp[0]);
         std::cout << " cv::findChessboardCorners: sucess1 = " << success[0] << std::endl;
 
         std::cout << i << ": findChessboardCorners 2:  ......" << std::endl;
@@ -103,13 +106,13 @@ CalibrationData CalibratorCC::calibrate()
             cv::cornerSubPix(shading[1], qpi, cv::Size(5, 5), cv::Size(1, 1), cv::TermCriteria(cv::TermCriteria::EPS + cv::TermCriteria::MAX_ITER, 20, 0.01));
         }
         // Draw colored chessboard
-        vector<cv::Mat> shadingColor;
+        vector<cv::Mat> shadingColor(2);
         cv::cvtColor(shading[0], shadingColor[0], cv::COLOR_GRAY2RGB);
         cv::drawChessboardCorners(shadingColor[0], patternSize, qci, success[0]);
         cv::cvtColor(shading[1], shadingColor[1], cv::COLOR_GRAY2RGB);
         cv::drawChessboardCorners(shadingColor[1], patternSize, qpi, success[1]);
 
-#if 1
+#if 0
         QString filename0 = QString("am_shadingColor%1_0.bmp").arg(i, 2, 10, QChar('0'));
         QString filename1 = QString("am_shadingColor%1_1.bmp").arg(i, 2, 10, QChar('0'));
         cv::imwrite(filename0.toStdString(), shadingColor[0]);
@@ -120,7 +123,7 @@ CalibrationData CalibratorCC::calibrate()
         //Emit chessboard results
         emit newSequenceResult(shadingColor, i, success);
 
-        if(!success[0] || !success[1])
+        if(success[0] || success[1])
         {
             if(!Qi.empty())
             {
