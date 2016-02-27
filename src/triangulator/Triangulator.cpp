@@ -170,7 +170,7 @@ void Triangulator::triangulate(cv::Mat &up0, cv::Mat &vp0, cv::Mat &mask0, cv::M
     }
     if(!vp1.empty()){
         cv::Mat vpUndistort;
-        cv::remap(vp1, vpUndistort, lensMap1_P, , cv::INTER_LINEAR);
+        cv::remap(vp1, vpUndistort, lensMap1_P, lensMap2_P, cv::INTER_LINEAR);
         vp1 = vpUndistort;
     }
 

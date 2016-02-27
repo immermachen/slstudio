@@ -8,6 +8,7 @@
 #include <iomanip>
 
 #include "cvtools.h"
+#include <QString>
 
 #ifndef M_PI
     #define M_PI 3.14159265358979323846
@@ -281,6 +282,7 @@ void DecoderGrayPhase::generate_mask(int direction)
     }
 }
 
+
 void DecoderGrayPhase::decodeFrames(cv::Mat &up, cv::Mat &vp, cv::Mat &mask, cv::Mat &shading)
 {
 
@@ -474,6 +476,219 @@ void DecoderGrayPhase::decodeFrames(cv::Mat &up, cv::Mat &vp, cv::Mat &mask, cv:
     //std::cout<< "m_mask_final: Max-Min = " << maxVal << "-" << minVal << std::endl;
     tmp.convertTo(tmp,CV_8U,255.0/(maxVal-minVal),-255.0*minVal/(maxVal-minVal));
     cv::imwrite("am_mask_final.BMP", tmp);  //gray_error is CV_8U using BMP
+#endif
+    }
+}
+
+void DecoderGrayPhase::decodeFrames(cv::Mat &up, cv::Mat &vp, cv::Mat &mask, cv::Mat &shading, int numCam)
+{
+
+    int framesize=frames.size();
+    shading = frames[framesize-2];    // Get shading (max) image
+    shading.convertTo(shading, CV_8UC1);
+
+    cv::Mat minImage = frames[framesize-1]; // Get min image
+
+    //std::cout<< "decodeFrames begin.......";
+
+    if(dir & CodecDirHorizontal){ // Construct up image.
+        vector<cv::Mat> images(frames.begin(), frames.begin() + Nhorz*2);
+        decode_gray(images,0);
+        generate_mask(0);
+        vector<cv::Mat> phases(frames.begin() + Nhorz*2, frames.begin() + Nhorz*2 + num_fringes);
+
+        //decode_phase(phases,0);
+        slib::DecodePhaseCodeImages(phases, m_phase_map[0]);
+
+        //debug
+        {
+#if 1
+        double minVal,maxVal;
+        Mat tmp = m_gray_map[0].clone();
+        cv::minMaxIdx(tmp,&minVal,&maxVal);
+        //std::cout<< "DecodeFrame: Max-Min = " << maxVal << "-" << minVal << std::endl;
+        tmp.convertTo(tmp,CV_16U, 65535/(maxVal-minVal),-65535*minVal/(maxVal-minVal));
+        QString filename = QString("am_map_gray0_C%1.png").arg(numCam, 1);
+        cv::imwrite(filename.toStdString(), tmp);   // gray_map is CV_16U using PNG
+
+        tmp = m_gray_error[0].clone();
+        cv::minMaxIdx(tmp,&minVal,&maxVal);
+        //std::cout<< "DecodeFrame: Max-Min = " << maxVal << "-" << minVal << std::endl;
+        tmp.convertTo(tmp,CV_8U, 255/(maxVal-minVal),-225*minVal/(maxVal-minVal));
+        filename = QString("am_gray_error0_C%1.png").arg(numCam, 1);
+        cv::imwrite(filename.toStdString(), tmp);  //gray_error is CV_8U using BMP
+
+        tmp = m_phase_map[0].clone();
+        cv::minMaxIdx(tmp,&minVal,&maxVal);
+        //std::cout<< "DecodeFrame: Max-Min = " << maxVal << "-" << minVal << std::endl;
+        tmp.convertTo(tmp,CV_16U, 65535/(maxVal-minVal),-65535*minVal/(maxVal-minVal));
+        filename = QString("am_phase_map0_C%1.png").arg(numCam, 1);
+        cv::imwrite(filename.toStdString(), tmp);   // gray_map is CV_16U using PNG
+
+        tmp = m_mask[0].clone();
+        cv::minMaxIdx(tmp,&minVal,&maxVal);
+        //std::cout<< "DecodeFrame: Max-Min = " << maxVal << "-" << minVal << std::endl;
+        //tmp.convertTo(tmp,CV_8U, 255/(maxVal-minVal),-255*min/(maxVal-minVal));
+        tmp.convertTo(tmp,CV_8U,255.0/(maxVal-minVal),-255.0*minVal/(maxVal-minVal));
+        filename = QString("am_mask0_C%1.BMP").arg(numCam, 1);
+        cv::imwrite(filename.toStdString(), tmp);  //gray_error is CV_8U using BMP
+#endif
+        }
+
+        slib::UnwrapPhase(m_phase_map[0], fringe_interval * num_fringes, m_gray_map[0], m_phase_map[0], m_phase_error[0]);
+        convert_reliable_map(0);
+
+        //debug
+        {
+#if 1
+        double minVal,maxVal;
+
+        Mat tmp = m_phase_map[0].clone();
+        cv::minMaxIdx(tmp,&minVal,&maxVal);
+        //std::cout<< "m_phase_map: Max-Min = " << maxVal << "-" << minVal << std::endl;
+        tmp.convertTo(tmp,CV_16U, 65535/(maxVal-minVal),-65535*minVal/(maxVal-minVal));
+        //tmp.convertTo(tmp,CV_16U, 65535/(maxVal),0);
+        QString filename = QString("am_map_phase_unwraped_C%1.png").arg(numCam, 1);
+        cv::imwrite(filename.toStdString(), tmp);   // gray_map is CV_16U using PNG
+
+        tmp = m_phase_error[0].clone();
+        cv::minMaxIdx(tmp,&minVal,&maxVal);
+        //std::cout<< "m_phase_error: Max-Min = " << maxVal << "-" << minVal << std::endl;
+        tmp.convertTo(tmp,CV_16U, 65535/(maxVal-minVal),-65535*minVal/(maxVal-minVal));
+        //tmp.convertTo(tmp,CV_16U, 65535/(maxVal),0);
+        filename = QString("am_phase_error0_C%1.png").arg(numCam, 1);
+        cv::imwrite(filename.toStdString(), tmp);
+
+        tmp = m_reliable_mask[0].clone();
+        cv::minMaxIdx(tmp,&minVal,&maxVal);
+        //std::cout<< "m_reliable_mask: Max-Min = " << maxVal << "-" << minVal << std::endl;
+        tmp.convertTo(tmp,CV_8U,255.0/(maxVal-minVal),-255.0*minVal/(maxVal-minVal));
+        //tmp.convertTo(tmp,CV_8U,255,0);
+        filename = QString("am_mask_reliable0_C%1.BMP").arg(numCam, 1);
+        cv::imwrite(filename.toStdString(), tmp);
+#endif
+        }
+
+    }
+
+//    cvtools::writeMat(up, "up.mat", "up");
+
+    //std::cout<< "decodeFrames begin00-CodecDirVertical=." << CodecDirVertical <<std::endl;
+
+    if(dir & CodecDirVertical){
+        // Construct vp image.
+        vector<cv::Mat> images(frames.begin() + Nhorz*2 + num_fringes, frames.begin() + Nhorz*2 + num_fringes + Nvert*2);
+        decode_gray(images,1);
+        generate_mask(1);
+        vector<cv::Mat> phases(frames.begin() + Nhorz*2 + num_fringes + Nvert*2, frames.begin() + Nhorz*2 + num_fringes + Nvert*2 + num_fringes);
+
+        slib::DecodePhaseCodeImages(phases, m_phase_map[1]);
+
+        //debug
+        {
+#if 1
+        double minVal,maxVal;
+        Mat tmp = m_gray_map[1].clone();
+        cv::minMaxIdx(tmp,&minVal,&maxVal);
+        //std::cout<< "DecodeFrame: Max-Min = " << maxVal << "-" << minVal << std::endl;
+        tmp.convertTo(tmp,CV_16U, 65535/(maxVal-minVal),-65535*minVal/(maxVal-minVal));
+        QString filename = QString("am_map_gray1_C%1.png").arg(numCam, 1);
+        cv::imwrite(filename.toStdString(), tmp);   // gray_map is CV_16U using PNG
+
+        tmp = m_gray_error[1].clone();
+        cv::minMaxIdx(tmp,&minVal,&maxVal);
+        //std::cout<< "DecodeFrame: Max-Min = " << maxVal << "-" << minVal << std::endl;
+        tmp.convertTo(tmp,CV_8U, 255/(maxVal-minVal),-225*minVal/(maxVal-minVal));
+        filename = QString("am_gray_error1_C%1.png").arg(numCam, 1);
+        cv::imwrite(filename.toStdString(), tmp);  //gray_error is CV_8U using BMP
+
+        tmp = m_phase_map[1].clone();
+        cv::minMaxIdx(tmp,&minVal,&maxVal);
+        //std::cout<< "DecodeFrame: Max-Min = " << maxVal << "-" << minVal << std::endl;
+        tmp.convertTo(tmp,CV_16U, 65535/(maxVal-minVal),-65535*minVal/(maxVal-minVal));
+        filename = QString("am_phase_map1_C%1.png").arg(numCam, 1);
+        cv::imwrite(filename.toStdString(), tmp);
+
+        tmp = m_mask[1].clone();
+        cv::minMaxIdx(tmp,&minVal,&maxVal);
+        //std::cout<< "DecodeFrame: Max-Min = " << maxVal << "-" << minVal << std::endl;
+        //tmp.convertTo(tmp,CV_8U, 255/(maxVal-minVal),-255*min/(maxVal-minVal));
+        tmp.convertTo(tmp,CV_8U,255.0/(maxVal-minVal),-255.0*minVal/(maxVal-minVal));
+        filename = QString("am_mask1_C%1.BMP").arg(numCam, 1);
+        cv::imwrite(filename.toStdString(), tmp);
+#endif
+        }
+
+        slib::UnwrapPhase(m_phase_map[1], fringe_interval * num_fringes, m_gray_map[1], m_phase_map[1], m_phase_error[1]);
+        convert_reliable_map(1);
+
+        //debug
+        {
+#if 1
+        double minVal,maxVal;
+
+        Mat tmp = m_phase_map[1].clone();
+        cv::minMaxIdx(tmp,&minVal,&maxVal);
+        //std::cout<< "m_phase_map: Max-Min = " << maxVal << "-" << minVal << std::endl;
+        tmp.convertTo(tmp,CV_16U, 65535/(maxVal-minVal),-65535*minVal/(maxVal-minVal));
+        //tmp.convertTo(tmp,CV_16U, 65535/(maxVal),0);
+        QString filename = QString("am_map_phase_unwraped1_C%1.png").arg(numCam, 1);
+        cv::imwrite(filename.toStdString(), tmp);   // gray_map is CV_16U using PNG
+
+        tmp = m_phase_error[1].clone();
+        cv::minMaxIdx(tmp,&minVal,&maxVal);
+        //std::cout<< "m_phase_error: Max-Min = " << maxVal << "-" << minVal << std::endl;
+        tmp.convertTo(tmp,CV_16U, 65535/(maxVal-minVal),-65535*minVal/(maxVal-minVal));
+        //tmp.convertTo(tmp,CV_16U, 65535/(maxVal),0);
+        filename = QString("am_phase_error1_C%1.png").arg(numCam, 1);
+        cv::imwrite(filename.toStdString(), tmp);   // gray_map is CV_16U using PNG
+
+        tmp = m_reliable_mask[1].clone();
+        cv::minMaxIdx(tmp,&minVal,&maxVal);
+        //std::cout<< "m_reliable_mask: Max-Min = " << maxVal << "-" << minVal << std::endl;
+        tmp.convertTo(tmp,CV_8U,255.0/(maxVal-minVal),-255.0*minVal/(maxVal-minVal));
+        //tmp.convertTo(tmp,CV_8U,255,0);
+        filename = QString("am_mask_reliable1_C%1.BMP").arg(numCam, 1);
+        cv::imwrite(filename.toStdString() , tmp);  //gray_error is CV_8U using BMP
+#endif
+        }
+
+    }
+
+    //std::cout<< "decodeFrames begin00-CodecDirBoth=." << CodecDirBoth <<std::endl;
+
+
+    // merge masks and reliable maps
+    if (dir & CodecDirBoth)
+    {
+        for (int x = 0; x < m_mask[0].rows; x++)
+        {
+            for (int y = 0; y < m_mask[0].cols; y++)
+            {
+                if (!m_mask[1].at<uchar>(x, y))
+                    m_mask[0].at<uchar>(x, y) = 0;
+                m_reliable_mask[0].at<uchar>(x,y) = std::min(m_reliable_mask[0].at<uchar>(x,y),m_reliable_mask[1].at<uchar>(x,y));
+            }
+        }
+    }
+
+
+//    std::cout<< "decodeFrames ennnd." <<std::endl;
+    up = m_phase_map[0]*screenCols;
+    vp = m_phase_map[1]*screenRows;
+    mask = m_reliable_mask[0]>0;
+
+    //debug
+    {
+#if 1
+    double minVal,maxVal;
+    Mat tmp = mask.clone();
+    cv::minMaxIdx(tmp,&minVal,&maxVal);
+    //std::cout<< "m_mask_final: Max-Min = " << maxVal << "-" << minVal << std::endl;
+    tmp.convertTo(tmp,CV_8U,255.0/(maxVal-minVal),-255.0*minVal/(maxVal-minVal));
+    QString filename = QString("am_mask_final_C%1.BMP").arg(numCam, 1);
+    cv::imwrite(filename.toStdString() , tmp);  //gray_error is CV_8U using BMP
+
 #endif
     }
 }

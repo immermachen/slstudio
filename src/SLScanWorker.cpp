@@ -520,10 +520,8 @@ void SLScanWorker::doWork_CC()
                 }
                 else if(iNum = -1)
                 {
-                    QString filename=QString("dataCapturedForTest/%1_%2.bmp").arg(cNum,1).arg(i,2,10,QChar('0'));
-                    if(cNum==2)
-                        filename=QString("dataCapturedForTest/%1_%2.bmp").arg(c,1).arg(i,2,10,QChar('0'));
-                    frameCV = cv::imread(filename.toStdString().c_str(), CV_LOAD_IMAGE_GRAYSCALE);
+                    QString filename=QString("dataCapturedForTest/%1_%2.bmp").arg(c,1).arg(i,2,10,QChar('0'));
+                    frameCV = cv::imread(filename.toStdString(), CV_LOAD_IMAGE_GRAYSCALE);
                     frameCV = frameCV.clone();
                 }
 

@@ -184,14 +184,14 @@ void SLDecoderWorker::decodeSequence(std::vector<cv::Mat> frameSeq0, std::vector
 
     for(unsigned int i=0; i<frameSeq0.size(); i++)
         decoder->setFrame(i, frameSeq0[i]);
-    decoder->decodeFrames(up0, vp0, mask0, shading0);
+    ((DecoderGrayPhase*)decoder)->decodeFrames(up0, vp0, mask0, shading0, 1);
 
     std::cout << "Decoder0 End: " << time.restart() << "ms" << std::endl;
     std::cout << "Decoder1 beginning: " << time.restart() << "ms" << std::endl;
 
     for(unsigned int i=0; i<frameSeq1.size(); i++)
         decoder->setFrame(i, frameSeq1[i]);
-    decoder->decodeFrames(up1, vp1, mask1, shading1);
+    ((DecoderGrayPhase*)decoder)->decodeFrames(up1, vp1, mask1, shading1, 2);
 
     std::cout << "Decoder1 End: " << time.restart() << "ms" << std::endl;
 

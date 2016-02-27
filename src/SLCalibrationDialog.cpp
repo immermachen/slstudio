@@ -321,7 +321,8 @@ void SLCalibrationDialog::on_snapButton_clicked()
         {
             int numCam = 0;
             int numSeqs = frameSeqs[0].size();
-            QString filename = QString("dataForCalTest/%1_%2_%3.bmp").arg(numSeqs,2, 10, QChar('0')).arg(numCam, 1).arg(i, 2, 10, QChar('0'));
+            //QString filename = QString("dataForCalTest/%1_%2_%3.bmp").arg(numSeqs,2, 10, QChar('0')).arg(numCam, 1).arg(i, 2, 10, QChar('0'));
+            QString filename = QString("dataForCalTest/%1_%2_60.bmp").arg(numSeqs,2, 10, QChar('0')).arg(numCam, 1);
             cv::Mat curframeCV;
 
             if(iNum==0)
@@ -338,7 +339,8 @@ void SLCalibrationDialog::on_snapButton_clicked()
             }
 
             //if(writeToDisk)
-            QString datacal = QString("dataCal/%1_%2_%3.bmp").arg(numSeqs,2, 10, QChar('0')).arg(numCam, 1).arg(i, 2, 10, QChar('0'));
+            //QString datacal = QString("dataCal/%1_%2_%3.bmp").arg(numSeqs,2, 10, QChar('0')).arg(numCam, 1).arg(i, 2, 10, QChar('0'));
+            QString datacal = QString("dataCal/%1_%2_60.bmp").arg(numSeqs,2, 10, QChar('0')).arg(numCam, 1);
             cv::imwrite(datacal.toStdString(), curframeCV);
 
             frameSeq[0].push_back(datacal.toStdString());
@@ -349,7 +351,8 @@ void SLCalibrationDialog::on_snapButton_clicked()
         {
             int numCam = 1;
             int numSeqs = frameSeqs[1].size();
-            QString filename = QString("dataForCalTest/%1_%2_%3.bmp").arg(numSeqs,2, 10, QChar('0')).arg(numCam, 1).arg(i, 2, 10, QChar('0'));
+            //QString filename = QString("dataForCalTest/%1_%2_%3.bmp").arg(numSeqs,2, 10, QChar('0')).arg(numCam, 1).arg(i, 2, 10, QChar('0'));
+            QString filename = QString("dataForCalTest/%1_%2_60.bmp").arg(numSeqs,2, 10, QChar('0')).arg(numCam, 1);
             cv::Mat curframeCV;
 
             if(iNum==0)
@@ -372,7 +375,8 @@ void SLCalibrationDialog::on_snapButton_clicked()
             }
 
             //if(writeToDisk)
-            QString datacal = QString("dataCal/%1_%2_%3.bmp").arg(numSeqs,2, 10, QChar('0')).arg(numCam, 1).arg(i, 2, 10, QChar('0'));
+            //QString datacal = QString("dataCal/%1_%2_%3.bmp").arg(numSeqs,2, 10, QChar('0')).arg(numCam, 1).arg(i, 2, 10, QChar('0'));
+            QString datacal = QString("dataCal/%1_%2_60.bmp").arg(numSeqs,2, 10, QChar('0')).arg(numCam, 1);
             cv::imwrite(datacal.toStdString(), curframeCV);
 
             frameSeq[1].push_back(datacal.toStdString());

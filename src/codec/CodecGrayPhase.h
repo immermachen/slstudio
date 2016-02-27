@@ -20,6 +20,7 @@ class DecoderGrayPhase : public Decoder {
         // Decoding
         void setFrame(unsigned int depth, const cv::Mat frame);
         void decodeFrames(cv::Mat &up, cv::Mat &vp, cv::Mat &mask, cv::Mat &shading);
+        void decodeFrames(cv::Mat &up, cv::Mat &vp, cv::Mat &mask, cv::Mat &shading, int numCam);
     private:
         std::vector<cv::Mat> frames;
 
