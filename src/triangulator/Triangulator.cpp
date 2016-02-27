@@ -54,7 +54,8 @@ Triangulator::Triangulator(CalibrationData _calibration) : calibration(_calibrat
 
     // Precompute lens correction maps
     cv::Mat eye = cv::Mat::eye(3, 3, CV_32F);
-    cv::initUndistortRectifyMap(calibration.Kc, calibration.kc, eye, calibration.Kc, cv::Size(calibration.frameWidth, calibration.frameHeight), CV_32FC1, lensMap1, lensMap2);
+    cv::initUndistortRectifyMap(calibration.Kc, calibration.kc, eye, calibration.Kc, cv::Size(calibration.frameWidth, calibration.frameHeight), CV_32FC1, lensMap1, lensMap2); //camera0
+    cv::initUndistortRectifyMap(calibration.Kp, calibration.kp, eye, calibration.Kp, cv::Size(calibration.frameWidth, calibration.frameHeight), CV_32FC1, lensMap1_P, lensMap2_P); //camera1
 
     //cv::Mat map1, map2;
     //cv::normalize(lensMap1, map1, 0, 255, cv::NORM_MINMAX, CV_8U);
@@ -159,7 +160,7 @@ void Triangulator::triangulate(cv::Mat &up0, cv::Mat &vp0, cv::Mat &mask0, cv::M
     }
     if(!up1.empty()){
         cv::Mat upUndistort;
-        cv::remap(up1, upUndistort, lensMap1, lensMap2, cv::INTER_LINEAR);
+        cv::remap(up1, upUndistort, lensMap1_P, lensMap2_P, cv::INTER_LINEAR);
         up1 = upUndistort;
     }
     if(!vp0.empty()){
@@ -169,7 +170,7 @@ void Triangulator::triangulate(cv::Mat &up0, cv::Mat &vp0, cv::Mat &mask0, cv::M
     }
     if(!vp1.empty()){
         cv::Mat vpUndistort;
-        cv::remap(vp1, vpUndistort, lensMap1, lensMap2, cv::INTER_LINEAR);
+        cv::remap(vp1, vpUndistort, lensMap1_P, , cv::INTER_LINEAR);
         vp1 = vpUndistort;
     }
 
@@ -179,8 +180,8 @@ void Triangulator::triangulate(cv::Mat &up0, cv::Mat &vp0, cv::Mat &mask0, cv::M
     mask0 = maskUndistort0;
     shading0 = shadingUndistort0;
 
-    cv::remap(mask1, maskUndistort1, lensMap1, lensMap2, cv::INTER_LINEAR);
-    cv::remap(shading1, shadingUndistort1, lensMap1, lensMap2, cv::INTER_LINEAR);
+    cv::remap(mask1, maskUndistort1, lensMap1_P, lensMap2_P, cv::INTER_LINEAR);
+    cv::remap(shading1, shadingUndistort1, lensMap1_P, lensMap2_P, cv::INTER_LINEAR);
     mask1 = maskUndistort1;
     shading1 = shadingUndistort1;
 
@@ -271,10 +272,11 @@ void Triangulator::triangulateFromUpVp(cv::Mat &up, cv::Mat &vp, cv::Mat &xyz)
     xyz = xyz.reshape(3, up.rows);
 }
 
-
-
 void Triangulator::triangulateFromUpVp(cv::Mat &up0, cv::Mat &vp0, cv::Mat &up1, cv::Mat &vp1, cv::Mat &xyz)
 {
+    //TODO: find the corresponding points depending on the phase value in up and vp.
+
+
     int N = up0.rows * up0.cols;
 
     cv::Mat projPointsCam(2, N, CV_32F);
@@ -307,5 +309,32 @@ void Triangulator::triangulateFromUpVp(cv::Mat &up0, cv::Mat &vp0, cv::Mat &up1,
     xyz = xyz.reshape(3, up0.rows);
 }
 
-
+////Another triangulation method, instead of cv::triangulatePoints
+////http://stackoverflow.com/questions/16295551/how-to-correctly-use-cvtriangulatepoints
+////I tried cv::triangulatePoints, but somehow it calculates garbage.
+////So to implement a linear triangulation method manually, which returns a 4x1 matrix for the triangulated 3D point.
+//cv::Mat Triangulator::triangulate_Linear_LS(cv::Mat mat_P_l, cv::Mat mat_P_r, cv::Mat warped_back_l, cv::Mat warped_back_r)
+//{
+//    cv::Mat A(4,3,CV_64FC1), b(4,1,CV_64FC1), X(3,1,CV_64FC1), X_homogeneous(4,1,CV_64FC1), W(1,1,CV_64FC1);
+//    W.at<double>(0,0) = 1.0;
+//    A.at<double>(0,0) = (warped_back_l.at<double>(0,0)/warped_back_l.at<double>(2,0))*mat_P_l.at<double>(2,0) - mat_P_l.at<double>(0,0);
+//    A.at<double>(0,1) = (warped_back_l.at<double>(0,0)/warped_back_l.at<double>(2,0))*mat_P_l.at<double>(2,1) - mat_P_l.at<double>(0,1);
+//    A.at<double>(0,2) = (warped_back_l.at<double>(0,0)/warped_back_l.at<double>(2,0))*mat_P_l.at<double>(2,2) - mat_P_l.at<double>(0,2);
+//    A.at<double>(1,0) = (warped_back_l.at<double>(1,0)/warped_back_l.at<double>(2,0))*mat_P_l.at<double>(2,0) - mat_P_l.at<double>(1,0);
+//    A.at<double>(1,1) = (warped_back_l.at<double>(1,0)/warped_back_l.at<double>(2,0))*mat_P_l.at<double>(2,1) - mat_P_l.at<double>(1,1);
+//    A.at<double>(1,2) = (warped_back_l.at<double>(1,0)/warped_back_l.at<double>(2,0))*mat_P_l.at<double>(2,2) - mat_P_l.at<double>(1,2);
+//    A.at<double>(2,0) = (warped_back_r.at<double>(0,0)/warped_back_r.at<double>(2,0))*mat_P_r.at<double>(2,0) - mat_P_r.at<double>(0,0);
+//    A.at<double>(2,1) = (warped_back_r.at<double>(0,0)/warped_back_r.at<double>(2,0))*mat_P_r.at<double>(2,1) - mat_P_r.at<double>(0,1);
+//    A.at<double>(2,2) = (warped_back_r.at<double>(0,0)/warped_back_r.at<double>(2,0))*mat_P_r.at<double>(2,2) - mat_P_r.at<double>(0,2);
+//    A.at<double>(3,0) = (warped_back_r.at<double>(1,0)/warped_back_r.at<double>(2,0))*mat_P_r.at<double>(2,0) - mat_P_r.at<double>(1,0);
+//    A.at<double>(3,1) = (warped_back_r.at<double>(1,0)/warped_back_r.at<double>(2,0))*mat_P_r.at<double>(2,1) - mat_P_r.at<double>(1,1);
+//    A.at<double>(3,2) = (warped_back_r.at<double>(1,0)/warped_back_r.at<double>(2,0))*mat_P_r.at<double>(2,2) - mat_P_r.at<double>(1,2);
+//    b.at<double>(0,0) = -((warped_back_l.at<double>(0,0)/warped_back_l.at<double>(2,0))*mat_P_l.at<double>(2,3) - mat_P_l.at<double>(0,3));
+//    b.at<double>(1,0) = -((warped_back_l.at<double>(1,0)/warped_back_l.at<double>(2,0))*mat_P_l.at<double>(2,3) - mat_P_l.at<double>(1,3));
+//    b.at<double>(2,0) = -((warped_back_r.at<double>(0,0)/warped_back_r.at<double>(2,0))*mat_P_r.at<double>(2,3) - mat_P_r.at<double>(0,3));
+//    b.at<double>(3,0) = -((warped_back_r.at<double>(1,0)/warped_back_r.at<double>(2,0))*mat_P_r.at<double>(2,3) - mat_P_r.at<double>(1,3));
+//    cv::solve(A,b,X,DECOMP_SVD);
+//    cv::vconcat(X,W,X_homogeneous);
+//    return X_homogeneous;
+//}
 

@@ -21,7 +21,8 @@ class Triangulator {
         CalibrationData calibration;
         cv::Mat determinantTensor;
         cv::Mat uc, vc;
-        cv::Mat lensMap1, lensMap2;
+        cv::Mat lensMap1, lensMap2; //FOR Camera0
+        cv::MaT lensMap1_P, lensMap2_P; // for camera1
 };
 
 #endif
