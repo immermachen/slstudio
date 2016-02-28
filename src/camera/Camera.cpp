@@ -22,7 +22,7 @@ std::vector< std::vector<CameraInfo> > Camera::GetInterfaceCameraList(){
 
 #ifdef WITH_CAMERAVIMBA
     std::vector<CameraInfo> vimbacameras = CameraVimba::getCameraList();
-    //std::cout<<"GetInterfaceCameraList-->WITH_CAMERAVIMBA" << vimbacameras.size()<<std::endl;
+    std::cout<<"Camera::GetInterfaceCameraList-->WITH_CAMERAVIMBA" << vimbacameras.size()<<std::endl;
     ret.push_back(vimbacameras);
 #endif
 #ifdef WITH_CAMERAIIDC

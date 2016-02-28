@@ -447,8 +447,21 @@ void DecoderGrayPhase::decodeFrames(cv::Mat &up, cv::Mat &vp, cv::Mat &mask, cv:
     //std::cout<< "decodeFrames begin00-CodecDirBoth=." << CodecDirBoth <<std::endl;
 
 
+    if (dir & CodecDirHorizontal)
+    {
+        up = m_phase_map[0]*screenCols;
+        mask = m_reliable_mask[0]>0;
+    }
+    if (dir & CodecDirVertical)
+    {
+        vp = m_phase_map[1]*screenRows;
+        mask = m_reliable_mask[1]>0;
+    }
+
     // merge masks and reliable maps
-    if (dir & CodecDirBoth)
+    //    (a)   Logical-and:   if ( ( a>1 ) && (b<0) ) ...
+    //    (b)   Bitwise-and:   x = a&b;   Corresponding bits are and'ed (e.g. 0&1 -> 0)
+    if (dir == CodecDirBoth)  //Bitwise-and
     {
         for (int x = 0; x < m_mask[0].rows; x++)
         {
@@ -459,13 +472,9 @@ void DecoderGrayPhase::decodeFrames(cv::Mat &up, cv::Mat &vp, cv::Mat &mask, cv:
                 m_reliable_mask[0].at<uchar>(x,y) = std::min(m_reliable_mask[0].at<uchar>(x,y),m_reliable_mask[1].at<uchar>(x,y));
             }
         }
+
+        mask = m_reliable_mask[0]>0;
     }
-
-
-//    std::cout<< "decodeFrames ennnd." <<std::endl;
-    up = m_phase_map[0]*screenCols;
-    vp = m_phase_map[1]*screenRows;
-    mask = m_reliable_mask[0]>0;
 
     //debug
     {
@@ -659,7 +668,7 @@ void DecoderGrayPhase::decodeFrames(cv::Mat &up, cv::Mat &vp, cv::Mat &mask, cv:
 
 
     // merge masks and reliable maps
-    if (dir & CodecDirBoth)
+    if (dir == CodecDirBoth)
     {
         for (int x = 0; x < m_mask[0].rows; x++)
         {

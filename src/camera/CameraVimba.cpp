@@ -193,7 +193,7 @@ bool CameraVimba::Init(unsigned int camNum)
         }
 
     } else {
-        std::cout << "Could not start system. Error code: " << err;
+        std::cout << "CameraVimba::Init => Camera camNum=" << camNum<< ": Could not start system. Error code: " << err;
         return false;
     }
 
@@ -270,7 +270,7 @@ std::vector<CameraInfo> CameraVimba::getCameraList()
 
     if( VmbErrorSuccess != err )
     {
-        std::cout << "Could not start system. Error code: " << err <<"("<<AVT::VmbAPI::Examples::ErrorCodeToMessage(err)<<")"<< "\n";
+        std::cout << "CameraVimba::getCameraList()=> Could not start system due to no VimbaCamera connected: sys.Startup(); Error code: " << err <<"("<<AVT::VmbAPI::Examples::ErrorCodeToMessage(err)<<")"<< "\n";
         return ret;
     }
 

@@ -135,14 +135,25 @@ void Triangulator::triangulate(cv::Mat &up, cv::Mat &vp, cv::Mat &mask, cv::Mat 
         cv::imwrite("avp_undistorted.png", tmp);   // gray_map is CV_16U using PNG
     }
 
-    // Triangulate
+    // Triangulate  // Vp better than Up, why?
     cv::Mat xyz;
     if(!up.empty() && vp.empty())
+    {
+        std::cout << "Using triangulateFromUp!" << std::endl;
         triangulateFromUp(up, xyz);
+    }
     else if(!vp.empty() && up.empty())
+    {
+        std::cout << "Using triangulateFromVp!" << std::endl;
         triangulateFromVp(vp, xyz);
+    }
     else if(!up.empty() && !vp.empty())
-        triangulateFromUpVp(up, vp, xyz);
+    {
+        std::cout << "TODO: Using triangulateFromVp instead of triangulateFromUpVp!" << std::endl;
+        //triangulateFromUp(up, xyz); //bad
+        triangulateFromVp(vp, xyz); //good
+        //triangulateFromUpVp(up, vp, xyz);
+    }
 
     // Mask
     pointCloud = cv::Mat(up.size(), CV_32FC3, cv::Scalar(NAN, NAN, NAN));
