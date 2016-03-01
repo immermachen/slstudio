@@ -738,7 +738,7 @@ void DecoderGrayPhase::decodeFrames(cv::Mat &up, cv::Mat &vp, cv::Mat &mask, cv:
 
     //debug
     {
-#if 0
+#if 1
     double minVal,maxVal;
     Mat tmp = mask.clone();
     cv::minMaxIdx(tmp,&minVal,&maxVal);
@@ -747,40 +747,33 @@ void DecoderGrayPhase::decodeFrames(cv::Mat &up, cv::Mat &vp, cv::Mat &mask, cv:
     QString filename = QString("am_mask_final_C%1.BMP").arg(numCam, 1);
     cv::imwrite(filename.toStdString() , tmp);  //gray_error is CV_8U using BMP
 
-    //apply mask
-    Mat unwrapped_up = m_phase_map[0].clone();
-    Mat unwrapped_vp = m_phase_map[1].clone();
-    for (int x = 0; x < mask.rows; x++)
-    {
-        for (int y = 0; y < mask.cols; y++)
-        {
-            if (mask.at<uchar>(x, y)==0)
-            {
-                unwrapped_up.at<uchar>(x, y) = 0;
-                unwrapped_vp.at<uchar>(x, y) = 0;
-            }
-        }
-    }
+    //apply mask: in_mat.copyTo(out_mat, mask_mat);
+    //Note that the input and output image should not be the same! OpenCV does not throw an error, but the behavior is undefined.
+    Mat unwrapped_up; //masked up
+    Mat unwrapped_vp;
+    up.copyTo(unwrapped_up, mask);
+    vp.copyTo(unwrapped_vp, mask);
 
     cv::minMaxIdx(unwrapped_up,&minVal,&maxVal);
     Mat temp = unwrapped_up.clone();
-    unwrapped_up.convertTo(temp,CV_16U, 65535/(maxVal-minVal),-65535*minVal/(maxVal-minVal));
+    temp.convertTo(temp,CV_16U, 65535/(maxVal-minVal),-65535*minVal/(maxVal-minVal));
     filename = QString("am_map_phase_unwraped0_C%1_maksed.png").arg(numCam, 1);
     cv::imwrite(filename.toStdString(), temp);
 
-    Mat Dst(temp, Rect(0,1000,2448,1)); // Rect_(x, y, width,height);
+    Mat Dst(unwrapped_up, Rect(0,1000,2448,1)); // Rect_(x, y, width,height);
     writeMatToFile(Dst,QString("am_map_phase_unwraped0_0_1000_2448_1_C%1_masked.txt").arg(numCam, 1).toStdString().c_str(), 0);
-    Mat Dst1(temp, Rect(0,1010,2448,1)); // Rect_(x, y, width,height);
+    Mat Dst1(unwrapped_up, Rect(0,1010,2448,1)); // Rect_(x, y, width,height);
     writeMatToFile(Dst1,QString("am_map_phase_unwraped0_0_1010_2448_1_C%1_masked.txt").arg(numCam, 1).toStdString().c_str(), 0);
 
     cv::minMaxIdx(unwrapped_vp,&minVal,&maxVal);
-    unwrapped_vp.convertTo(temp,CV_16U, 65535/(maxVal-minVal),-65535*minVal/(maxVal-minVal));
+    temp = unwrapped_vp.clone();
+    temp.convertTo(temp,CV_16U, 65535/(maxVal-minVal),-65535*minVal/(maxVal-minVal));
     filename = QString("am_map_phase_unwraped1_C%1_masked.png").arg(numCam, 1);
     cv::imwrite(filename.toStdString(), temp);
 
-    Mat Dst2(temp, Rect(1000,0,1,2050)); // Rect_(x, y, width,height);
+    Mat Dst2(unwrapped_vp, Rect(1000,0,1,2050)); // Rect_(x, y, width,height);
     writeMatToFile(Dst2, QString("am_map_phase_unwraped1_1000_0_1_2050_C%1_masked.txt").arg(numCam, 1).toStdString().c_str(), 1);
-    Mat Dst3(temp, Rect(1050,0,1,2050)); // Rect_(x, y, width,height);
+    Mat Dst3(unwrapped_vp, Rect(1050,0,1,2050)); // Rect_(x, y, width,height);
     writeMatToFile(Dst3, QString("am_map_phase_unwraped1_1050_0_1_2050_C%1_masked.txt").arg(numCam, 1).toStdString().c_str(), 1);
 
 
