@@ -151,8 +151,8 @@ void Triangulator::triangulate(cv::Mat &up, cv::Mat &vp, cv::Mat &mask, cv::Mat 
     {
         std::cout << "Triangulator::triangulate: TODO: Using triangulateFromVp instead of triangulateFromUpVp!" << std::endl;
         //triangulateFromUp(up, xyz); //bad
-        //triangulateFromVp(vp, xyz); //good
-        triangulateFromUpVp(up, vp, xyz);
+        triangulateFromVp(vp, xyz); //good
+        //triangulateFromUpVp(up, vp, xyz); //not so good as Vp, it has skewed.
     }
 
     // Mask
@@ -201,9 +201,10 @@ void Triangulator::triangulate(cv::Mat &up0, cv::Mat &vp0, cv::Mat &mask0, cv::M
     triangulateFromUpVp(up0, vp0, up1, vp1, xyz);
 
     // Aplly Mask
+    cv::Mat pointCloud1 = cv::Mat(up0.size(), CV_32FC3, cv::Scalar(NAN, NAN, NAN));
+    xyz.copyTo(pointCloud1, mask0);
     pointCloud = cv::Mat(up0.size(), CV_32FC3, cv::Scalar(NAN, NAN, NAN));
-    xyz.copyTo(pointCloud, mask0);
-    pointCloud.copyTo(pointCloud, mask1);
+    pointCloud1.copyTo(pointCloud, mask1);
 
 }
 

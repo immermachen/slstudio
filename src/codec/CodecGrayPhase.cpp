@@ -348,14 +348,6 @@ void DecoderGrayPhase::decodeFrames(cv::Mat &up, cv::Mat &vp, cv::Mat &mask, cv:
         cv::minMaxIdx(tmp,&minVal,&maxVal);
         std::cout<< "m_phase_map0: Max-Min = " << maxVal << "-" << minVal << std::endl;
 
-        Mat Dst(tmp, Rect(1000,1000,50,20)); // Rect_(x, y, width,height);
-        FileStorage file("m_phase_map0_1000_1000_50_20.ext", cv::FileStorage::WRITE);
-        file<<Dst;
-
-        //Mat Dst(tmp, Rect(1000,0,20,20));
-        FileStorage file1("m_phase_map0.ext", cv::FileStorage::WRITE);
-        file1<<tmp;
-
         tmp.convertTo(tmp,CV_16U, 65535/(maxVal-minVal),-65535*minVal/(maxVal-minVal));
         //tmp.convertTo(tmp,CV_16U, 65535/(maxVal),0);
         cv::imwrite("am_map_phase_unwraped.png", tmp);   // gray_map is CV_16U using PNG
@@ -434,14 +426,6 @@ void DecoderGrayPhase::decodeFrames(cv::Mat &up, cv::Mat &vp, cv::Mat &mask, cv:
         cv::minMaxIdx(tmp,&minVal,&maxVal);
         std::cout<< "m_phase_map1: Max-Min = " << maxVal << "-" << minVal << std::endl;
 
-        Mat Dst(tmp, Rect(1000,0,1,2050)); // Rect_(x, y, width,height);
-        FileStorage file("m_phase_map1_1000_0_1_2050.yml", cv::FileStorage::WRITE);
-        file<<Dst;
-        //Mat Dst(tmp, Rect(1000,0,20,20));
-        FileStorage file1("m_phase_map1.yml", cv::FileStorage::WRITE);
-        file1<<tmp;
-
-
         tmp.convertTo(tmp,CV_16U, 65535/(maxVal-minVal),-65535*minVal/(maxVal-minVal));
         //tmp.convertTo(tmp,CV_16U, 65535/(maxVal),0);
         cv::imwrite("am_map_phase_unwraped1.png", tmp);   // gray_map is CV_16U using PNG
@@ -466,15 +450,16 @@ void DecoderGrayPhase::decodeFrames(cv::Mat &up, cv::Mat &vp, cv::Mat &mask, cv:
 
     //std::cout<< "decodeFrames begin00-CodecDirBoth=." << CodecDirBoth <<std::endl;
 
-
     if (dir & CodecDirHorizontal)
     {
         up = m_phase_map[0]*screenCols;
+        //up = m_phase_map[0];
         mask = m_reliable_mask[0]>0;
     }
     if (dir & CodecDirVertical)
     {
-        vp = m_phase_map[1]*screenRows;
+        vp = m_phase_map[1]*screenRows; //good
+        //vp = m_phase_map[1];          //bad ????
         mask = m_reliable_mask[1]>0;
     }
 
@@ -715,25 +700,15 @@ void DecoderGrayPhase::decodeFrames(cv::Mat &up, cv::Mat &vp, cv::Mat &mask, cv:
                 if (!m_mask[1].at<uchar>(x, y))
                     m_mask[0].at<uchar>(x, y) = 0;
                 m_reliable_mask[0].at<uchar>(x,y) = std::min(m_reliable_mask[0].at<uchar>(x,y),m_reliable_mask[1].at<uchar>(x,y));
-
-//                if(m_reliable_mask[0].at<uchar>(x,y) == 0 || m_reliable_mask[1].at<uchar>(x,y) == 0)
-//                {
-//                    m_reliable_mask[0].at<uchar>(x,y) = 0;
-//                    mask.at<uchar>(x,y) = 0;
-//                }
-//                else
-//                {
-//                    m_reliable_mask[0].at<uchar>(x,y) = 1;
-//                    mask.at<uchar>(x,y) = 1;
-//                }
             }
         }
     }
 
-
 //    std::cout<< "decodeFrames ennnd." <<std::endl;
-    up = m_phase_map[0]; // m_phase_map[0]*screenCols;
-    vp = m_phase_map[1]; // m_phase_map[1]*screenRows;
+    up = m_phase_map[0];                   //why? here is good, but flat and curve flache , just different from above
+//     up = m_phase_map[0]*screenCols;      // here is bad
+    vp = m_phase_map[1];
+//     vp = m_phase_map[1]*screenRows;
     mask =  m_reliable_mask[0]>0;
 
     //debug
@@ -797,7 +772,7 @@ void DecoderGrayPhase::writeMatToFile(cv::Mat& m, const std::string& filename, u
         {
             for(int j=0; j<m.cols; j++)
             {
-                fout<<m.at<float>(i,j)<<"\t";
+                fout<<m.at<float>(i,j)<<"\t"; //Note: the type for output
             }
             fout<<endl;
         }
