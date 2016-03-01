@@ -35,6 +35,8 @@ class DecoderGrayPhase : public Decoder {
         void decode_phase(const std::vector<Mat>& images, int direction);
         //void apply_mask(const slib::Field<2,float>& mask, slib::Field<2,slib::CVector<3,float>>& img) const;
         void generate_mask(int direction);
+        void writeMatToFile(cv::Mat& m, const std::string& filename, unsigned int dir, int value); // template TODO
+        void writeMatToFile(cv::Mat& m, const std::string& filename, unsigned int dir);
 };
 
 #endif // CodecGrayPHASE_H

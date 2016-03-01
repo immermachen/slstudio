@@ -434,13 +434,13 @@ void DecoderGrayPhase::decodeFrames(cv::Mat &up, cv::Mat &vp, cv::Mat &mask, cv:
         cv::minMaxIdx(tmp,&minVal,&maxVal);
         std::cout<< "m_phase_map1: Max-Min = " << maxVal << "-" << minVal << std::endl;
 
-        Mat Dst(tmp, Rect(1000,1000,20,50)); // Rect_(x, y, width,height);
-        FileStorage file("m_phase_map1_1000_1000_20_50.ext", cv::FileStorage::WRITE);
+        Mat Dst(tmp, Rect(1000,0,1,2050)); // Rect_(x, y, width,height);
+        FileStorage file("m_phase_map1_1000_0_1_2050.yml", cv::FileStorage::WRITE);
         file<<Dst;
-
         //Mat Dst(tmp, Rect(1000,0,20,20));
-        FileStorage file1("m_phase_map1.ext", cv::FileStorage::WRITE);
+        FileStorage file1("m_phase_map1.yml", cv::FileStorage::WRITE);
         file1<<tmp;
+
 
         tmp.convertTo(tmp,CV_16U, 65535/(maxVal-minVal),-65535*minVal/(maxVal-minVal));
         //tmp.convertTo(tmp,CV_16U, 65535/(maxVal),0);
@@ -576,15 +576,14 @@ void DecoderGrayPhase::decodeFrames(cv::Mat &up, cv::Mat &vp, cv::Mat &mask, cv:
         cv::minMaxIdx(tmp,&minVal,&maxVal);
         //std::cout<< "m_phase_map: Max-Min = " << maxVal << "-" << minVal << std::endl;
 
-        Mat Dst(tmp, Rect(1000,1000,20,3)); // Rect_(x, y, width,height);
-        FileStorage file(QString("am_map_phase_unwraped0_1000_1000_20_3_C%1.ext").arg(numCam, 1).toStdString(), cv::FileStorage::WRITE);
-        file<<"m_phase_map0"<<Dst;
-        FileStorage file1(QString("am_map_phase_unwraped0_minVal_%2_maxVal_%3_C%1.ext").arg(numCam, 1).arg(minVal).arg(maxVal).toStdString(), cv::FileStorage::WRITE);
-        file1<<"am_map_phase_unwraped0"<<tmp;
+        Mat Dst(tmp, Rect(0,1000,2448,1)); // Rect_(x, y, width,height);
+        writeMatToFile(Dst,QString("am_map_phase_unwraped0_0_1000_2448_1_C%1.txt").arg(numCam, 1).toStdString().c_str(), 0);
+        Mat Dst1(tmp, Rect(0,1010,2448,1)); // Rect_(x, y, width,height);
+        writeMatToFile(Dst1,QString("am_map_phase_unwraped0_0_1010_2448_1_C%1.txt").arg(numCam, 1).toStdString().c_str(), 0);
 
         tmp.convertTo(tmp,CV_16U, 65535/(maxVal-minVal),-65535*minVal/(maxVal-minVal));
         //tmp.convertTo(tmp,CV_16U, 65535/(maxVal),0);
-        QString filename = QString("am_map_phase_unwraped_C%1.png").arg(numCam, 1);
+        QString filename = QString("am_map_phase_unwraped0_C%1.png").arg(numCam, 1);
         cv::imwrite(filename.toStdString(), tmp);   // gray_map is CV_16U using PNG
 
         tmp = m_phase_error[0].clone();
@@ -667,12 +666,15 @@ void DecoderGrayPhase::decodeFrames(cv::Mat &up, cv::Mat &vp, cv::Mat &mask, cv:
         cv::minMaxIdx(tmp,&minVal,&maxVal);
         //std::cout<< "m_phase_map: Max-Min = " << maxVal << "-" << minVal << std::endl; //inner a subprocess can not use std::cout
 
-        Mat Dst(tmp, Rect(1000,1000,2,20)); // Rect_(x, y, width,height);
-        FileStorage file(QString("am_map_phase_unwraped1_1000_1000_2_20_C%1.ext").arg(numCam, 1).toStdString(), cv::FileStorage::WRITE);
-        file<<"am_map_phase_unwraped1"<<Dst;
-        FileStorage file1(QString("am_map_phase_unwraped1_minVal_%2_maxVal_%3_C%1.ext").arg(numCam, 1).arg(minVal).arg(maxVal).toStdString(), cv::FileStorage::WRITE);
-        file1<<"am_map_phase_unwraped1"<<tmp;
-
+        //How to convert cv::Mat to matlab
+        //FileStorage file(QString("am_map_phase_unwraped1_1000_0_1_2050_C%1.yml").arg(numCam, 1).toStdString(), cv::FileStorage::WRITE);
+        //file<<"am_map_phase_unwraped1"<<Dst;
+        //FileStorage file1(QString("am_map_phase_unwraped1_minVal_%2_maxVal_%3_C%1.yml").arg(numCam, 1).arg(minVal).arg(maxVal).toStdString(), cv::FileStorage::WRITE);
+        //file1<<"am_map_phase_unwraped1"<<tmp;
+        Mat Dst(tmp, Rect(1000,0,1,2050)); // Rect_(x, y, width,height);
+        writeMatToFile(Dst, QString("am_map_phase_unwraped1_1000_0_1_2050_C%1.txt").arg(numCam, 1).toStdString().c_str(), 1);
+        Mat Dst1(tmp, Rect(1050,0,1,2050)); // Rect_(x, y, width,height);
+        writeMatToFile(Dst1, QString("am_map_phase_unwraped1_1050_0_1_2050_C%1.txt").arg(numCam, 1).toStdString().c_str(), 1);
 
         tmp.convertTo(tmp,CV_16U, 65535/(maxVal-minVal),-65535*minVal/(maxVal-minVal));
         //tmp.convertTo(tmp,CV_16U, 65535/(maxVal),0);
@@ -705,6 +707,7 @@ void DecoderGrayPhase::decodeFrames(cv::Mat &up, cv::Mat &vp, cv::Mat &mask, cv:
     // merge masks and reliable maps
     if (dir == CodecDirBoth)
     {
+        mask = Mat::zeros(m_reliable_mask[0].size(), CV_8U);
         for (int x = 0; x < m_mask[0].rows; x++)
         {
             for (int y = 0; y < m_mask[0].cols; y++)
@@ -712,19 +715,30 @@ void DecoderGrayPhase::decodeFrames(cv::Mat &up, cv::Mat &vp, cv::Mat &mask, cv:
                 if (!m_mask[1].at<uchar>(x, y))
                     m_mask[0].at<uchar>(x, y) = 0;
                 m_reliable_mask[0].at<uchar>(x,y) = std::min(m_reliable_mask[0].at<uchar>(x,y),m_reliable_mask[1].at<uchar>(x,y));
+
+//                if(m_reliable_mask[0].at<uchar>(x,y) == 0 || m_reliable_mask[1].at<uchar>(x,y) == 0)
+//                {
+//                    m_reliable_mask[0].at<uchar>(x,y) = 0;
+//                    mask.at<uchar>(x,y) = 0;
+//                }
+//                else
+//                {
+//                    m_reliable_mask[0].at<uchar>(x,y) = 1;
+//                    mask.at<uchar>(x,y) = 1;
+//                }
             }
         }
     }
 
 
 //    std::cout<< "decodeFrames ennnd." <<std::endl;
-    up = m_phase_map[0]*screenCols;
-    vp = m_phase_map[1]*screenRows;
-    mask = m_reliable_mask[0]>0;
+    up = m_phase_map[0]; // m_phase_map[0]*screenCols;
+    vp = m_phase_map[1]; // m_phase_map[1]*screenRows;
+    mask =  m_reliable_mask[0]>0;
 
     //debug
     {
-#if 1
+#if 0
     double minVal,maxVal;
     Mat tmp = mask.clone();
     cv::minMaxIdx(tmp,&minVal,&maxVal);
@@ -733,6 +747,116 @@ void DecoderGrayPhase::decodeFrames(cv::Mat &up, cv::Mat &vp, cv::Mat &mask, cv:
     QString filename = QString("am_mask_final_C%1.BMP").arg(numCam, 1);
     cv::imwrite(filename.toStdString() , tmp);  //gray_error is CV_8U using BMP
 
+    //apply mask
+    Mat unwrapped_up = m_phase_map[0].clone();
+    Mat unwrapped_vp = m_phase_map[1].clone();
+    for (int x = 0; x < mask.rows; x++)
+    {
+        for (int y = 0; y < mask.cols; y++)
+        {
+            if (mask.at<uchar>(x, y)==0)
+            {
+                unwrapped_up.at<uchar>(x, y) = 0;
+                unwrapped_vp.at<uchar>(x, y) = 0;
+            }
+        }
+    }
+
+    cv::minMaxIdx(unwrapped_up,&minVal,&maxVal);
+    Mat temp = unwrapped_up.clone();
+    unwrapped_up.convertTo(temp,CV_16U, 65535/(maxVal-minVal),-65535*minVal/(maxVal-minVal));
+    filename = QString("am_map_phase_unwraped0_C%1_maksed.png").arg(numCam, 1);
+    cv::imwrite(filename.toStdString(), temp);
+
+    Mat Dst(temp, Rect(0,1000,2448,1)); // Rect_(x, y, width,height);
+    writeMatToFile(Dst,QString("am_map_phase_unwraped0_0_1000_2448_1_C%1_masked.txt").arg(numCam, 1).toStdString().c_str(), 0);
+    Mat Dst1(temp, Rect(0,1010,2448,1)); // Rect_(x, y, width,height);
+    writeMatToFile(Dst1,QString("am_map_phase_unwraped0_0_1010_2448_1_C%1_masked.txt").arg(numCam, 1).toStdString().c_str(), 0);
+
+    cv::minMaxIdx(unwrapped_vp,&minVal,&maxVal);
+    unwrapped_vp.convertTo(temp,CV_16U, 65535/(maxVal-minVal),-65535*minVal/(maxVal-minVal));
+    filename = QString("am_map_phase_unwraped1_C%1_masked.png").arg(numCam, 1);
+    cv::imwrite(filename.toStdString(), temp);
+
+    Mat Dst2(temp, Rect(1000,0,1,2050)); // Rect_(x, y, width,height);
+    writeMatToFile(Dst2, QString("am_map_phase_unwraped1_1000_0_1_2050_C%1_masked.txt").arg(numCam, 1).toStdString().c_str(), 1);
+    Mat Dst3(temp, Rect(1050,0,1,2050)); // Rect_(x, y, width,height);
+    writeMatToFile(Dst3, QString("am_map_phase_unwraped1_1050_0_1_2050_C%1_masked.txt").arg(numCam, 1).toStdString().c_str(), 1);
+
+
+
 #endif
     }
+}
+
+void DecoderGrayPhase::writeMatToFile(cv::Mat& m, const std::string& filename, unsigned int dir)
+{
+    ofstream fout(filename.c_str());
+
+    if(!fout)
+    {
+        cout<<"File Not Opened"<<endl;  return;
+    }
+
+    if(dir==0)
+    {
+        for(int i=0; i<m.rows; i++)
+        {
+            for(int j=0; j<m.cols; j++)
+            {
+                fout<<m.at<float>(i,j)<<"\t";
+            }
+            fout<<endl;
+        }
+    }
+    else
+    {
+        for(int j=0; j<m.cols; j++)
+        {
+            for(int i=0; i<m.rows; i++)
+            {
+                fout<<m.at<float>(i,j)<<"\t";
+            }
+            fout<<endl;
+        }
+    }
+
+    fout.close();
+}
+
+void DecoderGrayPhase::writeMatToFile(cv::Mat& m, const std::string& filename, unsigned int dir, int value)
+{
+    ofstream fout(filename.c_str());
+
+    if(!fout)
+    {
+        cout<<"File Not Opened"<<endl;  return;
+    }
+
+    if(dir==0)
+    {
+        for(int i=0; i<m.rows; i++)
+        {
+            for(int j=0; j<m.cols; j++)
+            {
+                unsigned int tmp  = m.at<uchar>(i,j);
+                fout<< tmp <<"\t";
+            }
+            fout<<endl;
+        }
+    }
+    else
+    {
+        for(int j=0; j<m.cols; j++)
+        {
+            for(int i=0; i<m.rows; i++)
+            {
+                unsigned int tmp  = m.at<uchar>(i,j);
+                fout<< tmp <<"\t";
+            }
+            fout<<endl;
+        }
+    }
+
+    fout.close();
 }
