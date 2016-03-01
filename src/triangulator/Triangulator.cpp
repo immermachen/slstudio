@@ -149,10 +149,10 @@ void Triangulator::triangulate(cv::Mat &up, cv::Mat &vp, cv::Mat &mask, cv::Mat 
     }
     else if(!up.empty() && !vp.empty())
     {
-        std::cout << "TODO: Using triangulateFromVp instead of triangulateFromUpVp!" << std::endl;
+        std::cout << "Triangulator::triangulate: TODO: Using triangulateFromVp instead of triangulateFromUpVp!" << std::endl;
         //triangulateFromUp(up, xyz); //bad
-        triangulateFromVp(vp, xyz); //good
-        //triangulateFromUpVp(up, vp, xyz);
+        //triangulateFromVp(vp, xyz); //good
+        triangulateFromUpVp(up, vp, xyz);
     }
 
     // Mask
@@ -286,6 +286,7 @@ void Triangulator::triangulateFromUpVp(cv::Mat &up, cv::Mat &vp, cv::Mat &xyz)
 void Triangulator::triangulateFromUpVp(cv::Mat &up0, cv::Mat &vp0, cv::Mat &up1, cv::Mat &vp1, cv::Mat &xyz)
 {
     //TODO: find the corresponding points depending on the phase value in up and vp.
+    std::cout<< "triangulateFromUpVp: TODO: find the corresponding points depending on the phase value in up and vp." << std::endl;
 
 
     int N = up0.rows * up0.cols;

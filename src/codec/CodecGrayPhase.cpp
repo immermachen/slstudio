@@ -9,6 +9,8 @@
 
 #include "cvtools.h"
 #include <QString>
+#include <fstream>
+
 
 #ifndef M_PI
     #define M_PI 3.14159265358979323846
@@ -344,7 +346,16 @@ void DecoderGrayPhase::decodeFrames(cv::Mat &up, cv::Mat &vp, cv::Mat &mask, cv:
 
         Mat tmp = m_phase_map[0].clone();
         cv::minMaxIdx(tmp,&minVal,&maxVal);
-        //std::cout<< "m_phase_map: Max-Min = " << maxVal << "-" << minVal << std::endl;
+        std::cout<< "m_phase_map0: Max-Min = " << maxVal << "-" << minVal << std::endl;
+
+        Mat Dst(tmp, Rect(1000,1000,50,20)); // Rect_(x, y, width,height);
+        FileStorage file("m_phase_map0_1000_1000_50_20.ext", cv::FileStorage::WRITE);
+        file<<Dst;
+
+        //Mat Dst(tmp, Rect(1000,0,20,20));
+        FileStorage file1("m_phase_map0.ext", cv::FileStorage::WRITE);
+        file1<<tmp;
+
         tmp.convertTo(tmp,CV_16U, 65535/(maxVal-minVal),-65535*minVal/(maxVal-minVal));
         //tmp.convertTo(tmp,CV_16U, 65535/(maxVal),0);
         cv::imwrite("am_map_phase_unwraped.png", tmp);   // gray_map is CV_16U using PNG
@@ -421,7 +432,16 @@ void DecoderGrayPhase::decodeFrames(cv::Mat &up, cv::Mat &vp, cv::Mat &mask, cv:
 
         Mat tmp = m_phase_map[1].clone();
         cv::minMaxIdx(tmp,&minVal,&maxVal);
-        //std::cout<< "m_phase_map: Max-Min = " << maxVal << "-" << minVal << std::endl;
+        std::cout<< "m_phase_map1: Max-Min = " << maxVal << "-" << minVal << std::endl;
+
+        Mat Dst(tmp, Rect(1000,1000,20,50)); // Rect_(x, y, width,height);
+        FileStorage file("m_phase_map1_1000_1000_20_50.ext", cv::FileStorage::WRITE);
+        file<<Dst;
+
+        //Mat Dst(tmp, Rect(1000,0,20,20));
+        FileStorage file1("m_phase_map1.ext", cv::FileStorage::WRITE);
+        file1<<tmp;
+
         tmp.convertTo(tmp,CV_16U, 65535/(maxVal-minVal),-65535*minVal/(maxVal-minVal));
         //tmp.convertTo(tmp,CV_16U, 65535/(maxVal),0);
         cv::imwrite("am_map_phase_unwraped1.png", tmp);   // gray_map is CV_16U using PNG
@@ -555,6 +575,13 @@ void DecoderGrayPhase::decodeFrames(cv::Mat &up, cv::Mat &vp, cv::Mat &mask, cv:
         Mat tmp = m_phase_map[0].clone();
         cv::minMaxIdx(tmp,&minVal,&maxVal);
         //std::cout<< "m_phase_map: Max-Min = " << maxVal << "-" << minVal << std::endl;
+
+        Mat Dst(tmp, Rect(1000,1000,20,3)); // Rect_(x, y, width,height);
+        FileStorage file(QString("am_map_phase_unwraped0_1000_1000_20_3_C%1.ext").arg(numCam, 1).toStdString(), cv::FileStorage::WRITE);
+        file<<"m_phase_map0"<<Dst;
+        FileStorage file1(QString("am_map_phase_unwraped0_minVal_%2_maxVal_%3_C%1.ext").arg(numCam, 1).arg(minVal).arg(maxVal).toStdString(), cv::FileStorage::WRITE);
+        file1<<"am_map_phase_unwraped0"<<tmp;
+
         tmp.convertTo(tmp,CV_16U, 65535/(maxVal-minVal),-65535*minVal/(maxVal-minVal));
         //tmp.convertTo(tmp,CV_16U, 65535/(maxVal),0);
         QString filename = QString("am_map_phase_unwraped_C%1.png").arg(numCam, 1);
@@ -638,7 +665,15 @@ void DecoderGrayPhase::decodeFrames(cv::Mat &up, cv::Mat &vp, cv::Mat &mask, cv:
 
         Mat tmp = m_phase_map[1].clone();
         cv::minMaxIdx(tmp,&minVal,&maxVal);
-        //std::cout<< "m_phase_map: Max-Min = " << maxVal << "-" << minVal << std::endl;
+        //std::cout<< "m_phase_map: Max-Min = " << maxVal << "-" << minVal << std::endl; //inner a subprocess can not use std::cout
+
+        Mat Dst(tmp, Rect(1000,1000,2,20)); // Rect_(x, y, width,height);
+        FileStorage file(QString("am_map_phase_unwraped1_1000_1000_2_20_C%1.ext").arg(numCam, 1).toStdString(), cv::FileStorage::WRITE);
+        file<<"am_map_phase_unwraped1"<<Dst;
+        FileStorage file1(QString("am_map_phase_unwraped1_minVal_%2_maxVal_%3_C%1.ext").arg(numCam, 1).arg(minVal).arg(maxVal).toStdString(), cv::FileStorage::WRITE);
+        file1<<"am_map_phase_unwraped1"<<tmp;
+
+
         tmp.convertTo(tmp,CV_16U, 65535/(maxVal-minVal),-65535*minVal/(maxVal-minVal));
         //tmp.convertTo(tmp,CV_16U, 65535/(maxVal),0);
         QString filename = QString("am_map_phase_unwraped1_C%1.png").arg(numCam, 1);

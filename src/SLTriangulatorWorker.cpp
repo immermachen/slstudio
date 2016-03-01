@@ -19,7 +19,7 @@ void SLTriangulatorWorker::setup(){
 
     // Initialize triangulator with calibration
     calibration = new CalibrationData;
-    if(cNum)
+    if(cNum==1)
     {
         std::cout << "SLTriangulatorWorker::setup:: Using Calibration_1.xml" << std::endl;
         calibration->load("calibration_1.xml");
@@ -31,8 +31,8 @@ void SLTriangulatorWorker::setup(){
     }
     else if(cNum==3)
     {
-        std::cout << "SLTriangulatorWorker::setup:: Using Calibration_CC.xml" << std::endl;
-        calibration->load("calibration_CC.xml");
+        std::cout << "SLTriangulatorWorker::setup:: Using Calibration_3.xml" << std::endl;
+        calibration->load("calibration_3.xml");
     }
 
     triangulator = new Triangulator(*calibration);
@@ -40,6 +40,7 @@ void SLTriangulatorWorker::setup(){
 
 void SLTriangulatorWorker::triangulatePointCloud(cv::Mat up, cv::Mat vp, cv::Mat mask, cv::Mat shading)
 {
+    std::cout<< "SLTriangulatorWorker::triangulatePointCloud(cv::Mat up, cv::Mat vp, cv::Mat mask, cv::Mat shading)" << std::endl;
 
     // Recursively call self until latest event is hit
     busy = true;
@@ -146,6 +147,8 @@ void SLTriangulatorWorker::triangulatePointCloud(cv::Mat up, cv::Mat vp, cv::Mat
 
 void SLTriangulatorWorker::triangulatePointCloud(cv::Mat up0, cv::Mat vp0, cv::Mat mask0, cv::Mat shading0, cv::Mat up1, cv::Mat vp1, cv::Mat mask1, cv::Mat shading1)
 {
+    std::cout<< "SLTriangulatorWorker::triangulatePointCloud(cv::Mat up0, cv::Mat vp0, cv::Mat mask0, cv::Mat shading0, cv::Mat up1, cv::Mat vp1, cv::Mat mask1, cv::Mat shading1)" << std::endl;
+
     // Recursively call self until latest event is hit
     busy = true;
     QCoreApplication::sendPostedEvents(this, QEvent::MetaCall);

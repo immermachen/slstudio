@@ -36,7 +36,7 @@ void SLDecoderWorker::setup(){
     //int cNum = settings.value("camera/cameraNumber", 0).toInt();
 
     CalibrationData calib;    
-    if(cNum)
+    if(cNum==1)
     {
         std::cout << "SLDecoderWorker::setup:: Using Calibration_1.xml" << std::endl;
         calib.load("calibration_1.xml");
@@ -48,8 +48,8 @@ void SLDecoderWorker::setup(){
     }
     else if(cNum==3)
     {
-        std::cout << "SLDecoderWorker::setup:: Using Calibration_CC.xml" << std::endl;
-        calib.load("calibration_CC.xml");
+        std::cout << "SLDecoderWorker::setup:: Using Calibration_3.xml" << std::endl;
+        calib.load("calibration_3.xml");
     }
 
 

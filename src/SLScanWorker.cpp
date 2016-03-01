@@ -479,7 +479,7 @@ void SLScanWorker::doWork_CC()
 
         time.restart();
 
-        setupProjector(cNum);
+        setupProjector(cNum); //cNum = 3
 
         // Acquire patterns
         for(unsigned int i=0; i<N; i++)

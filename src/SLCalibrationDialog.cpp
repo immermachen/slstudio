@@ -606,8 +606,8 @@ void SLCalibrationDialog::on_saveButton_clicked()
         calib[0].calibrationDateTime = QDateTime::currentDateTime().toString("DD.MM.YYYY HH:MM:SS").toStdString();
 
         //QString filename = QString("frameSeq_cal_%1_%2.bmp").arg(seqNum, 2, 10, QChar('0')).arg(i, 2, 10, QChar('0'));
-        //arg(int a, int fieldWidth = 0, int base = 10, QChar fillChar = QLatin1Char( ' ' )) const
-        QString calFilename = QString("calibration_CC.xml");
+        //arg(int a, int fieldWidth = 0, int base = 10, QChar fillChar = QLatin1Char( ' ' )) const        
+        QString calFilename = QString("calibration_%1.xml").arg(cNum,1);
         calib[0].save(calFilename);
     }
 
