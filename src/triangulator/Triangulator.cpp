@@ -196,16 +196,32 @@ void Triangulator::triangulate(cv::Mat &up0, cv::Mat &vp0, cv::Mat &mask0, cv::M
     mask1 = maskUndistort1;
     shading1 = shadingUndistort1;
 
+    //combine Mask
+    cv::Mat mask = cv::Mat::zeros(mask0.size(), CV_8U);
+    mask1.copyTo(mask, mask0);
+
+    //apply mask
+    cv::Mat up0_m, vp0_m, up1_m, vp1_m;
+    up0.copyTo(up0_m, mask);
+    vp0.copyTo(vp0_m, mask);
+    up1.copyTo(up1_m, mask);
+    vp1.copyTo(vp1_m, mask);
+
+    //TODO: option: check the identity property of phase value: delete duplicate value;
+    //validateIdentity()
+
+    //TODO: find phase value correlation
+    std::vector<intersection> matches0, matches1;
+    phasecorrelate(up0_m, vp0_m, up1_m, vp1_m, matches0, matches1);
+
     // Triangulate
     cv::Mat xyz;
-    triangulateFromUpVp(up0, vp0, up1, vp1, xyz);
+    //triangulateFromUpVp(up0, vp0, up1, vp1, xyz);
+    triangulateFromPhaseCorrelate(matches0,matches1, xyz);
 
     // Aplly Mask
-    cv::Mat pointCloud1 = cv::Mat(up0.size(), CV_32FC3, cv::Scalar(NAN, NAN, NAN));
-    xyz.copyTo(pointCloud1, mask0);
-    pointCloud = cv::Mat(up0.size(), CV_32FC3, cv::Scalar(NAN, NAN, NAN));
-    pointCloud1.copyTo(pointCloud, mask1);
-
+    pointCloud = cv::Mat(matches0.size(),1, CV_32FC3, cv::Scalar(NAN, NAN, NAN)); //N*1 points
+    //xyz.copyTo(pointCloud, mask);
 }
 
 void Triangulator::triangulateFromUp(cv::Mat &up, cv::Mat &xyz){
@@ -258,6 +274,7 @@ void Triangulator::triangulateFromUpVp(cv::Mat &up, cv::Mat &vp, cv::Mat &xyz)
     uc.reshape(0,1).copyTo(projPointsCam.row(0));
     vc.reshape(0,1).copyTo(projPointsCam.row(1));
 
+    //Yang: TODO: should find the corresponding pixel position (x, y) of phase value (up, vp)???
     cv::Mat projPointsProj(2, N, CV_32F);
     up.reshape(0,1).copyTo(projPointsProj.row(0));
     vp.reshape(0,1).copyTo(projPointsProj.row(1));
@@ -286,10 +303,6 @@ void Triangulator::triangulateFromUpVp(cv::Mat &up, cv::Mat &vp, cv::Mat &xyz)
 
 void Triangulator::triangulateFromUpVp(cv::Mat &up0, cv::Mat &vp0, cv::Mat &up1, cv::Mat &vp1, cv::Mat &xyz)
 {
-    //TODO: find the corresponding points depending on the phase value in up and vp.
-    std::cout<< "triangulateFromUpVp: TODO: find the corresponding points depending on the phase value in up and vp." << std::endl;
-
-
     int N = up0.rows * up0.cols;
 
     cv::Mat projPointsCam(2, N, CV_32F);
@@ -320,6 +333,110 @@ void Triangulator::triangulateFromUpVp(cv::Mat &up0, cv::Mat &vp0, cv::Mat &up1,
 
     xyz = xyz.t();
     xyz = xyz.reshape(3, up0.rows);
+}
+
+void Triangulator::triangulateFromPhaseCorrelate(std::vector<intersection> &matches0, std::vector<intersection> &matches1, cv::Mat &xyz)
+{
+    assert(matches0.size()>0);
+    assert(matches0.size() == matches1.size());
+
+    int N = matches0.size();
+    cv::Mat projPointsCam(2, N, CV_32F);
+    cv::Mat projPointsProj(2, N, CV_32F);
+
+    for(unsigned int i=0; i<N; i++)
+    {
+        intersection p0 = matches0[i];
+        intersection p1 = matches1[i];
+        projPointsCam.at<float>(0, i) = p0.y;  // uc or up
+        projPointsCam.at<float>(1, i) = p0.x;  // vc or vp
+        projPointsProj.at<float>(0,i) = p1.y;
+        projPointsProj.at<float>(1,i) = p1.x;
+    }
+
+
+    cv::Mat Pc(3,4,CV_32F,cv::Scalar(0.0));
+    cv::Mat(calibration.Kc).copyTo(Pc(cv::Range(0,3), cv::Range(0,3)));
+
+    cv::Mat Pp(3,4,CV_32F), temp(3,4,CV_32F);
+    cv::Mat(calibration.Rp).copyTo(temp(cv::Range(0,3), cv::Range(0,3)));
+    cv::Mat(calibration.Tp).copyTo(temp(cv::Range(0,3), cv::Range(3,4)));
+    Pp = cv::Mat(calibration.Kp) * temp;
+
+    cv::Mat xyzw;
+    cv::triangulatePoints(Pc, Pp, projPointsCam, projPointsProj, xyzw);
+
+    xyz.create(3, N, CV_32F);
+    for(int i=0; i<N; i++){
+        xyz.at<float>(0,i) = xyzw.at<float>(0,i)/xyzw.at<float>(3,i);
+        xyz.at<float>(1,i) = xyzw.at<float>(1,i)/xyzw.at<float>(3,i);
+        xyz.at<float>(2,i) = xyzw.at<float>(2,i)/xyzw.at<float>(3,i);
+    }
+
+    xyz = xyz.t();
+    xyz = xyz.reshape(3, N);
+}
+
+static void getIntersectionLabels(const cv::Mat& up, const cv::Mat& vp, std::vector<intersection>& intersections)
+{
+    int nRows = up.rows;
+    int nCols = up.cols;
+    unsigned int id=0;
+
+    // collect intersections
+    for(int i=0; i<nRows-1; i++){
+        for(int j=0; j<nCols-1; j++){
+            float _up = up.at<float>(i, j);
+            float _vp = vp.at<float>(i, j);
+            if(_up==0  || _vp==0) continue;
+
+            intersections.push_back(intersection(i, j, _up, _vp, id++));
+        }
+    }
+//    // Option: sort
+//    std::sort(intersections.begin(), intersections.end(), sortingLarger);
+
+//    // Option: remove duplicates
+//    std::vector<intersection>::iterator it;
+//    it = std::unique(intersections.begin(), intersections.end(), sortingEqual);
+//    intersections.resize(std::distance(intersections.begin(),it));
+}
+
+void Triangulator::phasecorrelate(cv::Mat &up0, cv::Mat &vp0, cv::Mat &up1, cv::Mat &vp1, std::vector<intersection> matches0, std::vector<intersection> matches1)
+{
+    // get intersections
+    std::vector<intersection> intersections0, intersections1;
+    getIntersectionLabels(up0, vp0, intersections0);
+    getIntersectionLabels(up1, vp1, intersections1);
+
+    // match intersections
+    for(int i=0; i < intersections0.size(); i++)
+    {
+        intersection p0 = intersections0[i];
+        std::vector<intersection> windowsmatched; //collect some roughly matched in one Window;
+        float windows = 2.0;
+        for(int j=0; j<intersections1.size();j++)
+        {
+            intersection p1=intersections1[j];
+            if( std::abs(p0.up-p1.up) < windows && std::abs(p0.vp - p1.vp) < windows)
+            {
+                p1.distance = std::abs(p0.up-p1.up) + std::abs(p0.vp - p1.vp);
+                windowsmatched.push_back(p1);
+            }
+        }
+
+        //Method1:find the closest one from the windows, currenty use this;
+        //Method2: advance: do interpolation;
+        if(windowsmatched.size()>0)
+        {
+            std::sort(windowsmatched.begin(), windowsmatched.end(), sortingLargerDistance); //ascending order
+            intersection matched = windowsmatched[0];
+
+            matches0.push_back(p0);
+            matches1.push_back(matched);
+        }
+    }
+    //option: subpixel refinement
 }
 
 ////Another triangulation method, instead of cv::triangulatePoints
