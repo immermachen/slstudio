@@ -1,7 +1,7 @@
 #include "Triangulator.h"
 #include <math.h>
 #include <iostream>
-
+#include <cmath>
 
 #ifdef WIN32
     #ifndef NAN
@@ -212,6 +212,7 @@ void Triangulator::triangulate(cv::Mat &up0, cv::Mat &vp0, cv::Mat &mask0, cv::M
 
     //TODO: find phase value correlation
     std::vector<intersection> matches0, matches1;
+    //phasecorrelate(up0_m, vp0_m, up1_m, vp1_m, matches0, matches1);
     phasecorrelate(up0_m, vp0_m, up1_m, vp1_m, matches0, matches1);
 
     // Triangulate
@@ -420,6 +421,67 @@ void Triangulator::phasecorrelate(cv::Mat &up0, cv::Mat &vp0, cv::Mat &up1, cv::
             intersection p1=intersections1[j];
             if( std::abs(p0.up-p1.up) < windows && std::abs(p0.vp - p1.vp) < windows)
             {
+                p1.distance = std::abs(p0.up-p1.up) + std::abs(p0.vp - p1.vp);
+                windowsmatched.push_back(p1);
+            }
+        }
+
+        //Method1:find the closest one from the windows, currenty use this;
+        //Method2: advance: do interpolation;
+        if(windowsmatched.size()>0)
+        {
+            std::sort(windowsmatched.begin(), windowsmatched.end(), sortingLargerDistance); //ascending order
+            intersection matched = windowsmatched[0];
+
+            matches0.push_back(p0);
+            matches1.push_back(matched);
+        }
+    }
+    //option: subpixel refinement
+}
+
+//find phase correspondence using epipolar constraint.
+void Triangulator::phasecorrelate_Epipolar(cv::Mat &up0, cv::Mat &vp0, cv::Mat &up1, cv::Mat &vp1, std::vector<intersection> matches0, std::vector<intersection> matches1)
+{
+    //loop up0 to find epipolar line
+    Mat up0_row = up0.clone();
+    cv::Mat inputs = up0_row.reshape(0, 1); // 0: the same channel; 1: one row;
+    std::vector<cv::Vec3f> epilines;
+
+//    points – Input points. N \times 1 or 1 \times N matrix of type CV_32FC2 or vector<Point2f> .
+//    whichImage – Index of the image (1 or 2) that contains the points .
+//    F – Fundamental matrix that can be estimated using findFundamentalMat() or stereoRectify() .
+//    lines – Output vector of the epipolar lines corresponding to the points in the other image. Each line ax + by + c=0 is encoded by 3 numbers (a, b, c) .
+    cv::computeCorrespondEpilines(inputs, 1, calibration.F, epilines);
+
+    cv::Mat epilineMat = cv::Mat(epilines).reshape(0, up0.rows);//.t(); //3-channel
+
+    float threshold = 2.0;
+    // match intersections
+    for(uint i=0; i < up0.rows; i++)
+    {
+        for(uint j=0; j<up0.cols;j++)
+        {
+            if(up0(i,j)==0 || vp0(i,j)==0) continue; //masked ignore;
+            std::vector<intersection> windowsmatched; //collect some roughly matched in one Window;
+            intersection p0,p1;
+
+
+            //get all points on the left eipolar line
+            cv::Vec3f epiline = epilineMat(i,j);
+            float a,b,c;
+            a = epiline[0]; b = epiline[1]; c = epiline[2];
+            //right_epipolar_y = (-er(3)-er(1)*right_epipolar_x) / er(2);
+            for(uint x=3; x<up0.cols-3;x++)  // ignore the boundary
+            {
+                float yy = (-c-a*x)/b;
+                uint y = std::round(yy);
+            }
+
+
+            if( std::abs(p0.up-p1.up) < windows && std::abs(p0.vp - p1.vp) < windows)
+            {
+
                 p1.distance = std::abs(p0.up-p1.up) + std::abs(p0.vp - p1.vp);
                 windowsmatched.push_back(p1);
             }

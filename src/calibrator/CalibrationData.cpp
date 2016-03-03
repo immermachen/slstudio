@@ -71,6 +71,8 @@ bool CalibrationData::loadXML(const QString& filename){
     fs["kp"] >> temp; kp = temp;
     fs["Rp"] >> temp; Rp = temp;
     fs["Tp"] >> temp; Tp = temp;
+    fs["E"] >> temp; E = temp;
+    fs["F"] >> temp; F = temp;
 
     fs["cam_error"] >> cam_error;
     fs["proj_error"] >> proj_error;

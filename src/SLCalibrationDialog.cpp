@@ -499,7 +499,6 @@ void SLCalibrationDialog::on_calibrateButton_clicked()
         }
         // Perform calibration
         calib[0] = calibrator[0]->calibrate();
-        //calibrator[0]->calibrate();
 
         // Re-enable interface elements
         ui->calibrateButton->setEnabled(true);
