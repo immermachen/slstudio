@@ -30,33 +30,30 @@ hp4_masked = [0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	
 
 x = 1:1:2448;
 
+
 figure;
 hold on;
-plot(x,hp1,'r-');  %one row
+plot(x,hp1,'g-');  %one row
+plot(x,hp1_masked,'r.'); % masked row
 hold off
 
 figure;
 hold on;
-plot(x,hp1_masked,'g.'); % masked row
-hold off
-
-figure;
-hold on;
-plot(x,hp2,'b-'); %next row
-plot(x,hp2_masked,'g.'); % masked row
+plot(x,hp2,'g-'); %next row
+plot(x,hp2_masked,'b.'); % masked row
 hold off
 
 x = 1:1:2050;
 figure;
 hold on;
-plot(x,hp3,'r-');  %one row
-plot(x,hp3_masked,'g.'); % masked row
+plot(x,hp3,'g-');  %one row
+plot(x,hp3_masked,'r.'); % masked row
 hold off
 
 figure;
 hold on;
-plot(x,hp4,'b-'); %next row
-plot(x,hp4_masked,'g.'); % masked row
+plot(x,hp4,'g-'); %next row
+plot(x,hp4_masked,'b.'); % masked row
 hold off
 
 max_hp1 = max(hp1)
