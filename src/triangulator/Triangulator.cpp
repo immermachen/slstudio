@@ -444,7 +444,7 @@ void Triangulator::phasecorrelate(cv::Mat &up0, cv::Mat &vp0, cv::Mat &up1, cv::
 void Triangulator::phasecorrelate_Epipolar(cv::Mat &up0, cv::Mat &vp0, cv::Mat &up1, cv::Mat &vp1, std::vector<intersection> matches0, std::vector<intersection> matches1)
 {
     //loop up0 to find epipolar line
-    Mat up0_row = up0.clone();
+    cv::Mat up0_row = up0.clone();
     cv::Mat inputs = up0_row.reshape(0, 1); // 0: the same channel; 1: one row;
     std::vector<cv::Vec3f> epilines;
 
@@ -462,13 +462,13 @@ void Triangulator::phasecorrelate_Epipolar(cv::Mat &up0, cv::Mat &vp0, cv::Mat &
     {
         for(uint j=0; j<up0.cols;j++)
         {
-            if(up0(i,j)==0 || vp0(i,j)==0) continue; //masked ignore;
+            if(up0.at<float>(i,j)==0 || vp0.at<float>(i,j)==0) continue; //masked ignore;
             std::vector<intersection> windowsmatched; //collect some roughly matched in one Window;
             intersection p0,p1;
 
 
             //get all points on the left eipolar line
-            cv::Vec3f epiline = epilineMat(i,j);
+            cv::Vec3f epiline = epilineMat.at<cv::Vec3f>(i,j);
             float a,b,c;
             a = epiline[0]; b = epiline[1]; c = epiline[2];
             //right_epipolar_y = (-er(3)-er(1)*right_epipolar_x) / er(2);
