@@ -44,7 +44,7 @@ CalibrationData CalibratorCC::calibrate()
         vector<std::string> framesFromFile= frameSeqsFromFile[i];
         for(unsigned int m=0; m<framesFromFile.size();m++)
         {
-            cv::Mat curFrame = cv::imread(framesFromFile[m],CV_LOAD_IMAGE_GRAYSCALE);            
+            cv::Mat curFrame = cv::imread(framesFromFile[m],CV_LOAD_IMAGE_GRAYSCALE);
             curFrame = curFrame.clone();
             frames.push_back(curFrame);
         }
@@ -170,7 +170,30 @@ CalibrationData CalibratorCC::calibrate()
     double stereo_error = cv::stereoCalibrate(Q, qc, qp, Kc, kc, Kp, kp, frameSize, Rp, Tp, E, F,
                                               cv::CALIB_FIX_INTRINSIC,cv::TermCriteria(cv::TermCriteria::COUNT + cv::TermCriteria::EPS, 100, DBL_EPSILON));
 
-    CalibrationData calData(Kc, kc, cam_error, Kp, kp, proj_error, Rp, Tp, stereo_error);
+//    cv::Matx33f Kc; // Intrinsic camera matrix
+//    cv::Vec<float, 5> kc; // Camera distortion coefficients
+//    double cam_error;
+//    cv::Matx33f Kp; // Intrinsic projector matrix
+//    cv::Vec<float, 5> kp; // Projector distortion coefficients
+//    double proj_error;
+//    double stereo_error;
+//    cv::Matx33f Rp; // Extrinsic camera rotation matrix
+//    cv::Vec3f   Tp; // Extrinsic camera rotation matrix
+//    cv::Matx33f E, F;  //Yang: TODO: float or double type??
+
+//    Kc = cv::Matx33f(1.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,1.0);
+//    kc=0.0;
+//    cam_error = 0.0;
+//    Kp = cv::Matx33f(1.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,1.0);
+//    kp=0.0;
+//    proj_error=0.0;
+//    Rp=cv::Matx33f(1.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,1.0);
+//    Tp=cv::Vec3f(1.0,1.0,1.0);
+//    stereo_error=0.0;
+//    E = cv::Matx33f(1.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,1.0);
+//    F = cv::Matx33f(1.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,1.0);
+
+    CalibrationData calData(Kc, kc, cam_error, Kp, kp, proj_error, Rp, Tp,E,F, stereo_error);
 
     calData.print(std::cout);
 

@@ -9,6 +9,8 @@ class CalibrationData{
         CalibrationData();
         CalibrationData(cv::Matx33f _Kc, cv::Vec<float, 5> _kc, double _cam_error, cv::Matx33f _Kp, cv::Vec<float, 5> _kp,
                         double _proj_error, cv::Matx33f _Rp, cv::Vec3f _Tp, double _stereo_error);
+        CalibrationData(cv::Matx33f _Kc, cv::Vec<float, 5> _kc, double _cam_error, cv::Matx33f _Kp, cv::Vec<float, 5> _kp,
+                        double _proj_error, cv::Matx33f _Rp, cv::Vec3f _Tp,cv::Mat _E,cv::Mat _F, double _stereo_error);
         //CalibrationData(const QString& filename){load(filename);}
         bool load(const QString& filename);
         bool save(const QString& filename);
@@ -28,6 +30,8 @@ class CalibrationData{
 
         cv::Matx33f Rp; // Extrinsic camera rotation matrix
         cv::Vec3f   Tp; // Extrinsic camera rotation matrix
+
+        cv::Mat E, F;  //Yang: TODO: float or double type??
 
         double stereo_error;
 

@@ -499,6 +499,7 @@ void SLCalibrationDialog::on_calibrateButton_clicked()
         }
         // Perform calibration
         calib[0] = calibrator[0]->calibrate();
+        //calibrator[0]->calibrate();
 
         // Re-enable interface elements
         ui->calibrateButton->setEnabled(true);
@@ -609,6 +610,8 @@ void SLCalibrationDialog::on_saveButton_clicked()
         //arg(int a, int fieldWidth = 0, int base = 10, QChar fillChar = QLatin1Char( ' ' )) const        
         QString calFilename = QString("calibration_%1.xml").arg(cNum,1);
         calib[0].save(calFilename);
+        QString calFile = QString("calibration_%1.txt").arg(cNum,1);
+        calib[0].save(calFile);
     }
 
     this->close();

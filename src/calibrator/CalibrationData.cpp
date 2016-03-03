@@ -20,6 +20,11 @@ CalibrationData::CalibrationData(cv::Matx33f _Kc, cv::Vec<float, 5> _kc, double 
                 Kc(_Kc), kc(_kc), cam_error(_cam_error), Kp(_Kp), kp(_kp), proj_error(_proj_error), Rp(_Rp), Tp(_Tp), stereo_error(_stereo_error){
 
 }
+CalibrationData::CalibrationData(cv::Matx33f _Kc, cv::Vec<float, 5> _kc, double _cam_error, cv::Matx33f _Kp, cv::Vec<float, 5> _kp,
+                double _proj_error, cv::Matx33f _Rp, cv::Vec3f _Tp, cv::Mat _E, cv::Mat _F, double _stereo_error) :
+                Kc(_Kc), kc(_kc), cam_error(_cam_error), Kp(_Kp), kp(_kp), proj_error(_proj_error), Rp(_Rp), Tp(_Tp), E(_E),F(_F), stereo_error(_stereo_error){
+
+}
 
 bool CalibrationData::load(const QString& filename){
     QFileInfo info(filename);
@@ -115,6 +120,7 @@ bool CalibrationData::saveXML(const QString& filename){
     fs << "Kc" << cv::Mat(Kc) << "kc" << cv::Mat(kc)
        << "Kp" << cv::Mat(Kp) << "kp" << cv::Mat(kp)
        << "Rp" << cv::Mat(Rp) << "Tp" << cv::Mat(Tp)
+       << "E" << cv::Mat(E) << "F" << cv::Mat(F)
        << "cam_error" << cam_error
        << "proj_error" << proj_error
        << "stereo_error" << stereo_error
@@ -140,6 +146,8 @@ bool CalibrationData::saveMatlab(const QString& filename){
     file << "kp = " << kp << ";" << std::endl;
     file << "Rp = " << Rp << ";" << std::endl;
     file << "Tp = " << Tp << ";" << std::endl;
+    file << "E = " << E << ";" << std::endl;
+    file << "F = " << F << ";" << std::endl;
 
     file.close();
 
@@ -162,5 +170,7 @@ void CalibrationData::print(std::ostream &stream){
             << "Stereo Calibration: \n"
             << "- stereo_error:\n" << stereo_error << "\n"
             << "- Rp:\n" << Rp << "\n"
+            << "- E:\n" << E << "\n"
+            << "- F:\n" << F << "\n"
             << "- Tp:\n" << Tp << std::endl;
 }
