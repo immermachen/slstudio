@@ -195,16 +195,16 @@ void Triangulator::triangulate(cv::Mat &up0, cv::Mat &vp0, cv::Mat &mask0, cv::M
     mask1 = maskUndistort1;
     shading1 = shadingUndistort1;
 
-    //combine Mask
-    cv::Mat mask = cv::Mat::zeros(mask0.size(), CV_8U);
-    mask1.copyTo(mask, mask0);
+//    //combine Mask
+//    cv::Mat mask = cv::Mat::zeros(mask0.size(), CV_8U);
+//    mask1.copyTo(mask, mask0);
 
     //apply mask
     cv::Mat up0_m, vp0_m, up1_m, vp1_m;
-    up0.copyTo(up0_m, mask);
-    vp0.copyTo(vp0_m, mask);
-    up1.copyTo(up1_m, mask);
-    vp1.copyTo(vp1_m, mask);
+    up0.copyTo(up0_m, mask0);
+    vp0.copyTo(vp0_m, mask0);
+    up1.copyTo(up1_m, mask1);
+    vp1.copyTo(vp1_m, mask1);
 
     //TODO: option: check the identity property of phase value: delete duplicate value;
     //validateIdentity()
@@ -497,18 +497,18 @@ void Triangulator::phasecorrelate_Epipolar(cv::Mat &up0, cv::Mat &vp0, cv::Mat &
         int y2 = (int) ( round( (-c-a*x2)/b ) );
         cv::Point p1(x1,y1), p2(x2,y2);
         cv::line(tmpcolor, p1, p1, cv::Scalar(255, 0, 0) );
-        cv::imwrite("am_up0_color.png", tmpcolor);   // gray_map is CV_16U using PNG
+        cv::imwrite("am_up0_color.bmp", tmpcolor);   // gray_map is CV_16U using PNG
 
         cv::line(tmp, p1, p1, cv::Scalar(255, 0, 0) );
-        cv::imwrite("am_up0.png", tmp);   // gray_map is CV_16U using PNG
+        cv::imwrite("am_up0.bmp", tmp);   // gray_map is CV_16U using PNG
 #endif
     }
 
     float threshold = 2.0;
 
-    for(ushort i=800; i < nRows/2+200; i++) // match intersections
+    for(ushort i=0; i < nRows; i++) // match intersections
     {
-        for(ushort j=1000; j<nCols;j++)
+        for(ushort j=0; j<nCols;j++)
         {
             std::vector<intersection> windowsmatched; //collect some roughly matched in one right epiplar Line;
             intersection p0,p1;
@@ -620,15 +620,15 @@ void Triangulator::phasecorrelate_Epipolar(cv::Mat &up0, cv::Mat &vp0, cv::Mat &
                         windowsmatched.push_back(w3);
                     }
                 }
-                //Method1:find the closest one from the windows, currenty use this;
-                //Method2: advance: do interpolation;
-                if(windowsmatched.size()>0)
-                {
-                    std::sort(windowsmatched.begin(), windowsmatched.end(), sortingLargerDistance); //ascending order
-                    intersection matched = windowsmatched[0];
-                    matches0.push_back(p0);
-                    matches1.push_back(matched);
-                }
+            }
+            //Method1:find the closest one from the windows, currenty use this;
+            //Method2: advance: do interpolation;
+            if(windowsmatched.size()>0)
+            {
+                std::sort(windowsmatched.begin(), windowsmatched.end(), sortingLargerDistance); //ascending order
+                intersection matched = windowsmatched[0];
+                matches0.push_back(p0);
+                matches1.push_back(matched);
             }
         }
     }

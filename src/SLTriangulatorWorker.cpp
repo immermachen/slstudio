@@ -185,7 +185,7 @@ void SLTriangulatorWorker::triangulatePointCloud(cv::Mat up0, cv::Mat vp0, cv::M
             pcl::PointXYZRGB point;
             point.x = pnt[0]; point.y = pnt[1]; point.z = pnt[2];
             //point.r = shade; point.g = shade; point.b = shade; //Yang: TODO
-            point.r = 255; point.g = 1; point.b = 1;
+            point.r = 255; point.g = 255; point.b = 255;
             pointCloudPCL->points[offset + col] = point;
         }
     }
