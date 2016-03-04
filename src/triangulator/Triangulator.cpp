@@ -1,7 +1,6 @@
 #include "Triangulator.h"
 #include <math.h>
 #include <iostream>
-#include <cmath>
 
 #ifdef WIN32
     #ifndef NAN
@@ -213,16 +212,22 @@ void Triangulator::triangulate(cv::Mat &up0, cv::Mat &vp0, cv::Mat &mask0, cv::M
     //TODO: find phase value correlation
     std::vector<intersection> matches0, matches1;
     //phasecorrelate(up0_m, vp0_m, up1_m, vp1_m, matches0, matches1);
-    phasecorrelate(up0_m, vp0_m, up1_m, vp1_m, matches0, matches1);
+    phasecorrelate_Epipolar(up0_m, vp0_m, up1_m, vp1_m, matches0, matches1);
+    //phasecorrelate_Epipolar(up0, vp0, up1, vp1, matches0, matches1);
+
+    std::cout << "Triangulator::phasecorrelate_Epipolar:  finished! size_matches0=" << matches0.size() << std::endl;
 
     // Triangulate
     cv::Mat xyz;
     //triangulateFromUpVp(up0, vp0, up1, vp1, xyz);
     triangulateFromPhaseCorrelate(matches0,matches1, xyz);
 
+    std::cout << "Triangulator::triangulateFromPhaseCorrelate:  finished!" << std::endl;
+
     // Aplly Mask
     pointCloud = cv::Mat(matches0.size(),1, CV_32FC3, cv::Scalar(NAN, NAN, NAN)); //N*1 points
     //xyz.copyTo(pointCloud, mask);
+    xyz.copyTo(pointCloud);
 }
 
 void Triangulator::triangulateFromUp(cv::Mat &up, cv::Mat &xyz){
@@ -349,8 +354,8 @@ void Triangulator::triangulateFromPhaseCorrelate(std::vector<intersection> &matc
     {
         intersection p0 = matches0[i];
         intersection p1 = matches1[i];
-        projPointsCam.at<float>(0, i) = p0.y;  // uc or up
-        projPointsCam.at<float>(1, i) = p0.x;  // vc or vp
+        projPointsCam.at<float>(0, i) = p0.y;  // uc or up, col
+        projPointsCam.at<float>(1, i) = p0.x;  // vc or vp, row
         projPointsProj.at<float>(0,i) = p1.y;
         projPointsProj.at<float>(1,i) = p1.x;
     }
@@ -375,7 +380,7 @@ void Triangulator::triangulateFromPhaseCorrelate(std::vector<intersection> &matc
     }
 
     xyz = xyz.t();
-    xyz = xyz.reshape(3, N);
+    xyz = xyz.reshape(3, N); //TODO: N should be up0.rows;
 }
 
 static void getIntersectionLabels(const cv::Mat& up, const cv::Mat& vp, std::vector<intersection>& intersections)
@@ -441,64 +446,192 @@ void Triangulator::phasecorrelate(cv::Mat &up0, cv::Mat &vp0, cv::Mat &up1, cv::
 }
 
 //find phase correspondence using epipolar constraint.
-void Triangulator::phasecorrelate_Epipolar(cv::Mat &up0, cv::Mat &vp0, cv::Mat &up1, cv::Mat &vp1, std::vector<intersection> matches0, std::vector<intersection> matches1)
+void Triangulator::phasecorrelate_Epipolar(cv::Mat &up0, cv::Mat &vp0, cv::Mat &up1, cv::Mat &vp1, std::vector<intersection> &matches0, std::vector<intersection> &matches1)
 {
-    //loop up0 to find epipolar line
-    cv::Mat up0_row = up0.clone();
-    cv::Mat inputs = up0_row.reshape(0, 1); // 0: the same channel; 1: one row;
-    std::vector<cv::Vec3f> epilines;
+    for(unsigned int row=0; row<calibration.frameHeight; row++){
+        for(unsigned int col=0; col<calibration.frameWidth; col++){
+            uc.at<float>(row, col) = col;
+            vc.at<float>(row, col) = row;
+        }
+    }
 
-//    points – Input points. N \times 1 or 1 \times N matrix of type CV_32FC2 or vector<Point2f> .
+    //loop up0 to find epipolar line
+    ushort nRows = up0.rows;
+    ushort nCols = up0.cols;
+    std::vector<cv::Vec3f> epilines;
+    std::vector<cv::Point2f> inputs;// Mat inputs = up0_row.reshape(0, 1).clone(); // 0: the same channel; 1: one row;
+    for(ushort y=0; y < nRows; y++) // match intersections
+    {
+        for(ushort x=0; x<nCols;x++)
+        {
+            cv::Point2f point;
+            point.x = x; //TODO: x is col??? In opencv x: col; y:row; same with matlab?
+            point.y = y;
+            inputs.push_back(point);
+        }
+    }
+//    points – Input points. N*1 or 1*N matrix of type CV_32FC2 or vector<Point2f> .
 //    whichImage – Index of the image (1 or 2) that contains the points .
 //    F – Fundamental matrix that can be estimated using findFundamentalMat() or stereoRectify() .
 //    lines – Output vector of the epipolar lines corresponding to the points in the other image. Each line ax + by + c=0 is encoded by 3 numbers (a, b, c) .
     cv::computeCorrespondEpilines(inputs, 1, calibration.F, epilines);
-
     cv::Mat epilineMat = cv::Mat(epilines).reshape(0, up0.rows);//.t(); //3-channel
 
-    float threshold = 2.0;
-    // match intersections
-    for(uint i=0; i < up0.rows; i++)
+    //debug epipolar
     {
-        for(uint j=0; j<up0.cols;j++)
-        {
-            if(up0.at<float>(i,j)==0 || vp0.at<float>(i,j)==0) continue; //masked ignore;
-            std::vector<intersection> windowsmatched; //collect some roughly matched in one Window;
-            intersection p0,p1;
+#if 1
+        double minVal,maxVal;
+        cv::Mat tmp = up0.clone();
+        cv::minMaxIdx(tmp,&minVal,&maxVal);
+        tmp.convertTo(tmp,CV_16U, 65535/(maxVal-minVal),-65535*minVal/(maxVal-minVal));
+        cv::Mat tmpcolor;
+        cv::cvtColor(tmp, tmpcolor, cv::COLOR_GRAY2RGB);
 
+        //get all points on the right eipolar line, give a point in left
+        cv::Vec3f epiline = epilineMat.at<cv::Vec3f>(1000,1000); //TODO
+
+        float a,b,c;
+        a = epiline[0]; b = epiline[1]; c = epiline[2];
+        int x1=1, x2=nCols; //x:cols; y:rows
+        int y1 = (int) ( (-c-a*x1)/b + 0.5f );// Casting to an int truncates the value. Adding 0.5 causes it to do proper rounding.
+        int y2 = (int) ( round( (-c-a*x2)/b ) );
+        cv::Point p1(x1,y1), p2(x2,y2);
+        cv::line(tmpcolor, p1, p1, cv::Scalar(255, 0, 0) );
+        cv::imwrite("am_up0_color.png", tmpcolor);   // gray_map is CV_16U using PNG
+
+        cv::line(tmp, p1, p1, cv::Scalar(255, 0, 0) );
+        cv::imwrite("am_up0.png", tmp);   // gray_map is CV_16U using PNG
+#endif
+    }
+
+    float threshold = 2.0;
+
+    for(ushort i=800; i < nRows/2+200; i++) // match intersections
+    {
+        for(ushort j=1000; j<nCols;j++)
+        {
+            std::vector<intersection> windowsmatched; //collect some roughly matched in one right epiplar Line;
+            intersection p0,p1;
+            p0.up = up0.at<float>(i,j);
+            p0.vp = vp0.at<float>(i,j);
+            p0.x = i;
+            p0.y = j;
+
+            if(p0.up==0.0 || p0.vp==0.0) continue; //masked ignore;
 
             //get all points on the left eipolar line
             cv::Vec3f epiline = epilineMat.at<cv::Vec3f>(i,j);
             float a,b,c;
             a = epiline[0]; b = epiline[1]; c = epiline[2];
-            //right_epipolar_y = (-er(3)-er(1)*right_epipolar_x) / er(2);
-            for(uint x=3; x<up0.cols-3;x++)  // ignore the boundary
+            //y = (-c-a*x) / b;  ax+by+c=0
+            ushort boundary = 3; //cut the boundary
+            for(ushort x=boundary; x<nCols-boundary;x++) //Note: (x,y) is matlab coordiante=(col,row)
             {
                 float yy = (-c-a*x)/b;
-                uint y = std::round(yy);
+                ushort y = round(yy); //x:cols; y:rows
+                if(y<boundary || y>nRows-boundary) continue;
+                p1.up = up1.at<float>(y,x);
+                p1.vp = vp1.at<float>(y,x);
+                p1.x = y;
+                p1.y = x;
+                float diff_up = fabs(p0.up - p1.up);
+                float diff_vp = fabs(p0.vp - p1.vp);
+
+                if( diff_up < threshold && diff_vp < threshold)
+                {
+                    p1.distance = diff_up + diff_vp;
+                    windowsmatched.push_back(p1);
+
+                    // continue search in a 3*3 window, center in w0=p0;
+                    //%  7 8 9
+                    //%  4 0 6    0: is the center
+                    //%  1 2 3
+                    intersection w0 = p0;
+                    intersection w7(y-1,x-1, up1.at<float>(y-1,x-1), vp1.at<float>(y-1,x-1));
+                    intersection w8(y-1,x, up1.at<float>(y-1,x), vp1.at<float>(y-1,x));
+                    intersection w9(y-1,x+1, up1.at<float>(y-1,x+1), vp1.at<float>(y-1,x+1));
+                    intersection w4(y,x-1, up1.at<float>(y,x-1), vp1.at<float>(y,x-1));
+                    intersection w6(y-1,x+1, up1.at<float>(y-1,x+1), vp1.at<float>(y-1,x+1));
+                    intersection w1(y+1,x-1, up1.at<float>(y+1,x-1), vp1.at<float>(y+1,x-1));
+                    intersection w2(y+1,x, up1.at<float>(y+1,x), vp1.at<float>(y+1,x));
+                    intersection w3(y+1,x+1, up1.at<float>(y+1,x+1), vp1.at<float>(y+1,x+1));
+
+                    diff_up = fabs(w7.up - w0.up);
+                    diff_vp = fabs(w7.vp - w0.vp);
+                    if( diff_up < threshold && diff_vp < threshold)
+                    {
+                        w7.distance = diff_up + diff_vp;
+                        windowsmatched.push_back(w7);
+                    }
+
+                    diff_up = fabs(w8.up - w0.up);
+                    diff_vp = fabs(w8.vp - w0.vp);
+                    if( diff_up < threshold && diff_vp < threshold)
+                    {
+                        w8.distance = diff_up + diff_vp;
+                        windowsmatched.push_back(w8);
+                    }
+
+                    diff_up = fabs(w9.up - w0.up);
+                    diff_vp = fabs(w9.vp - w0.vp);
+                    if( diff_up < threshold && diff_vp < threshold)
+                    {
+                        w9.distance = diff_up + diff_vp;
+                        windowsmatched.push_back(w9);
+                    }
+
+                    diff_up = fabs(w4.up - w0.up);
+                    diff_vp = fabs(w4.vp - w0.vp);
+                    if( diff_up < threshold && diff_vp < threshold)
+                    {
+                        w4.distance = diff_up + diff_vp;
+                        windowsmatched.push_back(w4);
+                    }
+
+                    diff_up = fabs(w6.up - w0.up);
+                    diff_vp = fabs(w6.vp - w0.vp);
+                    if( diff_up < threshold && diff_vp < threshold)
+                    {
+                        w6.distance = diff_up + diff_vp;
+                        windowsmatched.push_back(w6);
+                    }
+
+                    diff_up = fabs(w1.up - w0.up);
+                    diff_vp = fabs(w1.vp - w0.vp);
+                    if( diff_up < threshold && diff_vp < threshold)
+                    {
+                        w1.distance = diff_up + diff_vp;
+                        windowsmatched.push_back(w1);
+                    }
+
+                    diff_up = fabs(w2.up - w0.up);
+                    diff_vp = fabs(w2.vp - w0.vp);
+                    if( diff_up < threshold && diff_vp < threshold)
+                    {
+                        w2.distance = diff_up + diff_vp;
+                        windowsmatched.push_back(w2);
+                    }
+
+                    diff_up = fabs(w3.up - w0.up);
+                    diff_vp = fabs(w3.vp - w0.vp);
+                    if( diff_up < threshold && diff_vp < threshold)
+                    {
+                        w3.distance = diff_up + diff_vp;
+                        windowsmatched.push_back(w3);
+                    }
+                }
+                //Method1:find the closest one from the windows, currenty use this;
+                //Method2: advance: do interpolation;
+                if(windowsmatched.size()>0)
+                {
+                    std::sort(windowsmatched.begin(), windowsmatched.end(), sortingLargerDistance); //ascending order
+                    intersection matched = windowsmatched[0];
+                    matches0.push_back(p0);
+                    matches1.push_back(matched);
+                }
             }
-
-
-            if( std::abs(p0.up-p1.up) < windows && std::abs(p0.vp - p1.vp) < windows)
-            {
-
-                p1.distance = std::abs(p0.up-p1.up) + std::abs(p0.vp - p1.vp);
-                windowsmatched.push_back(p1);
-            }
-        }
-
-        //Method1:find the closest one from the windows, currenty use this;
-        //Method2: advance: do interpolation;
-        if(windowsmatched.size()>0)
-        {
-            std::sort(windowsmatched.begin(), windowsmatched.end(), sortingLargerDistance); //ascending order
-            intersection matched = windowsmatched[0];
-
-            matches0.push_back(p0);
-            matches1.push_back(matched);
         }
     }
-    //option: subpixel refinement
 }
 
 ////Another triangulation method, instead of cv::triangulatePoints

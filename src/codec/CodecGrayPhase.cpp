@@ -496,7 +496,7 @@ void DecoderGrayPhase::decodeFrames(cv::Mat &up, cv::Mat &vp, cv::Mat &mask, cv:
 
 void DecoderGrayPhase::decodeFrames(cv::Mat &up, cv::Mat &vp, cv::Mat &mask, cv::Mat &shading, int numCam)
 {
-
+/*
     int framesize=frames.size();
     shading = frames[framesize-2];    // Get shading (max) image
     shading.convertTo(shading, CV_8UC1);
@@ -753,6 +753,78 @@ void DecoderGrayPhase::decodeFrames(cv::Mat &up, cv::Mat &vp, cv::Mat &mask, cv:
 
 
 
+#endif
+    }
+*/
+    //debug save yml and load
+    {
+#if 1
+        if(numCam==1)
+        {
+#if 0
+            {
+                cv::FileStorage up1("aa_up1.yml", cv::FileStorage::WRITE);
+                up1<<"up1" <<up;
+                up1.release();
+                cv::FileStorage vp1("aa_vp1.yml", cv::FileStorage::WRITE);
+                vp1<< "vp1"<<vp;
+                vp1.release();
+
+                cv::FileStorage mask1("aa_mask1.yml", cv::FileStorage::WRITE);
+                mask1<< "mask1"<<mask;
+                mask1.release();
+                cv::FileStorage shading1("aa_shading1.yml", cv::FileStorage::WRITE);
+                shading1<< "shading1"<<shading;
+                shading1.release();
+            }
+#endif
+
+#if 1
+            {
+                cv::FileStorage up1("aa_up1.yml", cv::FileStorage::READ);
+                up1["up1"]>>up;
+                cv::FileStorage vp1("aa_vp1.yml", cv::FileStorage::READ);
+                vp1["vp1"]>>vp;
+                cv::FileStorage mask1("aa_mask1.yml", cv::FileStorage::READ);
+                mask1["mask1"]>>mask;
+                cv::FileStorage shading1("aa_shading1.yml", cv::FileStorage::READ);
+                shading1["shading1"]>>shading;
+            }
+#endif
+
+        }
+        else if(numCam==2)
+        {
+#if 0
+            {
+                cv::FileStorage up2("aa_up2.yml", cv::FileStorage::WRITE);
+                up2<<"up2" <<up;
+                up2.release();
+                cv::FileStorage vp2("aa_vp2.yml", cv::FileStorage::WRITE);
+                vp2<< "vp2"<<vp;
+                vp2.release();
+                cv::FileStorage mask2("aa_mask2.yml", cv::FileStorage::WRITE);
+                mask2<< "mask2"<<mask;
+                mask2.release();
+                cv::FileStorage shading2("aa_shading2.yml", cv::FileStorage::WRITE);
+                shading2<< "shading2"<<shading;
+                shading2.release();
+            }
+#endif
+
+#if 1
+            {
+                cv::FileStorage up2("aa_up2.yml", cv::FileStorage::READ);
+                up2["up2"]>>up;
+                cv::FileStorage vp2("aa_vp2.yml", cv::FileStorage::READ);
+                vp2["vp2"]>>vp;
+                cv::FileStorage mask2("aa_mask2.yml", cv::FileStorage::READ);
+                mask2["mask2"]>>mask;
+                cv::FileStorage shading2("aa_shading2.yml", cv::FileStorage::READ);
+                shading2["shading2"]>>shading;
+            }
+#endif
+        }
 #endif
     }
 }
