@@ -212,7 +212,8 @@ void Triangulator::triangulate(cv::Mat &up0, cv::Mat &vp0, cv::Mat &mask0, cv::M
     //TODO: find phase value correlation
     std::vector<intersection> matches0, matches1;
     //phasecorrelate(up0_m, vp0_m, up1_m, vp1_m, matches0, matches1);
-    phasecorrelate_Epipolar(up0_m, vp0_m, up1_m, vp1_m, matches0, matches1);
+    cv::Mat mask = mask0; //as final mask
+    phasecorrelate_Epipolar(up0_m, vp0_m, mask, up1_m, vp1_m, matches0, matches1);
     //phasecorrelate_Epipolar(up0, vp0, up1, vp1, matches0, matches1);
 
     std::cout << "Triangulator::phasecorrelate_Epipolar:  finished! size_matches0=" << matches0.size() << std::endl;
@@ -224,10 +225,11 @@ void Triangulator::triangulate(cv::Mat &up0, cv::Mat &vp0, cv::Mat &mask0, cv::M
 
     std::cout << "Triangulator::triangulateFromPhaseCorrelate:  finished!" << std::endl;
 
-    // Aplly Mask
-    pointCloud = cv::Mat(matches0.size(),1, CV_32FC3, cv::Scalar(NAN, NAN, NAN)); //N*1 points
-    //xyz.copyTo(pointCloud, mask);
-    xyz.copyTo(pointCloud);
+    // Aplly Mask    
+    pointCloud = cv::Mat(up0.size(), CV_32FC3, cv::Scalar(NAN, NAN, NAN));
+    //pointCloud = cv::Mat(matches0.size(),1, CV_32FC3, cv::Scalar(NAN, NAN, NAN)); //N*1 points
+    xyz.copyTo(pointCloud, mask);
+    //xyz.copyTo(pointCloud);
 }
 
 void Triangulator::triangulateFromUp(cv::Mat &up, cv::Mat &xyz){
@@ -345,8 +347,9 @@ void Triangulator::triangulateFromPhaseCorrelate(std::vector<intersection> &matc
 {
     assert(matches0.size()>0);
     assert(matches0.size() == matches1.size());
-
     int N = matches0.size();
+    assert(N == calibration.frameWidth*calibration.frameHeight);
+
     cv::Mat projPointsCam(2, N, CV_32F);
     cv::Mat projPointsProj(2, N, CV_32F);
 
@@ -380,7 +383,7 @@ void Triangulator::triangulateFromPhaseCorrelate(std::vector<intersection> &matc
     }
 
     xyz = xyz.t();
-    xyz = xyz.reshape(3, N); //TODO: N should be up0.rows;
+    xyz = xyz.reshape(3, calibration.frameHeight); //convert back to up0.rows;
 }
 
 static void getIntersectionLabels(const cv::Mat& up, const cv::Mat& vp, std::vector<intersection>& intersections)
@@ -446,7 +449,7 @@ void Triangulator::phasecorrelate(cv::Mat &up0, cv::Mat &vp0, cv::Mat &up1, cv::
 }
 
 //find phase correspondence using epipolar constraint.
-void Triangulator::phasecorrelate_Epipolar(cv::Mat &up0, cv::Mat &vp0, cv::Mat &up1, cv::Mat &vp1, std::vector<intersection> &matches0, std::vector<intersection> &matches1)
+void Triangulator::phasecorrelate_Epipolar(cv::Mat &up0, cv::Mat &vp0, cv::Mat &mask, cv::Mat &up1, cv::Mat &vp1, std::vector<intersection> &matches0, std::vector<intersection> &matches1)
 {
     for(unsigned int row=0; row<calibration.frameHeight; row++){
         for(unsigned int col=0; col<calibration.frameWidth; col++){
@@ -481,26 +484,60 @@ void Triangulator::phasecorrelate_Epipolar(cv::Mat &up0, cv::Mat &vp0, cv::Mat &
     {
 #if 1
         double minVal,maxVal;
-        cv::Mat tmp = up0.clone();
+        cv::Mat tmp = up0.clone();        
         cv::minMaxIdx(tmp,&minVal,&maxVal);
         tmp.convertTo(tmp,CV_16U, 65535/(maxVal-minVal),-65535*minVal/(maxVal-minVal));
         cv::Mat tmpcolor;
         cv::cvtColor(tmp, tmpcolor, cv::COLOR_GRAY2RGB);
 
+        cv::Mat tmp1 = up1.clone();
+        cv::minMaxIdx(tmp1,&minVal,&maxVal);
+        tmp1.convertTo(tmp1,CV_16U, 65535/(maxVal-minVal),-65535*minVal/(maxVal-minVal));
+        cv::Mat tmpcolor1;
+        cv::cvtColor(tmp1, tmpcolor1, cv::COLOR_GRAY2RGB);
+
         //get all points on the right eipolar line, give a point in left
-        cv::Vec3f epiline = epilineMat.at<cv::Vec3f>(1000,1000); //TODO
+        std::vector<cv::Point > lefts;
+        std::vector<cv::Scalar> colors;
+        lefts.push_back(cv::Point(900, 1000));
+        colors.push_back(cv::Scalar(255,255,0));
 
-        float a,b,c;
-        a = epiline[0]; b = epiline[1]; c = epiline[2];
-        int x1=1, x2=nCols; //x:cols; y:rows
-        int y1 = (int) ( (-c-a*x1)/b + 0.5f );// Casting to an int truncates the value. Adding 0.5 causes it to do proper rounding.
-        int y2 = (int) ( round( (-c-a*x2)/b ) );
-        cv::Point p1(x1,y1), p2(x2,y2);
-        cv::line(tmpcolor, p1, p1, cv::Scalar(255, 0, 0) );
+        lefts.push_back(cv::Point(950, 1050));
+        colors.push_back(cv::Scalar(255,0,255));
+
+        lefts.push_back(cv::Point(1100, 800));
+        colors.push_back(cv::Scalar(0,255,255));
+
+        lefts.push_back(cv::Point(1200, 900));
+        colors.push_back(cv::Scalar(255,0,0));
+
+        lefts.push_back(cv::Point(500, 500));
+        colors.push_back(cv::Scalar(0,255,0));
+
+        lefts.push_back(cv::Point(1500, 1040));
+        colors.push_back(cv::Scalar(0,0,255));
+
+        lefts.push_back(cv::Point(1300, 1300));
+        colors.push_back(cv::Scalar(125,0,0));
+
+        lefts.push_back(cv::Point(1300, 950));
+        colors.push_back(cv::Scalar(0,125,0));
+
+        for(int i=0;i<lefts.size();i++)
+        {
+            cv::Vec3f epiline = epilineMat.at<cv::Vec3f>(lefts[i]); //TODO
+            float a,b,c;
+            a = epiline[0]; b = epiline[1]; c = epiline[2];
+            int x1=1, x2=nCols; //x:cols; y:rows
+            int y1 = (int) ( (-c-a*x1)/b + 0.5f );// Casting to an int truncates the value. Adding 0.5 causes it to do proper rounding.
+            int y2 = (int) ( round( (-c-a*x2)/b ) );
+            cv::Point p1(x1,y1), p2(x2,y2);
+            cv::line(tmpcolor1, p1, p2, colors[i],2 ); //cv::Scalar(b,g,r)
+            cv::circle(tmpcolor,lefts[i],10,colors[i],2);
+        }
         cv::imwrite("am_up0_color.bmp", tmpcolor);   // gray_map is CV_16U using PNG
+        cv::imwrite("am_up1_color.bmp", tmpcolor1);   // gray_map is CV_16U using PNG
 
-        cv::line(tmp, p1, p1, cv::Scalar(255, 0, 0) );
-        cv::imwrite("am_up0.bmp", tmp);   // gray_map is CV_16U using PNG
 #endif
     }
 
@@ -517,107 +554,113 @@ void Triangulator::phasecorrelate_Epipolar(cv::Mat &up0, cv::Mat &vp0, cv::Mat &
             p0.x = i;
             p0.y = j;
 
-            if(p0.up==0.0 || p0.vp==0.0) continue; //masked ignore;
-
-            //get all points on the left eipolar line
-            cv::Vec3f epiline = epilineMat.at<cv::Vec3f>(i,j);
-            float a,b,c;
-            a = epiline[0]; b = epiline[1]; c = epiline[2];
-            //y = (-c-a*x) / b;  ax+by+c=0
-            ushort boundary = 3; //cut the boundary
-            for(ushort x=boundary; x<nCols-boundary;x++) //Note: (x,y) is matlab coordiante=(col,row)
+            if(p0.up!=0.0 && p0.vp!=0.0) //masked ignore;
             {
-                float yy = (-c-a*x)/b;
-                ushort y = round(yy); //x:cols; y:rows
-                if(y<boundary || y>nRows-boundary) continue;
-                p1.up = up1.at<float>(y,x);
-                p1.vp = vp1.at<float>(y,x);
-                p1.x = y;
-                p1.y = x;
-                float diff_up = fabs(p0.up - p1.up);
-                float diff_vp = fabs(p0.vp - p1.vp);
-
-                if( diff_up < threshold && diff_vp < threshold)
+                //get all points on the left eipolar line
+                cv::Vec3f epiline = epilineMat.at<cv::Vec3f>(i,j);
+                float a,b,c;
+                a = epiline[0]; b = epiline[1]; c = epiline[2];
+                //y = (-c-a*x) / b;  ax+by+c=0
+                ushort boundary = 3; //cut the boundary
+                for(ushort x=boundary; x<nCols-boundary;x++) //Note: (x,y) is matlab coordiante=(col,row)
                 {
-                    p1.distance = diff_up + diff_vp;
-                    windowsmatched.push_back(p1);
+                    float yy = (-c-a*x)/b;
+                    ushort y = round(yy); //x:cols; y:rows
 
-                    // continue search in a 3*3 window, center in w0=p0;
-                    //%  7 8 9
-                    //%  4 0 6    0: is the center
-                    //%  1 2 3
-                    intersection w0 = p0;
-                    intersection w7(y-1,x-1, up1.at<float>(y-1,x-1), vp1.at<float>(y-1,x-1));
-                    intersection w8(y-1,x, up1.at<float>(y-1,x), vp1.at<float>(y-1,x));
-                    intersection w9(y-1,x+1, up1.at<float>(y-1,x+1), vp1.at<float>(y-1,x+1));
-                    intersection w4(y,x-1, up1.at<float>(y,x-1), vp1.at<float>(y,x-1));
-                    intersection w6(y-1,x+1, up1.at<float>(y-1,x+1), vp1.at<float>(y-1,x+1));
-                    intersection w1(y+1,x-1, up1.at<float>(y+1,x-1), vp1.at<float>(y+1,x-1));
-                    intersection w2(y+1,x, up1.at<float>(y+1,x), vp1.at<float>(y+1,x));
-                    intersection w3(y+1,x+1, up1.at<float>(y+1,x+1), vp1.at<float>(y+1,x+1));
+                    if(y<boundary || y>nRows-boundary) continue;
 
-                    diff_up = fabs(w7.up - w0.up);
-                    diff_vp = fabs(w7.vp - w0.vp);
+                    p1.up = up1.at<float>(y,x);
+                    p1.vp = vp1.at<float>(y,x);
+                    p1.x = y;
+                    p1.y = x;
+
+                    if(p1.up==0.0 || p1.vp==0.0) continue; //masked ignore;
+
+                    float diff_up = fabs(p0.up - p1.up);
+                    float diff_vp = fabs(p0.vp - p1.vp);
+
                     if( diff_up < threshold && diff_vp < threshold)
                     {
-                        w7.distance = diff_up + diff_vp;
-                        windowsmatched.push_back(w7);
-                    }
+                        p1.distance = diff_up + diff_vp;
+                        windowsmatched.push_back(p1);
 
-                    diff_up = fabs(w8.up - w0.up);
-                    diff_vp = fabs(w8.vp - w0.vp);
-                    if( diff_up < threshold && diff_vp < threshold)
-                    {
-                        w8.distance = diff_up + diff_vp;
-                        windowsmatched.push_back(w8);
-                    }
+                        // continue search in a 3*3 window, center in w0=p0;
+                        //%  7 8 9
+                        //%  4 0 6    0: is the center
+                        //%  1 2 3
+                        intersection w0 = p0;
+                        intersection w7(y-1,x-1, up1.at<float>(y-1,x-1), vp1.at<float>(y-1,x-1));
+                        intersection w8(y-1,x, up1.at<float>(y-1,x), vp1.at<float>(y-1,x));
+                        intersection w9(y-1,x+1, up1.at<float>(y-1,x+1), vp1.at<float>(y-1,x+1));
+                        intersection w4(y,x-1, up1.at<float>(y,x-1), vp1.at<float>(y,x-1));
+                        intersection w6(y-1,x+1, up1.at<float>(y-1,x+1), vp1.at<float>(y-1,x+1));
+                        intersection w1(y+1,x-1, up1.at<float>(y+1,x-1), vp1.at<float>(y+1,x-1));
+                        intersection w2(y+1,x, up1.at<float>(y+1,x), vp1.at<float>(y+1,x));
+                        intersection w3(y+1,x+1, up1.at<float>(y+1,x+1), vp1.at<float>(y+1,x+1));
 
-                    diff_up = fabs(w9.up - w0.up);
-                    diff_vp = fabs(w9.vp - w0.vp);
-                    if( diff_up < threshold && diff_vp < threshold)
-                    {
-                        w9.distance = diff_up + diff_vp;
-                        windowsmatched.push_back(w9);
-                    }
+                        diff_up = fabs(w7.up - w0.up);
+                        diff_vp = fabs(w7.vp - w0.vp);
+                        if( diff_up < threshold && diff_vp < threshold)
+                        {
+                            w7.distance = diff_up + diff_vp;
+                            windowsmatched.push_back(w7);
+                        }
 
-                    diff_up = fabs(w4.up - w0.up);
-                    diff_vp = fabs(w4.vp - w0.vp);
-                    if( diff_up < threshold && diff_vp < threshold)
-                    {
-                        w4.distance = diff_up + diff_vp;
-                        windowsmatched.push_back(w4);
-                    }
+                        diff_up = fabs(w8.up - w0.up);
+                        diff_vp = fabs(w8.vp - w0.vp);
+                        if( diff_up < threshold && diff_vp < threshold)
+                        {
+                            w8.distance = diff_up + diff_vp;
+                            windowsmatched.push_back(w8);
+                        }
 
-                    diff_up = fabs(w6.up - w0.up);
-                    diff_vp = fabs(w6.vp - w0.vp);
-                    if( diff_up < threshold && diff_vp < threshold)
-                    {
-                        w6.distance = diff_up + diff_vp;
-                        windowsmatched.push_back(w6);
-                    }
+                        diff_up = fabs(w9.up - w0.up);
+                        diff_vp = fabs(w9.vp - w0.vp);
+                        if( diff_up < threshold && diff_vp < threshold)
+                        {
+                            w9.distance = diff_up + diff_vp;
+                            windowsmatched.push_back(w9);
+                        }
 
-                    diff_up = fabs(w1.up - w0.up);
-                    diff_vp = fabs(w1.vp - w0.vp);
-                    if( diff_up < threshold && diff_vp < threshold)
-                    {
-                        w1.distance = diff_up + diff_vp;
-                        windowsmatched.push_back(w1);
-                    }
+                        diff_up = fabs(w4.up - w0.up);
+                        diff_vp = fabs(w4.vp - w0.vp);
+                        if( diff_up < threshold && diff_vp < threshold)
+                        {
+                            w4.distance = diff_up + diff_vp;
+                            windowsmatched.push_back(w4);
+                        }
 
-                    diff_up = fabs(w2.up - w0.up);
-                    diff_vp = fabs(w2.vp - w0.vp);
-                    if( diff_up < threshold && diff_vp < threshold)
-                    {
-                        w2.distance = diff_up + diff_vp;
-                        windowsmatched.push_back(w2);
-                    }
+                        diff_up = fabs(w6.up - w0.up);
+                        diff_vp = fabs(w6.vp - w0.vp);
+                        if( diff_up < threshold && diff_vp < threshold)
+                        {
+                            w6.distance = diff_up + diff_vp;
+                            windowsmatched.push_back(w6);
+                        }
 
-                    diff_up = fabs(w3.up - w0.up);
-                    diff_vp = fabs(w3.vp - w0.vp);
-                    if( diff_up < threshold && diff_vp < threshold)
-                    {
-                        w3.distance = diff_up + diff_vp;
-                        windowsmatched.push_back(w3);
+                        diff_up = fabs(w1.up - w0.up);
+                        diff_vp = fabs(w1.vp - w0.vp);
+                        if( diff_up < threshold && diff_vp < threshold)
+                        {
+                            w1.distance = diff_up + diff_vp;
+                            windowsmatched.push_back(w1);
+                        }
+
+                        diff_up = fabs(w2.up - w0.up);
+                        diff_vp = fabs(w2.vp - w0.vp);
+                        if( diff_up < threshold && diff_vp < threshold)
+                        {
+                            w2.distance = diff_up + diff_vp;
+                            windowsmatched.push_back(w2);
+                        }
+
+                        diff_up = fabs(w3.up - w0.up);
+                        diff_vp = fabs(w3.vp - w0.vp);
+                        if( diff_up < threshold && diff_vp < threshold)
+                        {
+                            w3.distance = diff_up + diff_vp;
+                            windowsmatched.push_back(w3);
+                        }
                     }
                 }
             }
@@ -627,9 +670,14 @@ void Triangulator::phasecorrelate_Epipolar(cv::Mat &up0, cv::Mat &vp0, cv::Mat &
             {
                 std::sort(windowsmatched.begin(), windowsmatched.end(), sortingLargerDistance); //ascending order
                 intersection matched = windowsmatched[0];
-                matches0.push_back(p0);
                 matches1.push_back(matched);
             }
+            else
+            {
+                mask.at<uchar>(i,j) = 0;
+                matches1.push_back(p0); //redundant
+            }
+            matches0.push_back(p0);
         }
     }
 }

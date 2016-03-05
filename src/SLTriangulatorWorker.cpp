@@ -180,12 +180,12 @@ void SLTriangulatorWorker::triangulatePointCloud(cv::Mat up0, cv::Mat vp0, cv::M
         for(int col=0; col<pointCloud.cols; col++){
             const cv::Vec3f pnt = pointCloud.at<cv::Vec3f>(row,col);
 
-            //unsigned char shade = shading0.at<unsigned char>(row,col);  //[Yang]: TODO, To use which texture?
+            unsigned char shade = shading0.at<unsigned char>(row,col);  //[Yang]: TODO, To use which texture?
 
             pcl::PointXYZRGB point;
             point.x = pnt[0]; point.y = pnt[1]; point.z = pnt[2];
-            //point.r = shade; point.g = shade; point.b = shade; //Yang: TODO
-            point.r = 255; point.g = 255; point.b = 255;
+            point.r = shade; point.g = shade; point.b = shade;
+            //point.r = 255; point.g = 255; point.b = 255;
             pointCloudPCL->points[offset + col] = point;
         }
     }
