@@ -213,6 +213,17 @@ void Triangulator::triangulate(cv::Mat &up0, cv::Mat &vp0, cv::Mat &mask0, cv::M
     cv::Mat mask = mask0; //as final mask
     phasecorrelate_Epipolar(up0_m, vp0_m, mask, up1_m, vp1_m, matches0, matches1);
 
+    //debug
+    {
+#if 1
+    double minVal,maxVal;
+    cv::Mat tmp = mask.clone();
+    cv::minMaxIdx(tmp,&minVal,&maxVal);
+    tmp.convertTo(tmp,CV_8U,255.0/(maxVal-minVal),-255.0*minVal/(maxVal-minVal));
+    cv::imwrite("am_mask_final.BMP", tmp);
+#endif
+    }
+
     std::cout << "Triangulator::phasecorrelate_Epipolar:  finished! size_matches0=" << matches0.size() << std::endl;
 
     // Triangulate
