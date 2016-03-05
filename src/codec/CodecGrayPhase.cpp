@@ -3,14 +3,15 @@
 //self-calibration of a projector and a camera using structured light",
 //In Proc. Projector Camera Systems 2011, pp. 67-74, June 2011
 
+#include <fstream>
 #include "CodecGrayPhase.h"
 #include <cmath>
 #include <iomanip>
 
 #include "cvtools.h"
-#include <QString>
-#include <fstream>
 
+#include <QString>
+#include <QSettings>
 
 #ifndef M_PI
     #define M_PI 3.14159265358979323846
@@ -20,7 +21,7 @@ static unsigned int nPhases = 16;
 static unsigned int Nhorz = 0;
 static unsigned int Nvert = 0;
 static unsigned int num_fringes = 8;
-static float intensity_threshold = 0.1;
+static float threshold_complementary = 0.1; // diff between Gray code image and its complementary iamge.
 static unsigned int fringe_interval = 1;
 
 #ifndef log2f
@@ -201,6 +202,8 @@ DecoderGrayPhase::DecoderGrayPhase(unsigned int _screenCols, unsigned int _scree
     Nhorz = get_num_bits(0, _screenCols);
     Nvert = get_num_bits(1, _screenRows);
 
+    QSettings settings("SLStudio");
+    threshold_complementary = settings.value("Decoding/threshold_complementary", 0.1).toFloat();
     N = 2;
 
     if(dir & CodecDirHorizontal)
@@ -255,7 +258,7 @@ void DecoderGrayPhase::decode_gray(const std::vector<Mat>& images, int direction
         diff[nbits-1-bit] = images[2*bit]-images[2*bit+1];
 
         // count error
-        float threshold = intensity_threshold * maxval;
+        float threshold = threshold_complementary * maxval;
         slib::CountGraycodeUncertainty(diff[nbits-1-bit], threshold, m_gray_error[direction]);
     }
 
@@ -496,7 +499,7 @@ void DecoderGrayPhase::decodeFrames(cv::Mat &up, cv::Mat &vp, cv::Mat &mask, cv:
 
 void DecoderGrayPhase::decodeFrames(cv::Mat &up, cv::Mat &vp, cv::Mat &mask, cv::Mat &shading, int numCam)
 {
-/*
+
     int framesize=frames.size();
     shading = frames[framesize-2];    // Get shading (max) image
     shading.convertTo(shading, CV_8UC1);
@@ -755,13 +758,13 @@ void DecoderGrayPhase::decodeFrames(cv::Mat &up, cv::Mat &vp, cv::Mat &mask, cv:
 
 #endif
     }
-*/
+
     //debug save yml and load
     {
 #if 1
         if(numCam==1)
         {
-#if 0
+#if 1
             {
                 cv::FileStorage up1("aa_up1.yml", cv::FileStorage::WRITE);
                 up1<<"up1" <<up;
@@ -779,23 +782,27 @@ void DecoderGrayPhase::decodeFrames(cv::Mat &up, cv::Mat &vp, cv::Mat &mask, cv:
             }
 #endif
 
-#if 1
+#if 0
             {
                 cv::FileStorage up1("aa_up1.yml", cv::FileStorage::READ);
                 up1["up1"]>>up;
+                up1.release();
                 cv::FileStorage vp1("aa_vp1.yml", cv::FileStorage::READ);
                 vp1["vp1"]>>vp;
+                vp1.release();
                 cv::FileStorage mask1("aa_mask1.yml", cv::FileStorage::READ);
                 mask1["mask1"]>>mask;
+                mask1.release();
                 cv::FileStorage shading1("aa_shading1.yml", cv::FileStorage::READ);
                 shading1["shading1"]>>shading;
+                shading1.release();
             }
 #endif
 
         }
         else if(numCam==2)
         {
-#if 0
+#if 1
             {
                 cv::FileStorage up2("aa_up2.yml", cv::FileStorage::WRITE);
                 up2<<"up2" <<up;
@@ -812,16 +819,20 @@ void DecoderGrayPhase::decodeFrames(cv::Mat &up, cv::Mat &vp, cv::Mat &mask, cv:
             }
 #endif
 
-#if 1
+#if 0
             {
                 cv::FileStorage up2("aa_up2.yml", cv::FileStorage::READ);
                 up2["up2"]>>up;
+                up2.release();
                 cv::FileStorage vp2("aa_vp2.yml", cv::FileStorage::READ);
                 vp2["vp2"]>>vp;
+                vp2.release();
                 cv::FileStorage mask2("aa_mask2.yml", cv::FileStorage::READ);
                 mask2["mask2"]>>mask;
+                mask2.release();
                 cv::FileStorage shading2("aa_shading2.yml", cv::FileStorage::READ);
                 shading2["shading2"]>>shading;
+                shading2.release();
             }
 #endif
         }

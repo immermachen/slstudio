@@ -209,27 +209,21 @@ void Triangulator::triangulate(cv::Mat &up0, cv::Mat &vp0, cv::Mat &mask0, cv::M
     //TODO: option: check the identity property of phase value: delete duplicate value;
     //validateIdentity()
 
-    //TODO: find phase value correlation
     std::vector<intersection> matches0, matches1;
-    //phasecorrelate(up0_m, vp0_m, up1_m, vp1_m, matches0, matches1);
     cv::Mat mask = mask0; //as final mask
     phasecorrelate_Epipolar(up0_m, vp0_m, mask, up1_m, vp1_m, matches0, matches1);
-    //phasecorrelate_Epipolar(up0, vp0, up1, vp1, matches0, matches1);
 
     std::cout << "Triangulator::phasecorrelate_Epipolar:  finished! size_matches0=" << matches0.size() << std::endl;
 
     // Triangulate
     cv::Mat xyz;
-    //triangulateFromUpVp(up0, vp0, up1, vp1, xyz);
     triangulateFromPhaseCorrelate(matches0,matches1, xyz);
 
     std::cout << "Triangulator::triangulateFromPhaseCorrelate:  finished!" << std::endl;
 
     // Aplly Mask    
     pointCloud = cv::Mat(up0.size(), CV_32FC3, cv::Scalar(NAN, NAN, NAN));
-    //pointCloud = cv::Mat(matches0.size(),1, CV_32FC3, cv::Scalar(NAN, NAN, NAN)); //N*1 points
     xyz.copyTo(pointCloud, mask);
-    //xyz.copyTo(pointCloud);
 }
 
 void Triangulator::triangulateFromUp(cv::Mat &up, cv::Mat &xyz){

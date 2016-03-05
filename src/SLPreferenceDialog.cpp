@@ -100,6 +100,7 @@ SLPreferenceDialog::SLPreferenceDialog(QWidget *parent) : QDialog(parent), ui(ne
     float shutter = settings.value("camera/shutter", 16.666).toFloat();
     ui->shutterDoubleSpinBox->setValue(shutter);
 
+
     QString triggerMode = settings.value("trigger/mode","hardware").toString();
     if(triggerMode == "hardware"){
         ui->triggerHardwareRadioButton->setChecked(true);
@@ -122,6 +123,8 @@ SLPreferenceDialog::SLPreferenceDialog(QWidget *parent) : QDialog(parent), ui(ne
     bool tracking = settings.value("writeToDisk/tracking",false).toBool();
     ui->trackingCheckBox->setChecked(tracking);
 
+    float threshold_complementary = settings.value("Decoding/threshold_complementary", 0.1).toFloat();
+    ui->Threshold_Complentary->setValue(threshold_complementary);
 }
 
 SLPreferenceDialog::~SLPreferenceDialog(){
@@ -203,6 +206,9 @@ void SLPreferenceDialog::on_buttonBox_accepted(){
     settings.setValue("writeToDisk/pointclouds", pointclouds);
     bool tracking =  ui->trackingCheckBox->isChecked();
     settings.setValue("writeToDisk/tracking", tracking);
+
+    float threshold_complementary = ui->Threshold_Complentary->value();
+    settings.setValue("Decoding/threshold_complementary", threshold_complementary);
 }
 
 

@@ -174,7 +174,8 @@ void DecodePhaseCodeImages(const std::vector<Mat> &images, Mat& result)
 //void UnwrapPhase(const Field<2,float> &phase, const int period, const Field<2,float> &reference, Field<2,float>& result, Field<2,float>& unwrap_error);
 void UnwrapPhase(const Mat &phase, const int period, const Mat &reference, Mat& result, Mat& unwrap_error)
 {
-    // max correctable phase error
+    //TODO: max correctable phase error: How
+    std::cout<< "Warning: UnwrapPhase: How to set the window is better?" << std::endl;
     float window = 2.0/period;
 
     unwrap_error = Mat::zeros(phase.rows, phase.cols, CV_32F);
