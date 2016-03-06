@@ -499,7 +499,7 @@ void DecoderGrayPhase::decodeFrames(cv::Mat &up, cv::Mat &vp, cv::Mat &mask, cv:
 
 void DecoderGrayPhase::decodeFrames(cv::Mat &up, cv::Mat &vp, cv::Mat &mask, cv::Mat &shading, int numCam)
 {
-
+/*
     int framesize=frames.size();
     shading = frames[framesize-2];    // Get shading (max) image
     shading.convertTo(shading, CV_8UC1);
@@ -758,13 +758,13 @@ void DecoderGrayPhase::decodeFrames(cv::Mat &up, cv::Mat &vp, cv::Mat &mask, cv:
 
 #endif
     }
-
+*/
     //debug save yml and load
     {
 #if 1
         if(numCam==1)
         {
-#if 1
+#if 0
             {
                 cv::FileStorage up1("aa_up1.yml", cv::FileStorage::WRITE);
                 up1<<"up1" <<up;
@@ -782,7 +782,7 @@ void DecoderGrayPhase::decodeFrames(cv::Mat &up, cv::Mat &vp, cv::Mat &mask, cv:
             }
 #endif
 
-#if 0
+#if 1
             {
                 cv::FileStorage up1("aa_up1.yml", cv::FileStorage::READ);
                 up1["up1"]>>up;
@@ -802,7 +802,7 @@ void DecoderGrayPhase::decodeFrames(cv::Mat &up, cv::Mat &vp, cv::Mat &mask, cv:
         }
         else if(numCam==2)
         {
-#if 1
+#if 0
             {
                 cv::FileStorage up2("aa_up2.yml", cv::FileStorage::WRITE);
                 up2<<"up2" <<up;
@@ -819,7 +819,7 @@ void DecoderGrayPhase::decodeFrames(cv::Mat &up, cv::Mat &vp, cv::Mat &mask, cv:
             }
 #endif
 
-#if 0
+#if 1
             {
                 cv::FileStorage up2("aa_up2.yml", cv::FileStorage::READ);
                 up2["up2"]>>up;
