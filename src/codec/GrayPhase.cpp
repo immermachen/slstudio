@@ -177,6 +177,7 @@ void UnwrapPhase(const Mat &phase, const int period, const Mat &reference, Mat& 
     //TODO: max correctable phase error: How
     std::cout<< "Warning: UnwrapPhase: How to set the window is better?" << std::endl;
     float window = 2.0/period;
+    //float window = 1.0;
 
     unwrap_error = Mat::zeros(phase.rows, phase.cols, CV_32F);
 
@@ -202,7 +203,7 @@ void UnwrapPhase(const Mat &phase, const int period, const Mat &reference, Mat& 
             else if (moire_phase < gray_phase - 0.5)
                 moire_phase += 1;
 
-            float diff = abs(gray_phase - moire_phase);
+            float diff = fabs(gray_phase - moire_phase);
             if (diff < window) {
                 //TODO: Yang: check this:::: how to deal with negative value???
                 result.at<float>(x, y) = graycode - (graycode % period) + period * moire_phase;//e.g.: 11-(11%4)+4*0.3 = 9.2

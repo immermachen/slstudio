@@ -205,13 +205,70 @@ void Triangulator::triangulate(cv::Mat &up0, cv::Mat &vp0, cv::Mat &mask0, cv::M
     vp0.copyTo(vp0_m, mask0);
     up1.copyTo(up1_m, mask1);
     vp1.copyTo(vp1_m, mask1);
+//    up0.copyTo(up0_m);
+//    vp0.copyTo(vp0_m);
+//    up1.copyTo(up1_m);
+//    vp1.copyTo(vp1_m);
 
     //TODO: option: check the identity property of phase value: delete duplicate value;
     //validateIdentity()
 
+    //TODO: Filter: using Bilater filter or?
+    //cv::adaptiveBilateralFilter(up0_m, up0_m, cv::Size(11, 11), 50);//Only in OpenCV2.0; kernal size(11) should be an odd value
+    //http://docs.opencv.org/3.0-beta/modules/imgproc/doc/filtering.html
+    cv::Mat up0_m_f, vp0_m_f, up1_m_f, vp1_m_f; // filtered
+//    cv::bilateralFilter(up0_m,up0_m_f,63, 9,9);
+//    cv::bilateralFilter(vp0_m,vp0_m_f,63, 9,9);
+//    cv::bilateralFilter(up1_m,up1_m_f,63, 9,9);
+//    cv::bilateralFilter(vp1_m,vp1_m_f,63, 9,9);
+
+    //Interpolation
+
+
+    //debug
+    {
+#if 1
+        cv::Mat ups[2], vps[2];
+        ups[0] = up0_m_f;
+        ups[1] = up1_m_f;
+        vps[0] = vp0_m_f;
+        vps[1] = vp1_m_f;
+
+        for(int numCam=1; numCam<3; numCam++)
+        {
+            double minVal,maxVal;
+            cv::Mat unwrapped_up = ups[numCam-1];
+            cv::Mat unwrapped_vp = vps[numCam-1];
+
+            cv::minMaxIdx(unwrapped_up,&minVal,&maxVal);
+            cv::Mat temp = unwrapped_up.clone();
+            temp.convertTo(temp,CV_16U, 65535/(maxVal-minVal),-65535*minVal/(maxVal-minVal));
+            QString filename = QString("am_map_phase_unwraped0_C%1_maksed_filter.png").arg(numCam, 1);
+            cv::imwrite(filename.toStdString(), temp);
+
+//            cv::Mat Dst(unwrapped_up, Rect(0,1000,2448,1)); // Rect_(x, y, width,height);
+//            writeMatToFile(Dst,QString("am_map_phase_unwraped0_0_1000_2448_1_C%1_masked_filter.txt").arg(numCam, 1).toStdString().c_str(), 0);
+//            cv::Mat Dst1(unwrapped_up, Rect(0,1010,2448,1)); // Rect_(x, y, width,height);
+//            writeMatToFile(Dst1,QString("am_map_phase_unwraped0_0_1010_2448_1_C%1_masked_filter.txt").arg(numCam, 1).toStdString().c_str(), 0);
+
+            cv::minMaxIdx(unwrapped_vp,&minVal,&maxVal);
+            temp = unwrapped_vp.clone();
+            temp.convertTo(temp,CV_16U, 65535/(maxVal-minVal),-65535*minVal/(maxVal-minVal));
+            filename = QString("am_map_phase_unwraped1_C%1_masked_filter.png").arg(numCam, 1);
+            cv::imwrite(filename.toStdString(), temp);
+
+//            cv::Mat Dst2(unwrapped_vp, Rect(1000,0,1,2050)); // Rect_(x, y, width,height);
+//            writeMatToFile(Dst2, QString("am_map_phase_unwraped1_1000_0_1_2050_C%1_masked_filter.txt").arg(numCam, 1).toStdString().c_str(), 1);
+//            cv::Mat Dst3(unwrapped_vp, Rect(1050,0,1,2050)); // Rect_(x, y, width,height);
+//            writeMatToFile(Dst3, QString("am_map_phase_unwraped1_1050_0_1_2050_C%1_masked_filter.txt").arg(numCam, 1).toStdString().c_str(), 1);
+        }
+#endif
+    }
+
     std::vector<intersection> matches0, matches1;
-    cv::Mat mask = mask0; //as final mask
-    phasecorrelate_Epipolar(up0_m, vp0_m, mask, up1_m, vp1_m, matches0, matches1);
+    cv::Mat mask = mask0; //TODO: as final mask: plot new mask depending mask= (up=vp=0);
+    //phasecorrelate_Epipolar(up0_m, vp0_m, mask, up1_m, vp1_m, matches0, matches1);
+    phasecorrelate_Epipolar(up0_m_f, vp0_m_f, mask, up1_m_f, vp1_m_f, matches0, matches1);
 
     //debug
     {
@@ -234,7 +291,8 @@ void Triangulator::triangulate(cv::Mat &up0, cv::Mat &vp0, cv::Mat &mask0, cv::M
 
     // Aplly Mask    
     pointCloud = cv::Mat(up0.size(), CV_32FC3, cv::Scalar(NAN, NAN, NAN));
-    xyz.copyTo(pointCloud, mask);
+    //xyz.copyTo(pointCloud, mask);
+    xyz.copyTo(pointCloud);
 }
 
 void Triangulator::triangulateFromUp(cv::Mat &up, cv::Mat &xyz){
@@ -456,13 +514,6 @@ void Triangulator::phasecorrelate(cv::Mat &up0, cv::Mat &vp0, cv::Mat &up1, cv::
 //find phase correspondence using epipolar constraint.
 void Triangulator::phasecorrelate_Epipolar(cv::Mat &up0, cv::Mat &vp0, cv::Mat &mask, cv::Mat &up1, cv::Mat &vp1, std::vector<intersection> &matches0, std::vector<intersection> &matches1)
 {
-    for(unsigned int row=0; row<calibration.frameHeight; row++){
-        for(unsigned int col=0; col<calibration.frameWidth; col++){
-            uc.at<float>(row, col) = col;
-            vc.at<float>(row, col) = row;
-        }
-    }
-
     //loop up0 to find epipolar line
     ushort nRows = up0.rows;
     ushort nCols = up0.cols;
@@ -676,6 +727,7 @@ void Triangulator::phasecorrelate_Epipolar(cv::Mat &up0, cv::Mat &vp0, cv::Mat &
                 std::sort(windowsmatched.begin(), windowsmatched.end(), sortingLargerDistance); //ascending order
                 intersection matched = windowsmatched[0];
                 matches1.push_back(matched);
+                mask.at<uchar>(i,j) = 255;
             }
             else
             {

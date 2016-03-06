@@ -225,7 +225,9 @@ void DecoderGrayPhase::setFrame(unsigned int depth, const cv::Mat frame)
 
 void DecoderGrayPhase::convert_reliable_map(int direction)
 {
+    std::cout<< "Warning: DecoderGrayPhase::convert_reliable_map: How to set the window is better?" << std::endl;
     float maxerror = 2.0/num_fringes;
+    //float maxerror = 1.0; //window=0.5
     m_reliable_mask[direction] = Mat::zeros(m_phase_error[direction].size(), CV_8U);
     Mat& phase_error = m_phase_error[direction];
 
@@ -499,7 +501,7 @@ void DecoderGrayPhase::decodeFrames(cv::Mat &up, cv::Mat &vp, cv::Mat &mask, cv:
 
 void DecoderGrayPhase::decodeFrames(cv::Mat &up, cv::Mat &vp, cv::Mat &mask, cv::Mat &shading, int numCam)
 {
-/*
+
     int framesize=frames.size();
     shading = frames[framesize-2];    // Get shading (max) image
     shading.convertTo(shading, CV_8UC1);
@@ -707,12 +709,14 @@ void DecoderGrayPhase::decodeFrames(cv::Mat &up, cv::Mat &vp, cv::Mat &mask, cv:
         }
     }
 
-//    std::cout<< "decodeFrames ennnd." <<std::endl;
-    up = m_phase_map[0];                   //why? here is good, but flat and curve flache , just different from above
-//     up = m_phase_map[0]*screenCols;      // here is bad
-    vp = m_phase_map[1];
-//     vp = m_phase_map[1]*screenRows;
-    mask =  m_reliable_mask[0]>0;
+//    std::cout<< "decodeFrames ennnd." <<std::endl;    
+    //up = m_phase_map[0];//TODO: it does not work? Why? Must clone!!! Maybe inter-Thread, the memory lost? The reference counts do not work?
+    up = m_phase_map[0].clone();
+    vp = m_phase_map[1].clone();                //good: for CC;
+//     vp = m_phase_map[1]*screenRows;  //bad: for CC;
+    mask =  m_reliable_mask[0]>0;  //TODO: do not Mat.clone???
+    //mask.clone();
+
 
     //debug
     {
@@ -758,13 +762,13 @@ void DecoderGrayPhase::decodeFrames(cv::Mat &up, cv::Mat &vp, cv::Mat &mask, cv:
 
 #endif
     }
-*/
+
     //debug save yml and load
     {
-#if 1
+#if 0
         if(numCam==1)
         {
-#if 0
+#if 1  //save
             {
                 cv::FileStorage up1("aa_up1.yml", cv::FileStorage::WRITE);
                 up1<<"up1" <<up;
@@ -776,13 +780,14 @@ void DecoderGrayPhase::decodeFrames(cv::Mat &up, cv::Mat &vp, cv::Mat &mask, cv:
                 cv::FileStorage mask1("aa_mask1.yml", cv::FileStorage::WRITE);
                 mask1<< "mask1"<<mask;
                 mask1.release();
+
                 cv::FileStorage shading1("aa_shading1.yml", cv::FileStorage::WRITE);
                 shading1<< "shading1"<<shading;
                 shading1.release();
             }
 #endif
 
-#if 1
+#if 0  //load
             {
                 cv::FileStorage up1("aa_up1.yml", cv::FileStorage::READ);
                 up1["up1"]>>up;
@@ -802,7 +807,7 @@ void DecoderGrayPhase::decodeFrames(cv::Mat &up, cv::Mat &vp, cv::Mat &mask, cv:
         }
         else if(numCam==2)
         {
-#if 0
+#if 1 //save
             {
                 cv::FileStorage up2("aa_up2.yml", cv::FileStorage::WRITE);
                 up2<<"up2" <<up;
@@ -819,7 +824,7 @@ void DecoderGrayPhase::decodeFrames(cv::Mat &up, cv::Mat &vp, cv::Mat &mask, cv:
             }
 #endif
 
-#if 1
+#if 0  //load
             {
                 cv::FileStorage up2("aa_up2.yml", cv::FileStorage::READ);
                 up2["up2"]>>up;
