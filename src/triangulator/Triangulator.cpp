@@ -210,8 +210,6 @@ void Triangulator::triangulate(cv::Mat &up0, cv::Mat &vp0, cv::Mat &mask0, cv::M
 //    up1.copyTo(up1_m);
 //    vp1.copyTo(vp1_m);
 
-    //TODO: option: check the identity property of phase value: delete duplicate value;
-    //validateIdentity()
 
     //TODO: Filter: using Bilater filter or?
     //cv::adaptiveBilateralFilter(up0_m, up0_m, cv::Size(11, 11), 50);//Only in OpenCV2.0; kernal size(11) should be an odd value
@@ -222,7 +220,21 @@ void Triangulator::triangulate(cv::Mat &up0, cv::Mat &vp0, cv::Mat &mask0, cv::M
 //    cv::bilateralFilter(up1_m,up1_m_f,63, 9,9);
 //    cv::bilateralFilter(vp1_m,vp1_m_f,63, 9,9);
 
-    //Interpolation
+//    cv::bilateralFilter(up0_m,up0_m_f,63, 63,63);
+//    cv::bilateralFilter(vp0_m,vp0_m_f,63, 63,63);
+//    cv::bilateralFilter(up1_m,up1_m_f,63, 63,63);
+//    cv::bilateralFilter(vp1_m,vp1_m_f,63, 63,63);
+
+        up0_m.copyTo(up0_m_f);
+        vp0_m.copyTo(vp0_m_f);
+        up1_m.copyTo(up1_m_f);
+        vp1_m.copyTo(vp1_m_f);
+    //TODO: Bilinear Interpolation
+    ushort window = 15;
+//    bilinearInterpolation(up0_m_f,window);
+//    bilinearInterpolation(vp0_m_f,window);
+//    bilinearInterpolation(up1_m_f,window);
+//    bilinearInterpolation(vp1_m_f,window);
 
 
     //debug
@@ -246,10 +258,10 @@ void Triangulator::triangulate(cv::Mat &up0, cv::Mat &vp0, cv::Mat &mask0, cv::M
             QString filename = QString("am_map_phase_unwraped0_C%1_maksed_filter.png").arg(numCam, 1);
             cv::imwrite(filename.toStdString(), temp);
 
-//            cv::Mat Dst(unwrapped_up, Rect(0,1000,2448,1)); // Rect_(x, y, width,height);
-//            writeMatToFile(Dst,QString("am_map_phase_unwraped0_0_1000_2448_1_C%1_masked_filter.txt").arg(numCam, 1).toStdString().c_str(), 0);
-//            cv::Mat Dst1(unwrapped_up, Rect(0,1010,2448,1)); // Rect_(x, y, width,height);
-//            writeMatToFile(Dst1,QString("am_map_phase_unwraped0_0_1010_2448_1_C%1_masked_filter.txt").arg(numCam, 1).toStdString().c_str(), 0);
+            cv::Mat Dst(unwrapped_up, cv::Rect(0,1000,2448,1)); // Rect_(x, y, width,height);
+            slib::writeMatToFile(Dst,QString("am_map_phase_unwraped0_0_1000_2448_1_C%1_masked_filter.txt").arg(numCam, 1).toStdString().c_str(), 0);
+            cv::Mat Dst1(unwrapped_up, cv::Rect(0,1010,2448,1)); // Rect_(x, y, width,height);
+            slib::writeMatToFile(Dst1,QString("am_map_phase_unwraped0_0_1010_2448_1_C%1_masked_filter.txt").arg(numCam, 1).toStdString().c_str(), 0);
 
             cv::minMaxIdx(unwrapped_vp,&minVal,&maxVal);
             temp = unwrapped_vp.clone();
@@ -257,10 +269,10 @@ void Triangulator::triangulate(cv::Mat &up0, cv::Mat &vp0, cv::Mat &mask0, cv::M
             filename = QString("am_map_phase_unwraped1_C%1_masked_filter.png").arg(numCam, 1);
             cv::imwrite(filename.toStdString(), temp);
 
-//            cv::Mat Dst2(unwrapped_vp, Rect(1000,0,1,2050)); // Rect_(x, y, width,height);
-//            writeMatToFile(Dst2, QString("am_map_phase_unwraped1_1000_0_1_2050_C%1_masked_filter.txt").arg(numCam, 1).toStdString().c_str(), 1);
-//            cv::Mat Dst3(unwrapped_vp, Rect(1050,0,1,2050)); // Rect_(x, y, width,height);
-//            writeMatToFile(Dst3, QString("am_map_phase_unwraped1_1050_0_1_2050_C%1_masked_filter.txt").arg(numCam, 1).toStdString().c_str(), 1);
+            cv::Mat Dst2(unwrapped_vp, cv::Rect(1000,0,1,2050)); // Rect_(x, y, width,height);
+            slib::writeMatToFile(Dst2, QString("am_map_phase_unwraped1_1000_0_1_2050_C%1_masked_filter.txt").arg(numCam, 1).toStdString().c_str(), 1);
+            cv::Mat Dst3(unwrapped_vp, cv::Rect(1050,0,1,2050)); // Rect_(x, y, width,height);
+            slib::writeMatToFile(Dst3, QString("am_map_phase_unwraped1_1050_0_1_2050_C%1_masked_filter.txt").arg(numCam, 1).toStdString().c_str(), 1);
         }
 #endif
     }
@@ -291,8 +303,8 @@ void Triangulator::triangulate(cv::Mat &up0, cv::Mat &vp0, cv::Mat &mask0, cv::M
 
     // Aplly Mask    
     pointCloud = cv::Mat(up0.size(), CV_32FC3, cv::Scalar(NAN, NAN, NAN));
-    //xyz.copyTo(pointCloud, mask);
-    xyz.copyTo(pointCloud);
+    xyz.copyTo(pointCloud, mask);
+    //xyz.copyTo(pointCloud);
 }
 
 void Triangulator::triangulateFromUp(cv::Mat &up, cv::Mat &xyz){
@@ -597,8 +609,8 @@ void Triangulator::phasecorrelate_Epipolar(cv::Mat &up0, cv::Mat &vp0, cv::Mat &
 #endif
     }
 
-    float threshold = 2.0;
-
+    float threshold = 3.0;
+    uint num_correlate=0; //count
     for(ushort i=0; i < nRows; i++) // match intersections
     {
         for(ushort j=0; j<nCols;j++)
@@ -728,6 +740,7 @@ void Triangulator::phasecorrelate_Epipolar(cv::Mat &up0, cv::Mat &vp0, cv::Mat &
                 intersection matched = windowsmatched[0];
                 matches1.push_back(matched);
                 mask.at<uchar>(i,j) = 255;
+                num_correlate++;
             }
             else
             {
@@ -737,34 +750,7 @@ void Triangulator::phasecorrelate_Epipolar(cv::Mat &up0, cv::Mat &vp0, cv::Mat &
             matches0.push_back(p0);
         }
     }
+    std::cout<< "phasecorrelate_Epipolar number of phase correlate = " << num_correlate << std::endl;
 }
 
-////Another triangulation method, instead of cv::triangulatePoints
-////http://stackoverflow.com/questions/16295551/how-to-correctly-use-cvtriangulatepoints
-////I tried cv::triangulatePoints, but somehow it calculates garbage.
-////So to implement a linear triangulation method manually, which returns a 4x1 matrix for the triangulated 3D point.
-//cv::Mat Triangulator::triangulate_Linear_LS(cv::Mat mat_P_l, cv::Mat mat_P_r, cv::Mat warped_back_l, cv::Mat warped_back_r)
-//{
-//    cv::Mat A(4,3,CV_64FC1), b(4,1,CV_64FC1), X(3,1,CV_64FC1), X_homogeneous(4,1,CV_64FC1), W(1,1,CV_64FC1);
-//    W.at<double>(0,0) = 1.0;
-//    A.at<double>(0,0) = (warped_back_l.at<double>(0,0)/warped_back_l.at<double>(2,0))*mat_P_l.at<double>(2,0) - mat_P_l.at<double>(0,0);
-//    A.at<double>(0,1) = (warped_back_l.at<double>(0,0)/warped_back_l.at<double>(2,0))*mat_P_l.at<double>(2,1) - mat_P_l.at<double>(0,1);
-//    A.at<double>(0,2) = (warped_back_l.at<double>(0,0)/warped_back_l.at<double>(2,0))*mat_P_l.at<double>(2,2) - mat_P_l.at<double>(0,2);
-//    A.at<double>(1,0) = (warped_back_l.at<double>(1,0)/warped_back_l.at<double>(2,0))*mat_P_l.at<double>(2,0) - mat_P_l.at<double>(1,0);
-//    A.at<double>(1,1) = (warped_back_l.at<double>(1,0)/warped_back_l.at<double>(2,0))*mat_P_l.at<double>(2,1) - mat_P_l.at<double>(1,1);
-//    A.at<double>(1,2) = (warped_back_l.at<double>(1,0)/warped_back_l.at<double>(2,0))*mat_P_l.at<double>(2,2) - mat_P_l.at<double>(1,2);
-//    A.at<double>(2,0) = (warped_back_r.at<double>(0,0)/warped_back_r.at<double>(2,0))*mat_P_r.at<double>(2,0) - mat_P_r.at<double>(0,0);
-//    A.at<double>(2,1) = (warped_back_r.at<double>(0,0)/warped_back_r.at<double>(2,0))*mat_P_r.at<double>(2,1) - mat_P_r.at<double>(0,1);
-//    A.at<double>(2,2) = (warped_back_r.at<double>(0,0)/warped_back_r.at<double>(2,0))*mat_P_r.at<double>(2,2) - mat_P_r.at<double>(0,2);
-//    A.at<double>(3,0) = (warped_back_r.at<double>(1,0)/warped_back_r.at<double>(2,0))*mat_P_r.at<double>(2,0) - mat_P_r.at<double>(1,0);
-//    A.at<double>(3,1) = (warped_back_r.at<double>(1,0)/warped_back_r.at<double>(2,0))*mat_P_r.at<double>(2,1) - mat_P_r.at<double>(1,1);
-//    A.at<double>(3,2) = (warped_back_r.at<double>(1,0)/warped_back_r.at<double>(2,0))*mat_P_r.at<double>(2,2) - mat_P_r.at<double>(1,2);
-//    b.at<double>(0,0) = -((warped_back_l.at<double>(0,0)/warped_back_l.at<double>(2,0))*mat_P_l.at<double>(2,3) - mat_P_l.at<double>(0,3));
-//    b.at<double>(1,0) = -((warped_back_l.at<double>(1,0)/warped_back_l.at<double>(2,0))*mat_P_l.at<double>(2,3) - mat_P_l.at<double>(1,3));
-//    b.at<double>(2,0) = -((warped_back_r.at<double>(0,0)/warped_back_r.at<double>(2,0))*mat_P_r.at<double>(2,3) - mat_P_r.at<double>(0,3));
-//    b.at<double>(3,0) = -((warped_back_r.at<double>(1,0)/warped_back_r.at<double>(2,0))*mat_P_r.at<double>(2,3) - mat_P_r.at<double>(1,3));
-//    cv::solve(A,b,X,DECOMP_SVD);
-//    cv::vconcat(X,W,X_homogeneous);
-//    return X_homogeneous;
-//}
 

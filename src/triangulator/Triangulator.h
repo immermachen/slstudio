@@ -2,7 +2,7 @@
 #define RECONSTRUCTOR_H
 
 #include "CalibrationData.h"
-
+#include "codec/GrayPhase.h"
 #include <opencv2/opencv.hpp>
 
 typedef struct intersection{
@@ -41,6 +41,10 @@ class Triangulator {
         void triangulateFromPhaseCorrelate(std::vector<intersection> &matches0, std::vector<intersection> &matches1, cv::Mat &xyz);
         void phasecorrelate(cv::Mat &up0, cv::Mat &vp0, cv::Mat &up1, cv::Mat &vp1, std::vector<intersection> matches0, std::vector<intersection> matches1);
         void phasecorrelate_Epipolar(cv::Mat &up0, cv::Mat &vp0, cv::Mat &mask, cv::Mat &up1, cv::Mat &vp1, std::vector<intersection> &matches0, std::vector<intersection> &matches1);
+        inline float bilinearInterpolation_onePixel(float q11, float q12, float q21, float q22, float x1, float x2, float y1, float y2, float x, float y);
+        void bilinearInterpolation(cv::Mat &input, ushort window);
+        inline float linearInterpolation(float q, float q0, float q1, float v0, float v1);
+
 
         CalibrationData calibration;
         cv::Mat determinantTensor;

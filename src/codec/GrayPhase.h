@@ -13,6 +13,7 @@
 
 #include <vector>
 #include <opencv2/opencv.hpp>
+#include <fstream>
 
 #define USE_8BIT_DUMP
 
@@ -61,6 +62,12 @@ namespace slib
     //void UnwrapPhase(const Field<2,float> &phase, const int period, const Field<2,float> &reference, Field<2,float>& result, Field<2,float>& unwrap_error);
     void UnwrapPhase(const Mat& phase, const int period, const Mat& reference, Mat& result, Mat& unwrap_error);
 
+    void bilinearInterpolation(cv::Mat &input, ushort window);
+
+    inline float linearInterpolation(float q, float q0, float q1, float v0, float v1);
+
+    inline float bilinearInterpolation_onePixel(float q11, float q12, float q21, float q22, float x1, float x2, float y1, float y2, float x, float y);
+
 //    //------------------------------------------------------------
 //    // for debug
 //    //------------------------------------------------------------
@@ -72,5 +79,8 @@ namespace slib
 //    //template <typename T> void ExportCorrespondencePlot(const Field<2, T>&code, const Field<2,float> &mask, const std::string & filename);
 //    template <typename T> void ExportCorrespondencePlot(const Mat&code, const Mat &mask, const std::string & filename);
 
+
+    void writeMatToFile(cv::Mat& m, const std::string& filename, unsigned int dir);
+    void writeMatToFile(cv::Mat& m, const std::string& filename, unsigned int dir, int value);
 } // namespace slib
 #endif // GrayPHASE_H

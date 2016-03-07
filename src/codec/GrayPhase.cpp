@@ -225,6 +225,130 @@ void UnwrapPhase(const Mat &phase, const int period, const Mat &reference, Mat& 
     }
 }
 
+//Note: Not the true bilinear interpolation here: window: 15-20
+void bilinearInterpolation(cv::Mat &input, ushort window)
+{
+    ushort nRows = input.rows;
+    ushort nCols = input.cols;
+    for(ushort i= window+1; i < nRows-window-1; i++)
+    {
+        for(ushort j=window+1; j<nCols-window-1;j++)
+        {
+            float p0 = input.at<float>(i,j);
+            if(p0 != 0) continue;  //only fill the value when it is zero.
+
+            //   * q12  *   r2   *   q22 *
+            //   *          *           *
+            //y2 *          pt          *
+            //   *          *           *
+            //y  *      pl  p0   pr     *
+            //   *          *           *
+            //y1 *          pb          *
+            //   *          *           *
+            //   * q11  *   r1   *   q21 *
+            //   *      x1  x    x2
+            //find the top and bottom boundary
+            //float q11=0.0, q12=0.0, q21=0.0, q22=0.0;
+            ushort shift=0, success=0;
+            float pt=0.0, pb=0.0, pl=0.0, pr=0.0;
+            ushort x1=0, x2=0, y1=0, y2=0;
+            ushort x=j, y=i;
+
+            while(shift<window)
+            {
+                shift++;
+                float pt0= input.at<float>(i-shift , j);
+                if(y2==0 && pt0 != 0.0){
+                    success++;   y2=i-shift; pt = pt0;
+                }
+                float pb0= input.at<float>(i+shift , j);
+                if(y1==0 && pb0 != 0.0){
+                    success++;   y1=i+shift; pb = pb0;
+                }
+                float pl0 = input.at<float>(i, j-shift);
+                if(x1==0 && pl0 != 0.0){
+                    success++;   x1=j-shift; pl = pl0;
+                }
+                float pr0 = input.at<float>(i, j+shift);
+                if(x2==0 && pr0 != 0.0){
+                    success++;   x2=j+shift; pr = pr0;
+                }
+                if(success==4) break;
+            }
+            if(success!=4) continue;
+
+            //If q12, q22, q11,q21 ==0 , bilinearInterpolation does not work!
+            //p0 = bilinearInterpolation_onePixel(q11, q12, q21, q22, x1, x2, y1, y2, x, y);
+
+            //So using linear interpolation here in both direction and then average them!
+            float p0y = linearInterpolation(y,y2,y1,pt,pb);
+            float p0x = linearInterpolation(x,x1,x2,pl,pr);
+            p0 = (p0x+p0y)/2.0;
+            input.at<float>(i,j) = p0;
+        }
+    }
+}
+
+inline float linearInterpolation(float q, float q0, float q1, float v0, float v1)
+{
+    float d1 = q-q0;
+    float d = q1-q0;
+//    f(q0)=v0                 f(q)=v          f(q1)=v1
+//      q0                       q               q1
+//       |---------d1------------|-------d2-------|
+//       |--------------------d-------------------|
+    //v=(d2/d)*v0 + (d1/d)*v1    or equivalently,
+    //v=(1-d1/d)*v0 + (d1/d)*v1  or equivalently,
+    float v=(d1/d)*(v1-v0) + v0;
+    return v;
+}
+
+// https://helloacm.com
+inline float bilinearInterpolation_onePixel(float q11, float q12, float q21, float q22, float x1, float x2, float y1, float y2, float x, float y)
+{
+    float x2x1, y2y1, x2x, y2y, yy1, xx1;
+    x2x1 = x2 - x1;
+    y2y1 = y2 - y1;
+    x2x = x2 - x;
+    y2y = y2 - y;
+    yy1 = y - y1;
+    xx1 = x - x1;
+    return 1.0 / (x2x1 * y2y1) * (
+        q11 * x2x * y2y +
+        q21 * xx1 * y2y +
+        q12 * x2x * yy1 +
+        q22 * xx1 * yy1
+    );
+}
+
+////Another triangulation method, instead of cv::triangulatePoints
+////http://stackoverflow.com/questions/16295551/how-to-correctly-use-cvtriangulatepoints
+////I tried cv::triangulatePoints, but somehow it calculates garbage.
+////So to implement a linear triangulation method manually, which returns a 4x1 matrix for the triangulated 3D point.
+//cv::Mat Triangulator::triangulate_Linear_LS(cv::Mat mat_P_l, cv::Mat mat_P_r, cv::Mat warped_back_l, cv::Mat warped_back_r)
+//{
+//    cv::Mat A(4,3,CV_64FC1), b(4,1,CV_64FC1), X(3,1,CV_64FC1), X_homogeneous(4,1,CV_64FC1), W(1,1,CV_64FC1);
+//    W.at<double>(0,0) = 1.0;
+//    A.at<double>(0,0) = (warped_back_l.at<double>(0,0)/warped_back_l.at<double>(2,0))*mat_P_l.at<double>(2,0) - mat_P_l.at<double>(0,0);
+//    A.at<double>(0,1) = (warped_back_l.at<double>(0,0)/warped_back_l.at<double>(2,0))*mat_P_l.at<double>(2,1) - mat_P_l.at<double>(0,1);
+//    A.at<double>(0,2) = (warped_back_l.at<double>(0,0)/warped_back_l.at<double>(2,0))*mat_P_l.at<double>(2,2) - mat_P_l.at<double>(0,2);
+//    A.at<double>(1,0) = (warped_back_l.at<double>(1,0)/warped_back_l.at<double>(2,0))*mat_P_l.at<double>(2,0) - mat_P_l.at<double>(1,0);
+//    A.at<double>(1,1) = (warped_back_l.at<double>(1,0)/warped_back_l.at<double>(2,0))*mat_P_l.at<double>(2,1) - mat_P_l.at<double>(1,1);
+//    A.at<double>(1,2) = (warped_back_l.at<double>(1,0)/warped_back_l.at<double>(2,0))*mat_P_l.at<double>(2,2) - mat_P_l.at<double>(1,2);
+//    A.at<double>(2,0) = (warped_back_r.at<double>(0,0)/warped_back_r.at<double>(2,0))*mat_P_r.at<double>(2,0) - mat_P_r.at<double>(0,0);
+//    A.at<double>(2,1) = (warped_back_r.at<double>(0,0)/warped_back_r.at<double>(2,0))*mat_P_r.at<double>(2,1) - mat_P_r.at<double>(0,1);
+//    A.at<double>(2,2) = (warped_back_r.at<double>(0,0)/warped_back_r.at<double>(2,0))*mat_P_r.at<double>(2,2) - mat_P_r.at<double>(0,2);
+//    A.at<double>(3,0) = (warped_back_r.at<double>(1,0)/warped_back_r.at<double>(2,0))*mat_P_r.at<double>(2,0) - mat_P_r.at<double>(1,0);
+//    A.at<double>(3,1) = (warped_back_r.at<double>(1,0)/warped_back_r.at<double>(2,0))*mat_P_r.at<double>(2,1) - mat_P_r.at<double>(1,1);
+//    A.at<double>(3,2) = (warped_back_r.at<double>(1,0)/warped_back_r.at<double>(2,0))*mat_P_r.at<double>(2,2) - mat_P_r.at<double>(1,2);
+//    b.at<double>(0,0) = -((warped_back_l.at<double>(0,0)/warped_back_l.at<double>(2,0))*mat_P_l.at<double>(2,3) - mat_P_l.at<double>(0,3));
+//    b.at<double>(1,0) = -((warped_back_l.at<double>(1,0)/warped_back_l.at<double>(2,0))*mat_P_l.at<double>(2,3) - mat_P_l.at<double>(1,3));
+//    b.at<double>(2,0) = -((warped_back_r.at<double>(0,0)/warped_back_r.at<double>(2,0))*mat_P_r.at<double>(2,3) - mat_P_r.at<double>(0,3));
+//    b.at<double>(3,0) = -((warped_back_r.at<double>(1,0)/warped_back_r.at<double>(2,0))*mat_P_r.at<double>(2,3) - mat_P_r.at<double>(1,3));
+//    cv::solve(A,b,X,DECOMP_SVD);
+//    cv::vconcat(X,W,X_homogeneous);
+//    return X_homogeneous;
+//}
 ////------------------------------------------------------------
 //// for debug
 ////------------------------------------------------------------
@@ -271,5 +395,79 @@ void UnwrapPhase(const Mat &phase, const int period, const Mat &reference, Mat& 
 //    }
 //    fclose(fw);
 //}
+
+
+
+void writeMatToFile(cv::Mat& m, const std::string& filename, unsigned int dir)
+{
+    std::ofstream fout(filename.c_str());
+
+    if(!fout)
+    {
+        std::cout<<"File Not Opened"<<std::endl;  return;
+    }
+
+    if(dir==0)
+    {
+        for(int i=0; i<m.rows; i++)
+        {
+            for(int j=0; j<m.cols; j++)
+            {
+                fout<<m.at<float>(i,j)<<"\t"; //Note: the type for output
+            }
+            fout<<std::endl;
+        }
+    }
+    else
+    {
+        for(int j=0; j<m.cols; j++)
+        {
+            for(int i=0; i<m.rows; i++)
+            {
+                fout<<m.at<float>(i,j)<<"\t";
+            }
+            fout<<std::endl;
+        }
+    }
+
+    fout.close();
+}
+
+void writeMatToFile(cv::Mat& m, const std::string& filename, unsigned int dir, int value)
+{
+    std::ofstream fout(filename.c_str());
+
+    if(!fout)
+    {
+        std::cout<<"File Not Opened"<<std::endl;  return;
+    }
+
+    if(dir==0)
+    {
+        for(int i=0; i<m.rows; i++)
+        {
+            for(int j=0; j<m.cols; j++)
+            {
+                unsigned int tmp  = m.at<uchar>(i,j);
+                fout<< tmp <<"\t";
+            }
+            fout<<std::endl;
+        }
+    }
+    else
+    {
+        for(int j=0; j<m.cols; j++)
+        {
+            for(int i=0; i<m.rows; i++)
+            {
+                unsigned int tmp  = m.at<uchar>(i,j);
+                fout<< tmp <<"\t";
+            }
+            fout<<std::endl;
+        }
+    }
+
+    fout.close();
+}
 
 } // namespace slib
