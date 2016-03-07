@@ -515,10 +515,10 @@ void DecoderGrayPhase::decodeFrames(cv::Mat &up, cv::Mat &vp, cv::Mat &mask, cv:
         if(dir & CodecDirHorizontal){ // Construct up image.
             vector<cv::Mat> images(frames.begin(), frames.begin() + Nhorz*2);
             decode_gray(images,0);
-            generate_mask(0);
-            vector<cv::Mat> phases(frames.begin() + Nhorz*2, frames.begin() + Nhorz*2 + num_fringes);
 
-            //decode_phase(phases,0);
+            generate_mask(0);
+
+            vector<cv::Mat> phases(frames.begin() + Nhorz*2, frames.begin() + Nhorz*2 + num_fringes);
             slib::DecodePhaseCodeImages(phases, m_phase_map[0]);
 
             //debug
