@@ -62,7 +62,7 @@ namespace slib
     //void UnwrapPhase(const Field<2,float> &phase, const int period, const Field<2,float> &reference, Field<2,float>& result, Field<2,float>& unwrap_error);
     void UnwrapPhase(const Mat& phase, const int period, const Mat& reference, Mat& result, Mat& unwrap_error);
 
-    void bilinearInterpolation(cv::Mat &input, ushort window);
+    void bilinearInterpolation(cv::Mat &input, cv::Mat &mask, ushort window);
 
     inline float linearInterpolation(float q, float q0, float q1, float v0, float v1);
 

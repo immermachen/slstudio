@@ -226,7 +226,8 @@ void UnwrapPhase(const Mat &phase, const int period, const Mat &reference, Mat& 
 }
 
 //Note: Not the true bilinear interpolation here: window: 15-20
-void bilinearInterpolation(cv::Mat &input, ushort window)
+//mask: update mask if the pixel is interpolatted.
+void bilinearInterpolation(cv::Mat &input, cv::Mat &mask, ushort window)
 {
     ushort nRows = input.rows;
     ushort nCols = input.cols;
@@ -285,6 +286,7 @@ void bilinearInterpolation(cv::Mat &input, ushort window)
             float p0x = linearInterpolation(x,x1,x2,pl,pr);
             p0 = (p0x+p0y)/2.0;
             input.at<float>(i,j) = p0;
+            mask.at<uchar>(i,j) = 1;
         }
     }
 }
@@ -396,8 +398,7 @@ inline float bilinearInterpolation_onePixel(float q11, float q12, float q21, flo
 //    fclose(fw);
 //}
 
-
-
+//plot float number between [0 1]: CV_32F;
 void writeMatToFile(cv::Mat& m, const std::string& filename, unsigned int dir)
 {
     std::ofstream fout(filename.c_str());
@@ -433,7 +434,9 @@ void writeMatToFile(cv::Mat& m, const std::string& filename, unsigned int dir)
     fout.close();
 }
 
-void writeMatToFile(cv::Mat& m, const std::string& filename, unsigned int dir, int value)
+//type=0: uchar; type=1: ushort; type=2: float
+// dir=0: horizontal;  dir==1: vertical
+void writeMatToFile(cv::Mat& m, const std::string& filename, unsigned int dir, int type)
 {
     std::ofstream fout(filename.c_str());
 
@@ -448,8 +451,18 @@ void writeMatToFile(cv::Mat& m, const std::string& filename, unsigned int dir, i
         {
             for(int j=0; j<m.cols; j++)
             {
-                unsigned int tmp  = m.at<uchar>(i,j);
-                fout<< tmp <<"\t";
+                if(type==0){
+                    uchar tmp= m.at<uchar>(i,j);
+                    fout<< tmp <<"\t";
+                }
+                if(type==1){
+                    ushort tmp= m.at<ushort>(i,j);
+                    fout<< tmp <<"\t";
+                }
+                if(type==2){
+                    float tmp= m.at<float>(i,j);
+                    fout<< tmp <<"\t";
+                }
             }
             fout<<std::endl;
         }
@@ -460,8 +473,18 @@ void writeMatToFile(cv::Mat& m, const std::string& filename, unsigned int dir, i
         {
             for(int i=0; i<m.rows; i++)
             {
-                unsigned int tmp  = m.at<uchar>(i,j);
-                fout<< tmp <<"\t";
+                if(type==0){
+                    uchar tmp= m.at<uchar>(i,j);
+                    fout<< tmp <<"\t";
+                }
+                if(type==1){
+                    ushort tmp= m.at<ushort>(i,j);
+                    fout<< tmp <<"\t";
+                }
+                if(type==2){
+                    float tmp= m.at<float>(i,j);
+                    fout<< tmp <<"\t";
+                }
             }
             fout<<std::endl;
         }
