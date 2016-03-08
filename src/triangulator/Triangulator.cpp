@@ -2,6 +2,8 @@
 #include <math.h>
 #include <iostream>
 
+#include "cvtools.h"
+
 #ifdef WIN32
     #ifndef NAN
         static const unsigned long __nan[2] = {0xffffffff, 0x7fffffff};
@@ -259,9 +261,9 @@ void Triangulator::triangulate(cv::Mat &up0, cv::Mat &vp0, cv::Mat &mask0, cv::M
             cv::imwrite(filename.toStdString(), temp);
 
             cv::Mat Dst(unwrapped_up, cv::Rect(0,1000,2448,1)); // Rect_(x, y, width,height);
-            slib::writeMatToFile(Dst,QString("am_map_up_0_1000_2448_1_C%1_masked_filter.txt").arg(numCam, 1).toStdString().c_str(), 0);
+            cvtools::writeMatToFile(Dst,QString("am_map_up_0_1000_2448_1_C%1_masked_filter.txt").arg(numCam, 1).toStdString().c_str(), 0);
             cv::Mat Dst1(unwrapped_up, cv::Rect(0,1010,2448,1)); // Rect_(x, y, width,height);
-            slib::writeMatToFile(Dst1,QString("am_map_up_0_1010_2448_1_C%1_masked_filter.txt").arg(numCam, 1).toStdString().c_str(), 0);
+            cvtools::writeMatToFile(Dst1,QString("am_map_up_0_1010_2448_1_C%1_masked_filter.txt").arg(numCam, 1).toStdString().c_str(), 0);
 
             cv::minMaxIdx(unwrapped_vp,&minVal,&maxVal);
             temp = unwrapped_vp.clone();
@@ -270,9 +272,9 @@ void Triangulator::triangulate(cv::Mat &up0, cv::Mat &vp0, cv::Mat &mask0, cv::M
             cv::imwrite(filename.toStdString(), temp);
 
             cv::Mat Dst2(unwrapped_vp, cv::Rect(1000,0,1,2050)); // Rect_(x, y, width,height);
-            slib::writeMatToFile(Dst2, QString("am_map_vp_1000_0_1_2050_C%1_masked_filter.txt").arg(numCam, 1).toStdString().c_str(), 1);
+            cvtools::writeMatToFile(Dst2, QString("am_map_vp_1000_0_1_2050_C%1_masked_filter.txt").arg(numCam, 1).toStdString().c_str(), 1);
             cv::Mat Dst3(unwrapped_vp, cv::Rect(1050,0,1,2050)); // Rect_(x, y, width,height);
-            slib::writeMatToFile(Dst3, QString("am_map_vp_1050_0_1_2050_C%1_masked_filter.txt").arg(numCam, 1).toStdString().c_str(), 1);
+            cvtools::writeMatToFile(Dst3, QString("am_map_vp_1050_0_1_2050_C%1_masked_filter.txt").arg(numCam, 1).toStdString().c_str(), 1);
         }
 #endif
     }

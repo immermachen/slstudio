@@ -523,9 +523,9 @@ void DecoderGrayPhase::decodeFrames(cv::Mat &up, cv::Mat &vp, cv::Mat &mask, cv:
             Mat tmp = m_gray_map[0].clone();
 
             Mat Dst(tmp, Rect(0,1000,2448,1)); // Rect_(x, y, width,height);
-            slib::writeMatToFile(Dst,QString("am_map_gray0_0_1000_2448_1_C%1.txt").arg(numCam, 1).toStdString().c_str(), 0, 1);
+            cvtools::writeMatToFile(Dst,QString("am_map_gray0_0_1000_2448_1_C%1.txt").arg(numCam, 1).toStdString().c_str(), 0, 1);
             Mat Dst1(tmp, Rect(0,1010,2448,1)); // Rect_(x, y, width,height);
-            slib::writeMatToFile(Dst1,QString("am_map_gray0_0_1010_2448_1_C%1.txt").arg(numCam, 1).toStdString().c_str(), 0, 1);
+            cvtools::writeMatToFile(Dst1,QString("am_map_gray0_0_1010_2448_1_C%1.txt").arg(numCam, 1).toStdString().c_str(), 0, 1);
 
             cv::minMaxIdx(tmp,&minVal,&maxVal);
             //std::cout<< "DecodeFrame: Max-Min = " << maxVal << "-" << minVal << std::endl;
@@ -568,9 +568,9 @@ void DecoderGrayPhase::decodeFrames(cv::Mat &up, cv::Mat &vp, cv::Mat &mask, cv:
             Mat tmp = m_gray_masked.clone();
 
             Mat Dst(tmp, Rect(0,1000,2448,1)); // Rect_(x, y, width,height);
-            slib::writeMatToFile(Dst,QString("am_map_gray0_0_1000_2448_1_C%1_masked.txt").arg(numCam, 1).toStdString().c_str(), 0, 1);
+            cvtools::writeMatToFile(Dst,QString("am_map_gray0_0_1000_2448_1_C%1_masked.txt").arg(numCam, 1).toStdString().c_str(), 0, 1);
             Mat Dst1(tmp, Rect(0,1010,2448,1)); // Rect_(x, y, width,height);
-            slib::writeMatToFile(Dst1,QString("am_map_gray0_0_1010_2448_1_C%1_masked.txt").arg(numCam, 1).toStdString().c_str(), 0, 1);
+            cvtools::writeMatToFile(Dst1,QString("am_map_gray0_0_1010_2448_1_C%1_masked.txt").arg(numCam, 1).toStdString().c_str(), 0, 1);
 
             cv::minMaxIdx(tmp,&minVal,&maxVal);
             //std::cout<< "DecodeFrame: Max-Min = " << maxVal << "-" << minVal << std::endl;
@@ -583,7 +583,7 @@ void DecoderGrayPhase::decodeFrames(cv::Mat &up, cv::Mat &vp, cv::Mat &mask, cv:
             //interpolation of gray map, and update m_mask;
             cv::Mat m_gray_masked_Float;
             m_gray_masked.convertTo(m_gray_masked_Float, CV_32F); //convert to [0 1];
-            slib::bilinearInterpolation(m_gray_masked_Float, m_mask[0], window);
+            cvtools::bilinearInterpolation(m_gray_masked_Float, m_mask[0], window);
             m_gray_map[0] = m_gray_masked_Float.clone();
             //debug
             {
@@ -592,9 +592,9 @@ void DecoderGrayPhase::decodeFrames(cv::Mat &up, cv::Mat &vp, cv::Mat &mask, cv:
             Mat tmp = m_gray_map[0].clone();
 
             Mat Dst(tmp, Rect(0,1000,2448,1)); // Rect_(x, y, width,height);
-            slib::writeMatToFile(Dst,QString("am_map_gray0_0_1000_2448_1_C%1_masked_interpolation.txt").arg(numCam, 1).toStdString().c_str(), 0, 2);
+            cvtools::writeMatToFile(Dst,QString("am_map_gray0_0_1000_2448_1_C%1_masked_interpolation.txt").arg(numCam, 1).toStdString().c_str(), 0, 2);
             Mat Dst1(tmp, Rect(0,1010,2448,1)); // Rect_(x, y, width,height);
-            slib::writeMatToFile(Dst1,QString("am_map_gray0_0_1010_2448_1_C%1_masked_interpolation.txt").arg(numCam, 1).toStdString().c_str(), 0, 2);
+            cvtools::writeMatToFile(Dst1,QString("am_map_gray0_0_1010_2448_1_C%1_masked_interpolation.txt").arg(numCam, 1).toStdString().c_str(), 0, 2);
 
             cv::minMaxIdx(tmp,&minVal,&maxVal);
             tmp.convertTo(tmp,CV_16U, 65535/(maxVal-minVal),-65535*minVal/(maxVal-minVal));
@@ -623,9 +623,9 @@ void DecoderGrayPhase::decodeFrames(cv::Mat &up, cv::Mat &vp, cv::Mat &mask, cv:
             //std::cout<< "m_phase_map: Max-Min = " << maxVal << "-" << minVal << std::endl;
 
             Mat Dst(tmp, Rect(0,1000,2448,1)); // Rect_(x, y, width,height);
-            slib::writeMatToFile(Dst,QString("am_map_phase_unwraped0_0_1000_2448_1_C%1.txt").arg(numCam, 1).toStdString().c_str(), 0);
+            cvtools::writeMatToFile(Dst,QString("am_map_phase_unwraped0_0_1000_2448_1_C%1.txt").arg(numCam, 1).toStdString().c_str(), 0);
             Mat Dst1(tmp, Rect(0,1010,2448,1)); // Rect_(x, y, width,height);
-            slib::writeMatToFile(Dst1,QString("am_map_phase_unwraped0_0_1010_2448_1_C%1.txt").arg(numCam, 1).toStdString().c_str(), 0);
+            cvtools::writeMatToFile(Dst1,QString("am_map_phase_unwraped0_0_1010_2448_1_C%1.txt").arg(numCam, 1).toStdString().c_str(), 0);
 
             tmp.convertTo(tmp,CV_16U, 65535/(maxVal-minVal),-65535*minVal/(maxVal-minVal));
             //tmp.convertTo(tmp,CV_16U, 65535/(maxVal),0);
@@ -667,9 +667,9 @@ void DecoderGrayPhase::decodeFrames(cv::Mat &up, cv::Mat &vp, cv::Mat &mask, cv:
             Mat tmp = m_gray_map[1].clone();
 
             Mat Dst(tmp, Rect(1000,0,1,2050)); // Rect_(x, y, width,height);
-            slib::writeMatToFile(Dst, QString("am_map_gray1_1000_0_1_2050_C%1.txt").arg(numCam, 1).toStdString().c_str(), 1, 1);
+            cvtools::writeMatToFile(Dst, QString("am_map_gray1_1000_0_1_2050_C%1.txt").arg(numCam, 1).toStdString().c_str(), 1, 1);
             Mat Dst1(tmp, Rect(1050,0,1,2050)); // Rect_(x, y, width,height);
-            slib::writeMatToFile(Dst1, QString("am_map_gray1_1050_0_1_2050_C%1.txt").arg(numCam, 1).toStdString().c_str(), 1, 1);
+            cvtools::writeMatToFile(Dst1, QString("am_map_gray1_1050_0_1_2050_C%1.txt").arg(numCam, 1).toStdString().c_str(), 1, 1);
 
             cv::minMaxIdx(tmp,&minVal,&maxVal);
             //std::cout<< "DecodeFrame: Max-Min = " << maxVal << "-" << minVal << std::endl;
@@ -711,9 +711,9 @@ void DecoderGrayPhase::decodeFrames(cv::Mat &up, cv::Mat &vp, cv::Mat &mask, cv:
             Mat tmp = m_gray_masked.clone();
 
             Mat Dst(tmp, Rect(1000,0,1,2050)); // Rect_(x, y, width,height);
-            slib::writeMatToFile(Dst, QString("am_map_gray1_1000_0_1_2050_C%1_masked.txt").arg(numCam, 1).toStdString().c_str(), 1, 1);
+            cvtools::writeMatToFile(Dst, QString("am_map_gray1_1000_0_1_2050_C%1_masked.txt").arg(numCam, 1).toStdString().c_str(), 1, 1);
             Mat Dst1(tmp, Rect(1050,0,1,2050)); // Rect_(x, y, width,height);
-            slib::writeMatToFile(Dst1, QString("am_map_gray1_1050_0_1_2050_C%1_masked.txt").arg(numCam, 1).toStdString().c_str(), 1, 1);
+            cvtools::writeMatToFile(Dst1, QString("am_map_gray1_1050_0_1_2050_C%1_masked.txt").arg(numCam, 1).toStdString().c_str(), 1, 1);
 
             cv::minMaxIdx(tmp,&minVal,&maxVal);
             //std::cout<< "DecodeFrame: Max-Min = " << maxVal << "-" << minVal << std::endl;
@@ -726,7 +726,7 @@ void DecoderGrayPhase::decodeFrames(cv::Mat &up, cv::Mat &vp, cv::Mat &mask, cv:
             //interpolation of gray map, and update m_mask;
             cv::Mat m_gray_masked_Float;
             m_gray_masked.convertTo(m_gray_masked_Float, CV_32F); //convert to [0 1];
-            slib::bilinearInterpolation(m_gray_masked_Float, m_mask[1], window);
+            cvtools::bilinearInterpolation(m_gray_masked_Float, m_mask[1], window);
             m_gray_map[1] = m_gray_masked_Float.clone();
             //debug
             {
@@ -735,9 +735,9 @@ void DecoderGrayPhase::decodeFrames(cv::Mat &up, cv::Mat &vp, cv::Mat &mask, cv:
             Mat tmp = m_gray_map[1].clone();
 
             Mat Dst(tmp, Rect(1000,0,1,2050)); // Rect_(x, y, width,height);
-            slib::writeMatToFile(Dst, QString("am_map_gray1_1000_0_1_2050_C%1_masked_interpolation.txt").arg(numCam, 1).toStdString().c_str(), 1, 2);
+            cvtools::writeMatToFile(Dst, QString("am_map_gray1_1000_0_1_2050_C%1_masked_interpolation.txt").arg(numCam, 1).toStdString().c_str(), 1, 2);
             Mat Dst1(tmp, Rect(1050,0,1,2050)); // Rect_(x, y, width,height);
-            slib::writeMatToFile(Dst1, QString("am_map_gray1_1050_0_1_2050_C%1_masked_interpolation.txt").arg(numCam, 1).toStdString().c_str(), 1, 2);
+            cvtools::writeMatToFile(Dst1, QString("am_map_gray1_1050_0_1_2050_C%1_masked_interpolation.txt").arg(numCam, 1).toStdString().c_str(), 1, 2);
 
             cv::minMaxIdx(tmp,&minVal,&maxVal);
             //std::cout<< "DecodeFrame: Max-Min = " << maxVal << "-" << minVal << std::endl;
@@ -772,9 +772,9 @@ void DecoderGrayPhase::decodeFrames(cv::Mat &up, cv::Mat &vp, cv::Mat &mask, cv:
             //FileStorage file1(QString("am_map_phase_unwraped1_minVal_%2_maxVal_%3_C%1.yml").arg(numCam, 1).arg(minVal).arg(maxVal).toStdString(), cv::FileStorage::WRITE);
             //file1<<"am_map_phase_unwraped1"<<tmp;
             Mat Dst(tmp, Rect(1000,0,1,2050)); // Rect_(x, y, width,height);
-            slib::writeMatToFile(Dst, QString("am_map_phase_unwraped1_1000_0_1_2050_C%1.txt").arg(numCam, 1).toStdString().c_str(), 1);
+            cvtools::writeMatToFile(Dst, QString("am_map_phase_unwraped1_1000_0_1_2050_C%1.txt").arg(numCam, 1).toStdString().c_str(), 1);
             Mat Dst1(tmp, Rect(1050,0,1,2050)); // Rect_(x, y, width,height);
-            slib::writeMatToFile(Dst1, QString("am_map_phase_unwraped1_1050_0_1_2050_C%1.txt").arg(numCam, 1).toStdString().c_str(), 1);
+            cvtools::writeMatToFile(Dst1, QString("am_map_phase_unwraped1_1050_0_1_2050_C%1.txt").arg(numCam, 1).toStdString().c_str(), 1);
 
             tmp.convertTo(tmp,CV_16U, 65535/(maxVal-minVal),-65535*minVal/(maxVal-minVal));
             //tmp.convertTo(tmp,CV_16U, 65535/(maxVal),0);
@@ -852,9 +852,9 @@ void DecoderGrayPhase::decodeFrames(cv::Mat &up, cv::Mat &vp, cv::Mat &mask, cv:
         cv::imwrite(filename.toStdString(), temp);
 
         Mat Dst(unwrapped_up, Rect(0,1000,2448,1)); // Rect_(x, y, width,height);
-        slib::writeMatToFile(Dst,QString("am_map_up_0_1000_2448_1_C%1_masked.txt").arg(numCam, 1).toStdString().c_str(), 0);
+        cvtools::writeMatToFile(Dst,QString("am_map_up_0_1000_2448_1_C%1_masked.txt").arg(numCam, 1).toStdString().c_str(), 0);
         Mat Dst1(unwrapped_up, Rect(0,1010,2448,1)); // Rect_(x, y, width,height);
-        slib::writeMatToFile(Dst1,QString("am_map_up_0_1010_2448_1_C%1_masked.txt").arg(numCam, 1).toStdString().c_str(), 0);
+        cvtools::writeMatToFile(Dst1,QString("am_map_up_0_1010_2448_1_C%1_masked.txt").arg(numCam, 1).toStdString().c_str(), 0);
 
         cv::minMaxIdx(unwrapped_vp,&minVal,&maxVal);
         temp = unwrapped_vp.clone();
@@ -863,9 +863,9 @@ void DecoderGrayPhase::decodeFrames(cv::Mat &up, cv::Mat &vp, cv::Mat &mask, cv:
         cv::imwrite(filename.toStdString(), temp);
 
         Mat Dst2(unwrapped_vp, Rect(1000,0,1,2050)); // Rect_(x, y, width,height);
-        slib::writeMatToFile(Dst2, QString("am_map_vp_1000_0_1_2050_C%1_masked.txt").arg(numCam, 1).toStdString().c_str(), 1);
+        cvtools::writeMatToFile(Dst2, QString("am_map_vp_1000_0_1_2050_C%1_masked.txt").arg(numCam, 1).toStdString().c_str(), 1);
         Mat Dst3(unwrapped_vp, Rect(1050,0,1,2050)); // Rect_(x, y, width,height);
-        slib::writeMatToFile(Dst3, QString("am_map_vp_1050_0_1_2050_C%1_masked.txt").arg(numCam, 1).toStdString().c_str(), 1);
+        cvtools::writeMatToFile(Dst3, QString("am_map_vp_1050_0_1_2050_C%1_masked.txt").arg(numCam, 1).toStdString().c_str(), 1);
 
     #endif
         }
