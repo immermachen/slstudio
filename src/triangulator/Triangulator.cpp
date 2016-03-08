@@ -203,14 +203,14 @@ void Triangulator::triangulate(cv::Mat &up0, cv::Mat &vp0, cv::Mat &mask0, cv::M
 
     //apply mask
     cv::Mat up0_m, vp0_m, up1_m, vp1_m;
-    up0.copyTo(up0_m, mask0);
-    vp0.copyTo(vp0_m, mask0);
-    up1.copyTo(up1_m, mask1);
-    vp1.copyTo(vp1_m, mask1);
-//    up0.copyTo(up0_m);
-//    vp0.copyTo(vp0_m);
-//    up1.copyTo(up1_m);
-//    vp1.copyTo(vp1_m);
+//    up0.copyTo(up0_m, mask0);
+//    vp0.copyTo(vp0_m, mask0);
+//    up1.copyTo(up1_m, mask1);
+//    vp1.copyTo(vp1_m, mask1);
+    up0.copyTo(up0_m);
+    vp0.copyTo(vp0_m);
+    up1.copyTo(up1_m);
+    vp1.copyTo(vp1_m);
 
 
     //TODO: Filter: using Bilater filter or?
@@ -255,6 +255,7 @@ void Triangulator::triangulate(cv::Mat &up0, cv::Mat &vp0, cv::Mat &mask0, cv::M
             cv::Mat unwrapped_vp = vps[numCam-1];
 
             cv::minMaxIdx(unwrapped_up,&minVal,&maxVal);
+            std::cout<< "Triangulator::triangulate: up: Max-Min = " << maxVal << "-" << minVal << std::endl;
             cv::Mat temp = unwrapped_up.clone();
             temp.convertTo(temp,CV_16U, 65535/(maxVal-minVal),-65535*minVal/(maxVal-minVal));
             QString filename = QString("am_map_up_C%1_maksed_filter.png").arg(numCam, 1);
@@ -266,6 +267,7 @@ void Triangulator::triangulate(cv::Mat &up0, cv::Mat &vp0, cv::Mat &mask0, cv::M
             cvtools::writeMatToFile(Dst1,QString("am_map_up_0_1010_2448_1_C%1_masked_filter.txt").arg(numCam, 1).toStdString().c_str(), 0);
 
             cv::minMaxIdx(unwrapped_vp,&minVal,&maxVal);
+            std::cout<< "Triangulator::triangulate: vp: Max-Min = " << maxVal << "-" << minVal << std::endl;
             temp = unwrapped_vp.clone();
             temp.convertTo(temp,CV_16U, 65535/(maxVal-minVal),-65535*minVal/(maxVal-minVal));
             filename = QString("am_map_vp_C%1_masked_filter.png").arg(numCam, 1);
@@ -280,7 +282,7 @@ void Triangulator::triangulate(cv::Mat &up0, cv::Mat &vp0, cv::Mat &mask0, cv::M
     }
 
     std::vector<intersection> matches0, matches1;
-    cv::Mat mask = mask0; //TODO: as final mask: plot new mask depending mask= (up=vp=0);
+    cv::Mat mask = cv::Mat::zeros(mask0.size(), CV_8U); //TODO: as final mask: plot new mask depending mask= (up=vp=0);
     //phasecorrelate_Epipolar(up0_m, vp0_m, mask, up1_m, vp1_m, matches0, matches1);
     phasecorrelate_Epipolar(up0_m_f, vp0_m_f, mask, up1_m_f, vp1_m_f, matches0, matches1);
 
