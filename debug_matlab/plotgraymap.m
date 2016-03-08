@@ -35,9 +35,13 @@ x = 1:1:2448;
 
 figure;
 hold on;
-plot(x,hp1,'g*');  %one row
-plot(x,hp1_masked,'r.'); % masked row
-plot(x,hp1_m_f,'b.'); % masked row
+plot(x,hp1,'b-');  %one row
+hold off
+
+figure;
+hold on;
+plot(x,hp1_masked,'r*'); % masked row
+plot(x,hp1_m_f,'b-'); %   row
 hold off
 
 %figure;
