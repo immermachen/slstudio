@@ -32,7 +32,7 @@ class DecoderGrayPhase : public Decoder {
         Mat m_mask[2]; //CV_8UC1 and only [0 1], mask for m_gray_map
         void convert_reliable_map(int direction);
         void decode_gray(const std::vector<Mat>& images, int direction);
-        void decode_phase(const std::vector<Mat>& images, int direction);
+//        void decode_phase(const std::vector<Mat>& images, int direction);
         //void apply_mask(const slib::Field<2,float>& mask, slib::Field<2,slib::CVector<3,float>>& img) const;
         void generate_mask(int direction);        
 };

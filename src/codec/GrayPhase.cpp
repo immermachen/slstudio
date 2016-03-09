@@ -170,13 +170,14 @@ void DecodePhaseCodeImages(const std::vector<Mat> &images, Mat& result)
 // unwrap phase
 // 'period' is phase period of sinusoidal curve in pixel
 // 'reference' is reference integer code
-// 'tolerance' is max correctable error in reference global code (must be less than half of period)
+// 'window' is max correctable error in reference global code (must be less than half of period)
 //void UnwrapPhase(const Field<2,float> &phase, const int period, const Field<2,float> &reference, Field<2,float>& result, Field<2,float>& unwrap_error);
-void UnwrapPhase(const Mat &phase, const int period, const Mat &reference, Mat& result, Mat& unwrap_error)
+void UnwrapPhase(const Mat &phase, const int period, const Mat &reference, Mat& result, Mat& unwrap_error, Mat& improved)
 {
     //TODO: max correctable phase error: How
     std::cout<< "Warning: UnwrapPhase: How to set the window is better?" << std::endl;
-    float window = 2.0/period;
+    //float window = 2.0/period;
+    float window = period/2.0;
     //float window = 1.0;
 
     unwrap_error = Mat::zeros(phase.rows, phase.cols, CV_32F);
@@ -217,12 +218,14 @@ void UnwrapPhase(const Mat &phase, const int period, const Mat &reference, Mat& 
 //                {
 //                    result.at<float>(x, y) = newval;
 //                }
+                improved.at<float>(x,y) = diff;
             } else {
                 result.at<float>(x, y) = graycode;  //e.g. = 11
             }
             unwrap_error.at<float>(x, y) = diff;   //[0 1]
         }
     }
+
 }
 
 } // namespace slib

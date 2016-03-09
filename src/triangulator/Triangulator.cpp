@@ -197,51 +197,69 @@ void Triangulator::triangulate(cv::Mat &up0, cv::Mat &vp0, cv::Mat &mask0, cv::M
     mask1 = maskUndistort1;
     shading1 = shadingUndistort1;
 
-//    //combine Mask
-//    cv::Mat mask = cv::Mat::zeros(mask0.size(), CV_8U);
-//    mask1.copyTo(mask, mask0);
-
     //apply mask
     cv::Mat up0_m, vp0_m, up1_m, vp1_m;
-//    up0.copyTo(up0_m, mask0);
-//    vp0.copyTo(vp0_m, mask0);
-//    up1.copyTo(up1_m, mask1);
-//    vp1.copyTo(vp1_m, mask1);
-    up0.copyTo(up0_m);
-    vp0.copyTo(vp0_m);
-    up1.copyTo(up1_m);
-    vp1.copyTo(vp1_m);
+    up0.copyTo(up0_m, mask0); vp0.copyTo(vp0_m, mask0); up1.copyTo(up1_m, mask1);  vp1.copyTo(vp1_m, mask1);
+//    up0.copyTo(up0_m); vp0.copyTo(vp0_m); up1.copyTo(up1_m); vp1.copyTo(vp1_m);
 
+    //bilinear interpolation
+    ushort window = 5;
+    cv::Mat up0_m_i, vp0_m_i, up1_m_i, vp1_m_i;
+    up0_m.copyTo(up0_m_i); vp0_m.copyTo(vp0_m_i); up1_m.copyTo(up1_m_i); vp1_m.copyTo(vp1_m_i);
+    //interpolation of gray map, and update m_mask;
+    cvtools::bilinearInterpolation(up0_m_i, mask0, window);
+    cvtools::bilinearInterpolation(vp0_m_i, mask0, window);
+    cvtools::bilinearInterpolation(up1_m_i, mask1, window);
+    cvtools::bilinearInterpolation(vp1_m_i, mask1, window);
+    if(1){ //debug interpolation
+//        double minVal,maxVal;
+//        Mat tmp = m_gray_map[1].clone();
 
-    //TODO: Filter: using Bilater filter or?
-    //cv::adaptiveBilateralFilter(up0_m, up0_m, cv::Size(11, 11), 50);//Only in OpenCV2.0; kernal size(11) should be an odd value
-    //http://docs.opencv.org/3.0-beta/modules/imgproc/doc/filtering.html
-    cv::Mat up0_m_f, vp0_m_f, up1_m_f, vp1_m_f; // filtered
-//    cv::bilateralFilter(up0_m,up0_m_f,63, 9,9);
-//    cv::bilateralFilter(vp0_m,vp0_m_f,63, 9,9);
-//    cv::bilateralFilter(up1_m,up1_m_f,63, 9,9);
-//    cv::bilateralFilter(vp1_m,vp1_m_f,63, 9,9);
+//        Mat Dst(tmp, Rect(1000,0,1,2050)); // Rect_(x, y, width,height);
+//        cvtools::writeMatToFile(Dst, QString("am_map_gray1_1000_0_1_2050_C%1_masked_interpolation.txt").arg(numCam, 1).toStdString().c_str(), 1, 2);
+//        Mat Dst1(tmp, Rect(1050,0,1,2050)); // Rect_(x, y, width,height);
+//        cvtools::writeMatToFile(Dst1, QString("am_map_gray1_1050_0_1_2050_C%1_masked_interpolation.txt").arg(numCam, 1).toStdString().c_str(), 1, 2);
 
-//    cv::bilateralFilter(up0_m,up0_m_f,63, 63,63);
-//    cv::bilateralFilter(vp0_m,vp0_m_f,63, 63,63);
-//    cv::bilateralFilter(up1_m,up1_m_f,63, 63,63);
-//    cv::bilateralFilter(vp1_m,vp1_m_f,63, 63,63);
+//        cv::minMaxIdx(tmp,&minVal,&maxVal);
+//        //std::cout<< "DecodeFrame: Max-Min = " << maxVal << "-" << minVal << std::endl;
+//        tmp.convertTo(tmp,CV_16U, 65535/(maxVal-minVal),-65535*minVal/(maxVal-minVal));
+//        QString filename = QString("am_map_gray1_C%1_masked_interpolation.png").arg(numCam, 1);
+//        cv::imwrite(filename.toStdString(), tmp);   // gray_map is CV_16U using PNG
 
-        up0_m.copyTo(up0_m_f);
-        vp0_m.copyTo(vp0_m_f);
-        up1_m.copyTo(up1_m_f);
-        vp1_m.copyTo(vp1_m_f);
-    //TODO: Bilinear Interpolation
-    ushort window = 15;
-//    bilinearInterpolation(up0_m_f,window);
-//    bilinearInterpolation(vp0_m_f,window);
-//    bilinearInterpolation(up1_m_f,window);
-//    bilinearInterpolation(vp1_m_f,window);
+    //            tmp = m_mask[1].clone();
+    //            cv::minMaxIdx(tmp,&minVal,&maxVal);
+    //            tmp.convertTo(tmp,CV_8U,255.0/(maxVal-minVal),-255.0*minVal/(maxVal-minVal));
+    //            filename = QString("am_map_gray1_C%1_mask_interpolation.BMP").arg(numCam, 1);
+    //            cv::imwrite(filename.toStdString(), tmp);
+    }
 
+    //mooth
+    ushort window_smooth = 5; //smooth window;
+    cv::Mat up0_m_s, vp0_m_s, up1_m_s, vp1_m_s;
+    cv::medianBlur(up0_m_i, up0_m_s, window_smooth);
+    cv::medianBlur(vp0_m_i, vp0_m_s, window_smooth);
+    cv::medianBlur(up1_m_i, up1_m_s, window_smooth);
+    cv::medianBlur(vp1_m_i, vp1_m_s, window_smooth);
+    up0 = up0_m_s; vp0 = vp0_m_s; up1 = up1_m_s; vp1 = vp1_m_s;
+    if(1){//debug smooth gray map
+//        double minVal,maxVal;
+//        Mat tmp = m_gray_map[1].clone();
+
+//        Mat Dst(tmp, Rect(1000,0,1,2050)); // Rect_(x, y, width,height);
+//        cvtools::writeMatToFile(Dst, QString("am_map_gray1_1000_0_1_2050_C%1_masked_interpolation_filter.txt").arg(numCam, 1).toStdString().c_str(), 1, 2);
+//        Mat Dst1(tmp, Rect(1050,0,1,2050)); // Rect_(x, y, width,height);
+//        cvtools::writeMatToFile(Dst1, QString("am_map_gray1_1050_0_1_2050_C%1_masked_interpolation_filter.txt").arg(numCam, 1).toStdString().c_str(), 1, 2);
+
+//        cv::minMaxIdx(tmp,&minVal,&maxVal);
+//        //std::cout<< "DecodeFrame: Max-Min = " << maxVal << "-" << minVal << std::endl;
+//        tmp.convertTo(tmp,CV_16U, 65535/(maxVal-minVal),-65535*minVal/(maxVal-minVal));
+//        QString filename = QString("am_map_gray1_C%1_masked_interpolation_filter.png").arg(numCam, 1);
+//        cv::imwrite(filename.toStdString(), tmp);   // gray_map is CV_16U using PNG
+    }
 
     //debug
     {
-#if 1
+#if 0
         cv::Mat ups[2], vps[2];
         ups[0] = up0_m_f;
         ups[1] = up1_m_f;
@@ -282,9 +300,9 @@ void Triangulator::triangulate(cv::Mat &up0, cv::Mat &vp0, cv::Mat &mask0, cv::M
     }
 
     std::vector<intersection> matches0, matches1;
-    cv::Mat mask = cv::Mat::zeros(mask0.size(), CV_8U); //TODO: as final mask: plot new mask depending mask= (up=vp=0);
+    cv::Mat mask = mask0.clone();// cv::Mat::zeros(mask0.size(), CV_8U); //TODO: as final mask: plot new mask depending mask= (up=vp=0);
     //phasecorrelate_Epipolar(up0_m, vp0_m, mask, up1_m, vp1_m, matches0, matches1);
-    phasecorrelate_Epipolar(up0_m_f, vp0_m_f, mask, up1_m_f, vp1_m_f, matches0, matches1);
+    phasecorrelate_Epipolar(up0, vp0, mask, up1, vp1, matches0, matches1);
 
     //debug
     {

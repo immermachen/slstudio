@@ -58,9 +58,9 @@ namespace slib
     // unwrap phase
     // 'period' is phase period of sinusoidal curve in pixel
     // 'reference' is reference integer code
-    // 'tolerance' is max correctable error in reference global code (must be less than half of period)
+    // 'tolerance' is max correctable error in reference global code (must be less than half of period)    
     //void UnwrapPhase(const Field<2,float> &phase, const int period, const Field<2,float> &reference, Field<2,float>& result, Field<2,float>& unwrap_error);
-    void UnwrapPhase(const Mat& phase, const int period, const Mat& reference, Mat& result, Mat& unwrap_error);
+    void UnwrapPhase(const Mat& phase, const int period, const Mat& reference, Mat& result, Mat& unwrap_error, Mat& improved);
 
 
 } // namespace slib
