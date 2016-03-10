@@ -3,6 +3,7 @@
 #include <iostream>
 
 #include "cvtools.h"
+#include <QSettings>
 
 #ifdef WIN32
     #ifndef NAN
@@ -631,7 +632,9 @@ void Triangulator::phasecorrelate_Epipolar(cv::Mat &up0, cv::Mat &vp0, cv::Mat &
 #endif
     }
 
-    float threshold = 3.0;
+    QSettings settings("SLStudio");
+    float threshold = settings.value("Triangulator/threshold_epipolarLineWidth", 1.0).toFloat();
+
     uint num_correlate=0; //count
     for(ushort i=0; i < nRows; i++) // match intersections
     {

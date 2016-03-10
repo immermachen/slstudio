@@ -125,6 +125,8 @@ SLPreferenceDialog::SLPreferenceDialog(QWidget *parent) : QDialog(parent), ui(ne
 
     float threshold_complementary = settings.value("Decoding/threshold_complementary", 0.1).toFloat();
     ui->Threshold_Complentary->setValue(threshold_complementary);
+    float threshold_epipolarLineWidth = settings.value("Triangulator/threshold_epipolarLineWidth", 1.0).toFloat();
+    ui->Threshold_Epipolarline->setValue(threshold_epipolarLineWidth);
 }
 
 SLPreferenceDialog::~SLPreferenceDialog(){
@@ -209,6 +211,8 @@ void SLPreferenceDialog::on_buttonBox_accepted(){
 
     float threshold_complementary = ui->Threshold_Complentary->value();
     settings.setValue("Decoding/threshold_complementary", threshold_complementary);
+    float threshold_epipolarLineWidth = ui->Threshold_Epipolarline->value();
+    settings.setValue("Triangulator/threshold_epipolarLineWidth", threshold_epipolarLineWidth);
 }
 
 
