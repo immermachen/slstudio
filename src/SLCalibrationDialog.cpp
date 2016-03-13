@@ -338,10 +338,13 @@ void SLCalibrationDialog::on_snapButton_clicked()
 //                curframeCV = curframeCV.clone();
             }
 
-            //if(writeToDisk)
+
             QString datacal = QString("dataCal/%1_%2_%3.bmp").arg(numSeqs,2, 10, QChar('0')).arg(numCam, 1).arg(i, 2, 10, QChar('0'));
             //QString datacal = QString("dataCal/%1_%2_60.bmp").arg(numSeqs,2, 10, QChar('0')).arg(numCam, 1);
-            cv::imwrite(datacal.toStdString(), curframeCV);
+            if(writeToDisk)
+            {
+                cv::imwrite(datacal.toStdString(), curframeCV);
+            }
 
             frameSeq[0].push_back(datacal.toStdString());
             ui->videoWidget->showFrameCV(curframeCV);
@@ -374,10 +377,13 @@ void SLCalibrationDialog::on_snapButton_clicked()
 //                cv::flip(curframeCV,curframeCV,-1);
             }
 
-            //if(writeToDisk)
+
             QString datacal = QString("dataCal/%1_%2_%3.bmp").arg(numSeqs,2, 10, QChar('0')).arg(numCam, 1).arg(i, 2, 10, QChar('0'));
             //QString datacal = QString("dataCal/%1_%2_60.bmp").arg(numSeqs,2, 10, QChar('0')).arg(numCam, 1);
-            cv::imwrite(datacal.toStdString(), curframeCV);
+            if(writeToDisk)
+            {
+                cv::imwrite(datacal.toStdString(), curframeCV);
+            }
 
             frameSeq[1].push_back(datacal.toStdString());
             ui->videoWidget2->showFrameCV(curframeCV);
