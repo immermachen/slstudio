@@ -198,136 +198,161 @@ void Triangulator::triangulate(cv::Mat &up0, cv::Mat &vp0, cv::Mat &mask0, cv::M
     mask1 = maskUndistort1;
     shading1 = shadingUndistort1;
 
-    //apply mask
-    cv::Mat up0_m, vp0_m, up1_m, vp1_m;
-    up0.copyTo(up0_m, mask0); vp0.copyTo(vp0_m, mask0); up1.copyTo(up1_m, mask1);  vp1.copyTo(vp1_m, mask1);
-//    up0.copyTo(up0_m); vp0.copyTo(vp0_m); up1.copyTo(up1_m); vp1.copyTo(vp1_m);
-
-    //bilinear interpolation
-    ushort window = 5;
-    cv::Mat up0_m_i, vp0_m_i, up1_m_i, vp1_m_i;
-    up0_m.copyTo(up0_m_i); vp0_m.copyTo(vp0_m_i); up1_m.copyTo(up1_m_i); vp1_m.copyTo(vp1_m_i);
-    //interpolation of gray map, and update m_mask;
-    cvtools::bilinearInterpolation(up0_m_i, mask0, window);
-    cvtools::bilinearInterpolation(vp0_m_i, mask0, window);
-    cvtools::bilinearInterpolation(up1_m_i, mask1, window);
-    cvtools::bilinearInterpolation(vp1_m_i, mask1, window);
-    if(1){ //debug interpolation
-//        double minVal,maxVal;
-//        Mat tmp = m_gray_map[1].clone();
-
-//        Mat Dst(tmp, Rect(1000,0,1,2050)); // Rect_(x, y, width,height);
-//        cvtools::writeMatToFile(Dst, QString("am_map_gray1_1000_0_1_2050_C%1_masked_interpolation.txt").arg(numCam, 1).toStdString().c_str(), 1, 2);
-//        Mat Dst1(tmp, Rect(1050,0,1,2050)); // Rect_(x, y, width,height);
-//        cvtools::writeMatToFile(Dst1, QString("am_map_gray1_1050_0_1_2050_C%1_masked_interpolation.txt").arg(numCam, 1).toStdString().c_str(), 1, 2);
-
-//        cv::minMaxIdx(tmp,&minVal,&maxVal);
-//        //std::cout<< "DecodeFrame: Max-Min = " << maxVal << "-" << minVal << std::endl;
-//        tmp.convertTo(tmp,CV_16U, 65535/(maxVal-minVal),-65535*minVal/(maxVal-minVal));
-//        QString filename = QString("am_map_gray1_C%1_masked_interpolation.png").arg(numCam, 1);
-//        cv::imwrite(filename.toStdString(), tmp);   // gray_map is CV_16U using PNG
-
-    //            tmp = m_mask[1].clone();
-    //            cv::minMaxIdx(tmp,&minVal,&maxVal);
-    //            tmp.convertTo(tmp,CV_8U,255.0/(maxVal-minVal),-255.0*minVal/(maxVal-minVal));
-    //            filename = QString("am_map_gray1_C%1_mask_interpolation.BMP").arg(numCam, 1);
-    //            cv::imwrite(filename.toStdString(), tmp);
-    }
-
-    //mooth
-    ushort window_smooth = 5; //smooth window;
-    cv::Mat up0_m_s, vp0_m_s, up1_m_s, vp1_m_s;
-    cv::medianBlur(up0_m_i, up0_m_s, window_smooth);
-    cv::medianBlur(vp0_m_i, vp0_m_s, window_smooth);
-    cv::medianBlur(up1_m_i, up1_m_s, window_smooth);
-    cv::medianBlur(vp1_m_i, vp1_m_s, window_smooth);
-    up0 = up0_m_s; vp0 = vp0_m_s; up1 = up1_m_s; vp1 = vp1_m_s;
-    if(1){//debug smooth gray map
-//        double minVal,maxVal;
-//        Mat tmp = m_gray_map[1].clone();
-
-//        Mat Dst(tmp, Rect(1000,0,1,2050)); // Rect_(x, y, width,height);
-//        cvtools::writeMatToFile(Dst, QString("am_map_gray1_1000_0_1_2050_C%1_masked_interpolation_filter.txt").arg(numCam, 1).toStdString().c_str(), 1, 2);
-//        Mat Dst1(tmp, Rect(1050,0,1,2050)); // Rect_(x, y, width,height);
-//        cvtools::writeMatToFile(Dst1, QString("am_map_gray1_1050_0_1_2050_C%1_masked_interpolation_filter.txt").arg(numCam, 1).toStdString().c_str(), 1, 2);
-
-//        cv::minMaxIdx(tmp,&minVal,&maxVal);
-//        //std::cout<< "DecodeFrame: Max-Min = " << maxVal << "-" << minVal << std::endl;
-//        tmp.convertTo(tmp,CV_16U, 65535/(maxVal-minVal),-65535*minVal/(maxVal-minVal));
-//        QString filename = QString("am_map_gray1_C%1_masked_interpolation_filter.png").arg(numCam, 1);
-//        cv::imwrite(filename.toStdString(), tmp);   // gray_map is CV_16U using PNG
-    }
-
-    //debug
+    if(1) // triangulator using phase correlate + Epipolar Line
     {
-#if 0
-        cv::Mat ups[2], vps[2];
-        ups[0] = up0_m_f;
-        ups[1] = up1_m_f;
-        vps[0] = vp0_m_f;
-        vps[1] = vp1_m_f;
+        //apply mask
+        cv::Mat up0_m, vp0_m, up1_m, vp1_m;
+        up0.copyTo(up0_m, mask0); vp0.copyTo(vp0_m, mask0); up1.copyTo(up1_m, mask1);  vp1.copyTo(vp1_m, mask1);
+    //    up0.copyTo(up0_m); vp0.copyTo(vp0_m); up1.copyTo(up1_m); vp1.copyTo(vp1_m);
 
-        for(int numCam=1; numCam<3; numCam++)
-        {
-            double minVal,maxVal;
-            cv::Mat unwrapped_up = ups[numCam-1];
-            cv::Mat unwrapped_vp = vps[numCam-1];
+        //bilinear interpolation
+        ushort window = 5;
+        cv::Mat up0_m_i, vp0_m_i, up1_m_i, vp1_m_i;
+        up0_m.copyTo(up0_m_i); vp0_m.copyTo(vp0_m_i); up1_m.copyTo(up1_m_i); vp1_m.copyTo(vp1_m_i);
+        //interpolation of gray map, and update m_mask;
+        cvtools::bilinearInterpolation(up0_m_i, mask0, window);
+        cvtools::bilinearInterpolation(vp0_m_i, mask0, window);
+        cvtools::bilinearInterpolation(up1_m_i, mask1, window);
+        cvtools::bilinearInterpolation(vp1_m_i, mask1, window);
+        if(1){ //debug interpolation
+    //        double minVal,maxVal;
+    //        Mat tmp = m_gray_map[1].clone();
 
-            cv::minMaxIdx(unwrapped_up,&minVal,&maxVal);
-            std::cout<< "Triangulator::triangulate: up: Max-Min = " << maxVal << "-" << minVal << std::endl;
-            cv::Mat temp = unwrapped_up.clone();
-            temp.convertTo(temp,CV_16U, 65535/(maxVal-minVal),-65535*minVal/(maxVal-minVal));
-            QString filename = QString("am_map_up_C%1_maksed_filter.png").arg(numCam, 1);
-            cv::imwrite(filename.toStdString(), temp);
+    //        Mat Dst(tmp, Rect(1000,0,1,2050)); // Rect_(x, y, width,height);
+    //        cvtools::writeMatToFile(Dst, QString("am_map_gray1_1000_0_1_2050_C%1_masked_interpolation.txt").arg(numCam, 1).toStdString().c_str(), 1, 2);
+    //        Mat Dst1(tmp, Rect(1050,0,1,2050)); // Rect_(x, y, width,height);
+    //        cvtools::writeMatToFile(Dst1, QString("am_map_gray1_1050_0_1_2050_C%1_masked_interpolation.txt").arg(numCam, 1).toStdString().c_str(), 1, 2);
 
-            cv::Mat Dst(unwrapped_up, cv::Rect(0,1000,2448,1)); // Rect_(x, y, width,height);
-            cvtools::writeMatToFile(Dst,QString("am_map_up_0_1000_2448_1_C%1_masked_filter.txt").arg(numCam, 1).toStdString().c_str(), 0);
-            cv::Mat Dst1(unwrapped_up, cv::Rect(0,1010,2448,1)); // Rect_(x, y, width,height);
-            cvtools::writeMatToFile(Dst1,QString("am_map_up_0_1010_2448_1_C%1_masked_filter.txt").arg(numCam, 1).toStdString().c_str(), 0);
+    //        cv::minMaxIdx(tmp,&minVal,&maxVal);
+    //        //std::cout<< "DecodeFrame: Max-Min = " << maxVal << "-" << minVal << std::endl;
+    //        tmp.convertTo(tmp,CV_16U, 65535/(maxVal-minVal),-65535*minVal/(maxVal-minVal));
+    //        QString filename = QString("am_map_gray1_C%1_masked_interpolation.png").arg(numCam, 1);
+    //        cv::imwrite(filename.toStdString(), tmp);   // gray_map is CV_16U using PNG
 
-            cv::minMaxIdx(unwrapped_vp,&minVal,&maxVal);
-            std::cout<< "Triangulator::triangulate: vp: Max-Min = " << maxVal << "-" << minVal << std::endl;
-            temp = unwrapped_vp.clone();
-            temp.convertTo(temp,CV_16U, 65535/(maxVal-minVal),-65535*minVal/(maxVal-minVal));
-            filename = QString("am_map_vp_C%1_masked_filter.png").arg(numCam, 1);
-            cv::imwrite(filename.toStdString(), temp);
-
-            cv::Mat Dst2(unwrapped_vp, cv::Rect(1000,0,1,2050)); // Rect_(x, y, width,height);
-            cvtools::writeMatToFile(Dst2, QString("am_map_vp_1000_0_1_2050_C%1_masked_filter.txt").arg(numCam, 1).toStdString().c_str(), 1);
-            cv::Mat Dst3(unwrapped_vp, cv::Rect(1050,0,1,2050)); // Rect_(x, y, width,height);
-            cvtools::writeMatToFile(Dst3, QString("am_map_vp_1050_0_1_2050_C%1_masked_filter.txt").arg(numCam, 1).toStdString().c_str(), 1);
+        //            tmp = m_mask[1].clone();
+        //            cv::minMaxIdx(tmp,&minVal,&maxVal);
+        //            tmp.convertTo(tmp,CV_8U,255.0/(maxVal-minVal),-255.0*minVal/(maxVal-minVal));
+        //            filename = QString("am_map_gray1_C%1_mask_interpolation.BMP").arg(numCam, 1);
+        //            cv::imwrite(filename.toStdString(), tmp);
         }
-#endif
+
+        //mooth
+        ushort window_smooth = 5; //smooth window;
+        cv::Mat up0_m_s, vp0_m_s, up1_m_s, vp1_m_s;
+        cv::medianBlur(up0_m_i, up0_m_s, window_smooth);
+        cv::medianBlur(vp0_m_i, vp0_m_s, window_smooth);
+        cv::medianBlur(up1_m_i, up1_m_s, window_smooth);
+        cv::medianBlur(vp1_m_i, vp1_m_s, window_smooth);
+        up0 = up0_m_s; vp0 = vp0_m_s; up1 = up1_m_s; vp1 = vp1_m_s;
+        if(1){//debug smooth gray map
+    //        double minVal,maxVal;
+    //        Mat tmp = m_gray_map[1].clone();
+
+    //        Mat Dst(tmp, Rect(1000,0,1,2050)); // Rect_(x, y, width,height);
+    //        cvtools::writeMatToFile(Dst, QString("am_map_gray1_1000_0_1_2050_C%1_masked_interpolation_filter.txt").arg(numCam, 1).toStdString().c_str(), 1, 2);
+    //        Mat Dst1(tmp, Rect(1050,0,1,2050)); // Rect_(x, y, width,height);
+    //        cvtools::writeMatToFile(Dst1, QString("am_map_gray1_1050_0_1_2050_C%1_masked_interpolation_filter.txt").arg(numCam, 1).toStdString().c_str(), 1, 2);
+
+    //        cv::minMaxIdx(tmp,&minVal,&maxVal);
+    //        //std::cout<< "DecodeFrame: Max-Min = " << maxVal << "-" << minVal << std::endl;
+    //        tmp.convertTo(tmp,CV_16U, 65535/(maxVal-minVal),-65535*minVal/(maxVal-minVal));
+    //        QString filename = QString("am_map_gray1_C%1_masked_interpolation_filter.png").arg(numCam, 1);
+    //        cv::imwrite(filename.toStdString(), tmp);   // gray_map is CV_16U using PNG
+        }
+
+        //debug
+        {
+    #if 0
+            cv::Mat ups[2], vps[2];
+            ups[0] = up0_m_f;
+            ups[1] = up1_m_f;
+            vps[0] = vp0_m_f;
+            vps[1] = vp1_m_f;
+
+            for(int numCam=1; numCam<3; numCam++)
+            {
+                double minVal,maxVal;
+                cv::Mat unwrapped_up = ups[numCam-1];
+                cv::Mat unwrapped_vp = vps[numCam-1];
+
+                cv::minMaxIdx(unwrapped_up,&minVal,&maxVal);
+                std::cout<< "Triangulator::triangulate: up: Max-Min = " << maxVal << "-" << minVal << std::endl;
+                cv::Mat temp = unwrapped_up.clone();
+                temp.convertTo(temp,CV_16U, 65535/(maxVal-minVal),-65535*minVal/(maxVal-minVal));
+                QString filename = QString("am_map_up_C%1_maksed_filter.png").arg(numCam, 1);
+                cv::imwrite(filename.toStdString(), temp);
+
+                cv::Mat Dst(unwrapped_up, cv::Rect(0,1000,2448,1)); // Rect_(x, y, width,height);
+                cvtools::writeMatToFile(Dst,QString("am_map_up_0_1000_2448_1_C%1_masked_filter.txt").arg(numCam, 1).toStdString().c_str(), 0);
+                cv::Mat Dst1(unwrapped_up, cv::Rect(0,1010,2448,1)); // Rect_(x, y, width,height);
+                cvtools::writeMatToFile(Dst1,QString("am_map_up_0_1010_2448_1_C%1_masked_filter.txt").arg(numCam, 1).toStdString().c_str(), 0);
+
+                cv::minMaxIdx(unwrapped_vp,&minVal,&maxVal);
+                std::cout<< "Triangulator::triangulate: vp: Max-Min = " << maxVal << "-" << minVal << std::endl;
+                temp = unwrapped_vp.clone();
+                temp.convertTo(temp,CV_16U, 65535/(maxVal-minVal),-65535*minVal/(maxVal-minVal));
+                filename = QString("am_map_vp_C%1_masked_filter.png").arg(numCam, 1);
+                cv::imwrite(filename.toStdString(), temp);
+
+                cv::Mat Dst2(unwrapped_vp, cv::Rect(1000,0,1,2050)); // Rect_(x, y, width,height);
+                cvtools::writeMatToFile(Dst2, QString("am_map_vp_1000_0_1_2050_C%1_masked_filter.txt").arg(numCam, 1).toStdString().c_str(), 1);
+                cv::Mat Dst3(unwrapped_vp, cv::Rect(1050,0,1,2050)); // Rect_(x, y, width,height);
+                cvtools::writeMatToFile(Dst3, QString("am_map_vp_1050_0_1_2050_C%1_masked_filter.txt").arg(numCam, 1).toStdString().c_str(), 1);
+            }
+    #endif
+        }
+
+        std::vector<intersection> matches0, matches1;
+        cv::Mat mask = mask0.clone();// cv::Mat::zeros(mask0.size(), CV_8U); //TODO: as final mask: plot new mask depending mask= (up=vp=0);
+        //phasecorrelate_Epipolar(up0_m, vp0_m, mask, up1_m, vp1_m, matches0, matches1);
+        phasecorrelate_Epipolar(up0, vp0, mask, up1, vp1, matches0, matches1);
+
+        //debug
+        {
+    #if 1
+        double minVal,maxVal;
+        cv::Mat tmp = mask.clone();
+        cv::minMaxIdx(tmp,&minVal,&maxVal);
+        tmp.convertTo(tmp,CV_8U,255.0/(maxVal-minVal),-255.0*minVal/(maxVal-minVal));
+        cv::imwrite("am_mask_final.BMP", tmp);
+    #endif
+        }
+
+        std::cout << "Triangulator::phasecorrelate_Epipolar:  finished! size_matches0=" << matches0.size() << std::endl;
+
+        // Triangulate
+        cv::Mat xyz;
+        triangulateFromPhaseCorrelate(matches0,matches1, xyz);
+
+
+        std::cout << "Triangulator::triangulateFromPhaseCorrelate:  finished!" << std::endl;
+
+        // Aplly Mask
+        pointCloud = cv::Mat(up0.size(), CV_32FC3, cv::Scalar(NAN, NAN, NAN));
+        xyz.copyTo(pointCloud, mask);
+        //xyz.copyTo(pointCloud);
     }
 
-    std::vector<intersection> matches0, matches1;
-    cv::Mat mask = mask0.clone();// cv::Mat::zeros(mask0.size(), CV_8U); //TODO: as final mask: plot new mask depending mask= (up=vp=0);
-    //phasecorrelate_Epipolar(up0_m, vp0_m, mask, up1_m, vp1_m, matches0, matches1);
-    phasecorrelate_Epipolar(up0, vp0, mask, up1, vp1, matches0, matches1);
-
-    //debug
+    if(0)// TODO: Not work here: triangulator by solving for xyzw using determinant tensor
     {
-#if 1
-    double minVal,maxVal;
-    cv::Mat tmp = mask.clone();
-    cv::minMaxIdx(tmp,&minVal,&maxVal);
-    tmp.convertTo(tmp,CV_8U,255.0/(maxVal-minVal),-255.0*minVal/(maxVal-minVal));
-    cv::imwrite("am_mask_final.BMP", tmp);
-#endif
+        cv::Mat xyz;
+        cv::Mat C = determinantTensor;
+        std::vector<cv::Mat> xyzw(4);
+        for(unsigned int i=0; i<4; i++){
+    //        xyzw[i].create(vp.size(), CV_32F);
+            xyzw[i] = C.at<float>(cv::Vec4i(i,0,1,1)) - C.at<float>(cv::Vec4i(i,2,1,1))*uc - C.at<float>(cv::Vec4i(i,0,2,1))*vc -
+                    C.at<float>(cv::Vec4i(i,0,1,2))*vp0 + C.at<float>(cv::Vec4i(i,2,1,2))*vp0.mul(uc) + C.at<float>(cv::Vec4i(i,0,2,2))*vp0.mul(vc);
+        }
+        // Convert to non homogenous coordinates
+        for(unsigned int i=0; i<3; i++)
+            xyzw[i] /= xyzw[3];
+        // Merge
+        cv::merge(std::vector<cv::Mat>(xyzw.begin(), xyzw.begin()+3), xyz);
+        // Mask
+        pointCloud = cv::Mat(up0.size(), CV_32FC3, cv::Scalar(NAN, NAN, NAN));
+        xyz.copyTo(pointCloud, mask0);
     }
 
-    std::cout << "Triangulator::phasecorrelate_Epipolar:  finished! size_matches0=" << matches0.size() << std::endl;
-
-    // Triangulate
-    cv::Mat xyz;
-    triangulateFromPhaseCorrelate(matches0,matches1, xyz);
-
-    std::cout << "Triangulator::triangulateFromPhaseCorrelate:  finished!" << std::endl;
-
-    // Aplly Mask    
-    pointCloud = cv::Mat(up0.size(), CV_32FC3, cv::Scalar(NAN, NAN, NAN));
-    xyz.copyTo(pointCloud, mask);
-    //xyz.copyTo(pointCloud);
 }
 
 void Triangulator::triangulateFromUp(cv::Mat &up, cv::Mat &xyz){
