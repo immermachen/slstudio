@@ -339,10 +339,10 @@ void SLCalibrationDialog::on_snapButton_clicked()
             }
 
 
-            QString datacal = QString("dataCal/%1_%2_%3.bmp").arg(numSeqs,2, 10, QChar('0')).arg(numCam, 1).arg(i, 2, 10, QChar('0'));
-            //QString datacal = QString("dataCal/%1_%2_60.bmp").arg(numSeqs,2, 10, QChar('0')).arg(numCam, 1);
+            QString datacal = filename;
             if(writeToDisk)
             {
+                datacal = QString("dataCal/%1_%2_%3.bmp").arg(numSeqs,2, 10, QChar('0')).arg(numCam, 1).arg(i, 2, 10, QChar('0'));
                 cv::imwrite(datacal.toStdString(), curframeCV);
             }
 
@@ -378,10 +378,10 @@ void SLCalibrationDialog::on_snapButton_clicked()
             }
 
 
-            QString datacal = QString("dataCal/%1_%2_%3.bmp").arg(numSeqs,2, 10, QChar('0')).arg(numCam, 1).arg(i, 2, 10, QChar('0'));
-            //QString datacal = QString("dataCal/%1_%2_60.bmp").arg(numSeqs,2, 10, QChar('0')).arg(numCam, 1);
+            QString datacal = filename;
             if(writeToDisk)
             {
+                datacal = QString("dataCal/%1_%2_%3.bmp").arg(numSeqs,2, 10, QChar('0')).arg(numCam, 1).arg(i, 2, 10, QChar('0'));
                 cv::imwrite(datacal.toStdString(), curframeCV);
             }
 
