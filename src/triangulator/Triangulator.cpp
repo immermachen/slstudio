@@ -309,7 +309,7 @@ void Triangulator::triangulate(cv::Mat &up0, cv::Mat &vp0, cv::Mat &mask0, cv::M
 
         //debug
         {
-    #if 1
+    #if 0
         double minVal,maxVal;
         cv::Mat tmp = mask.clone();
         cv::minMaxIdx(tmp,&minVal,&maxVal);

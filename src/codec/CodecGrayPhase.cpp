@@ -630,23 +630,21 @@ void DecoderGrayPhase::decodeFrames(cv::Mat &up, cv::Mat &vp, cv::Mat &mask, cv:
             //---------------phase map---------------------------
             vector<cv::Mat> phases(frames.begin() + Nhorz*2, frames.begin() + Nhorz*2 + num_fringes);
             slib::DecodePhaseCodeImages(phases, m_phase_map[0]);
-            //debug phase map
+            if(debug_info)//debug phase map
             {
-    #if 1
-            double minVal,maxVal;
-            cv::Mat tmp = m_phase_map[0].clone();
-            cv::minMaxIdx(tmp,&minVal,&maxVal);
-            //std::cout<< "DecodeFrame: Max-Min = " << maxVal << "-" << minVal << std::endl;
-            tmp.convertTo(tmp,CV_16U, 65535/(maxVal-minVal),-65535*minVal/(maxVal-minVal));
-            QString filename = QString("am_map_phase0_C%1.png").arg(numCam, 1);
-            cv::imwrite(filename.toStdString(), tmp);   // gray_map is CV_16U using PNG
+                double minVal,maxVal;
+                cv::Mat tmp = m_phase_map[0].clone();
+                cv::minMaxIdx(tmp,&minVal,&maxVal);
+                //std::cout<< "DecodeFrame: Max-Min = " << maxVal << "-" << minVal << std::endl;
+                tmp.convertTo(tmp,CV_16U, 65535/(maxVal-minVal),-65535*minVal/(maxVal-minVal));
+                QString filename = QString("am_map_phase0_C%1.png").arg(numCam, 1);
+                cv::imwrite(filename.toStdString(), tmp);   // gray_map is CV_16U using PNG
 
-            filename = QString("am_map_phase0_C%1.mat").arg(numCam, 1);
-            cvtools::writeMat(m_phase_map[0], filename.toStdString().c_str());
-            cv::Mat small(m_phase_map[0], Rect(900, 900, 100,100));
-            filename = QString("am_map_phase0_C%1_small.mat").arg(numCam, 1);
-            cvtools::writeMat(small, filename.toStdString().c_str());
-    #endif
+                filename = QString("am_map_phase0_C%1.mat").arg(numCam, 1);
+                cvtools::writeMat(m_phase_map[0], filename.toStdString().c_str());
+                cv::Mat small(m_phase_map[0], Rect(900, 900, 100,100));
+                filename = QString("am_map_phase0_C%1_small.mat").arg(numCam, 1);
+                cvtools::writeMat(small, filename.toStdString().c_str());
             }
 
             //debug: see which pixel in gray map has been improved by phase map.
