@@ -41,6 +41,7 @@ class Triangulator {
         void triangulateFromPhaseCorrelate(std::vector<intersection> &matches0, std::vector<intersection> &matches1, cv::Mat &xyz);
         void phasecorrelate(cv::Mat &up0, cv::Mat &vp0, cv::Mat &up1, cv::Mat &vp1, std::vector<intersection> matches0, std::vector<intersection> matches1);
         void phasecorrelate_Epipolar(cv::Mat &up0, cv::Mat &vp0, cv::Mat &mask, cv::Mat &up1, cv::Mat &vp1, std::vector<intersection> &matches0, std::vector<intersection> &matches1);
+        void phasecorrelate_Epipolar(cv::Mat &vp0, cv::Mat &mask, cv::Mat &vp1, std::vector<intersection> &matches0, std::vector<intersection> &matches1);
 
         CalibrationData calibration;
         cv::Mat determinantTensor;
