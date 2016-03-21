@@ -302,10 +302,12 @@ void SLCalibrationDialog::on_snapButton_clicked()
 
     for(unsigned int i=0; i<numPat; i++)
     {
+        int numpattern = i;
         // Project pattern
         if(cNum == 3)
         {
             //projector->displayPattern(numPatterns-1); //only use full white pattern
+            numpattern = 60;
         }
         else
             projector->displayPattern(i);
@@ -321,7 +323,8 @@ void SLCalibrationDialog::on_snapButton_clicked()
         {
             int numCam = 0;
             int numSeqs = frameSeqs[0].size();
-            QString filename = QString("dataForCalTest/%1_%2_%3.bmp").arg(numSeqs,2, 10, QChar('0')).arg(numCam, 1).arg(i, 2, 10, QChar('0'));
+
+            QString filename = QString("dataForCalTest/%1_%2_%3.bmp").arg(numSeqs,2, 10, QChar('0')).arg(numCam, 1).arg(numpattern, 2, 10, QChar('0'));
             //QString filename = QString("dataForCalTest/%1_%2_60.bmp").arg(numSeqs,2, 10, QChar('0')).arg(numCam, 1);
             cv::Mat curframeCV;
 
@@ -342,7 +345,7 @@ void SLCalibrationDialog::on_snapButton_clicked()
             QString datacal = filename;
             if(writeToDisk)
             {
-                datacal = QString("dataCal/%1_%2_%3.bmp").arg(numSeqs,2, 10, QChar('0')).arg(numCam, 1).arg(i, 2, 10, QChar('0'));
+                datacal = QString("dataCal/%1_%2_%3.bmp").arg(numSeqs,2, 10, QChar('0')).arg(numCam, 1).arg(numpattern, 2, 10, QChar('0'));
                 cv::imwrite(datacal.toStdString(), curframeCV);
             }
 
@@ -354,7 +357,7 @@ void SLCalibrationDialog::on_snapButton_clicked()
         {
             int numCam = 1;
             int numSeqs = frameSeqs[1].size();
-            QString filename = QString("dataForCalTest/%1_%2_%3.bmp").arg(numSeqs,2, 10, QChar('0')).arg(numCam, 1).arg(i, 2, 10, QChar('0'));
+            QString filename = QString("dataForCalTest/%1_%2_%3.bmp").arg(numSeqs,2, 10, QChar('0')).arg(numCam, 1).arg(numpattern, 2, 10, QChar('0'));
             //QString filename = QString("dataForCalTest/%1_%2_60.bmp").arg(numSeqs,2, 10, QChar('0')).arg(numCam, 1);
             cv::Mat curframeCV;
 
@@ -381,7 +384,7 @@ void SLCalibrationDialog::on_snapButton_clicked()
             QString datacal = filename;
             if(writeToDisk)
             {
-                datacal = QString("dataCal/%1_%2_%3.bmp").arg(numSeqs,2, 10, QChar('0')).arg(numCam, 1).arg(i, 2, 10, QChar('0'));
+                datacal = QString("dataCal/%1_%2_%3.bmp").arg(numSeqs,2, 10, QChar('0')).arg(numCam, 1).arg(numpattern, 2, 10, QChar('0'));
                 cv::imwrite(datacal.toStdString(), curframeCV);
             }
 
