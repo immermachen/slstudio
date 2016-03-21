@@ -1,0 +1,21 @@
+=========== Gamma Corection =============
+
+create a file gammasettings.sh into startup list of system.  
+chmod +x gammasettings.sh
+, and add: 
+#!/bin/bash sleep 1   xgamma -s 1 -gamma 2.9
+
+
+=========== Install Vimba SDK=============
+cd ~/Downloads
+sudo tar -xf ./Vimba_v1.4_Linux.tgz -C /opt
+Now test: 
+cd /opt/Vimba_1_4/VimbaC/Examples/Bin/x86_64bit 
+sudo -E ./ListCameras  
+cd /opt/Vimba_1_4/Tools/Viewer/Bin/x86_64bit
+sudo -E ./VimbaViewer 
+cd /opt/Vimba_1_4/VimbaC/Examples/Bin/x86_64bit
+sudo -E ./VimbaViewer 
+I need to copy [] to release directory of my project, otherwise it will not find it. 
+
+
