@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>341</width>
+    <width>883</width>
     <height>545</height>
    </rect>
   </property>
@@ -501,7 +501,7 @@
     <string>Triangulator: (Default: 1.000)</string>
    </property>
   </widget>
-  <widget class="QWidget" name="">
+  <widget class="QWidget" name="layoutWidget">
    <property name="geometry">
     <rect>
      <x>440</x>
@@ -540,6 +540,51 @@
     <string>Tracking Data</string>
    </property>
   </widget>
+  <widget class="QWidget" name="layoutWidget_7">
+   <property name="geometry">
+    <rect>
+     <x>440</x>
+     <y>300</y>
+     <width>251</width>
+     <height>24</height>
+    </rect>
+   </property>
+   <layout class="QHBoxLayout" name="diamondPatternLayout_2">
+    <item>
+     <widget class="QCheckBox" name="CB_Decoding">
+      <property name="text">
+       <string>Decoding</string>
+      </property>
+      <property name="checked">
+       <bool>true</bool>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <widget class="QCheckBox" name="CB_Triangulation">
+      <property name="text">
+       <string>Triangulation</string>
+      </property>
+      <property name="checked">
+       <bool>true</bool>
+      </property>
+     </widget>
+    </item>
+   </layout>
+  </widget>
+  <widget class="QLabel" name="triggerModeLabel_2">
+   <property name="geometry">
+    <rect>
+     <x>440</x>
+     <y>270</y>
+     <width>121</width>
+     <height>17</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Debug:</string>
+   </property>
+  </widget>
   <zorder>layoutWidget</zorder>
   <zorder>layoutWidget</zorder>
   <zorder>layoutWidget</zorder>
@@ -563,8 +608,10 @@
   <zorder>aquisitionLabel_2</zorder>
   <zorder>layoutWidget_6</zorder>
   <zorder>aquisitionLabel_3</zorder>
-  <zorder></zorder>
+  <zorder>layoutWidget</zorder>
   <zorder>trackingCheckBox</zorder>
+  <zorder>layoutWidget_7</zorder>
+  <zorder>triggerModeLabel_2</zorder>
  </widget>
  <resources/>
  <connections>

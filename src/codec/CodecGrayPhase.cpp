@@ -504,7 +504,10 @@ void DecoderGrayPhase::decodeFrames(cv::Mat &up, cv::Mat &vp, cv::Mat &mask, cv:
 
 void DecoderGrayPhase::decodeFrames(cv::Mat &up, cv::Mat &vp, cv::Mat &mask, cv::Mat &shading, int numCam)
 {
-    int debug = 0, debug_info=0;
+    QSettings settings("SLStudio");
+    bool debug_decoding = settings.value("debug/decoding",false).toBool();
+
+    int debug = 0;
     if(debug==0)
     {
         ushort window = 5; //bilinear interpolation window;
@@ -519,7 +522,7 @@ void DecoderGrayPhase::decodeFrames(cv::Mat &up, cv::Mat &vp, cv::Mat &mask, cv:
             decode_gray(images,0);
             generate_mask(0);
 
-            if(debug_info)//debug gray map
+            if(debug_decoding)//debug gray map
             {
                 double minVal,maxVal;
                 Mat tmp = m_gray_map[0].clone();
@@ -611,7 +614,7 @@ void DecoderGrayPhase::decodeFrames(cv::Mat &up, cv::Mat &vp, cv::Mat &mask, cv:
                 cv::medianBlur(m_gray_map[0], m_gray_filter, window_smooth);
                 m_gray_map[0] = m_gray_filter.clone();
                 //debug smooth gray map
-                if(debug_info){
+                if(debug_decoding){
                     double minVal,maxVal;
                     Mat tmp = m_gray_map[0].clone();
 
@@ -630,7 +633,7 @@ void DecoderGrayPhase::decodeFrames(cv::Mat &up, cv::Mat &vp, cv::Mat &mask, cv:
             //---------------phase map---------------------------
             vector<cv::Mat> phases(frames.begin() + Nhorz*2, frames.begin() + Nhorz*2 + num_fringes);
             slib::DecodePhaseCodeImages(phases, m_phase_map[0]);
-            if(debug_info)//debug phase map
+            if(debug_decoding)//debug phase map
             {
                 double minVal,maxVal;
                 cv::Mat tmp = m_phase_map[0].clone();
@@ -653,7 +656,7 @@ void DecoderGrayPhase::decodeFrames(cv::Mat &up, cv::Mat &vp, cv::Mat &mask, cv:
             slib::UnwrapPhase(m_phase_map[0], fringe_interval * num_fringes, m_gray_map[0], m_phase_map[0], m_phase_error[0], improved);
             convert_reliable_map(0);
 
-            if(debug_info){//debug unwrapped phase map
+            if(debug_decoding){//debug unwrapped phase map
 
                 double minVal,maxVal;
 
@@ -702,7 +705,7 @@ void DecoderGrayPhase::decodeFrames(cv::Mat &up, cv::Mat &vp, cv::Mat &mask, cv:
             decode_gray(images,1);
             generate_mask(1);
             //debug gray map
-            if(debug_info){
+            if(debug_decoding){
                 double minVal,maxVal;
                 Mat tmp = m_gray_map[1].clone();
 
@@ -816,7 +819,7 @@ void DecoderGrayPhase::decodeFrames(cv::Mat &up, cv::Mat &vp, cv::Mat &mask, cv:
             vector<cv::Mat> phases(frames.begin() + Nhorz*2 + num_fringes + Nvert*2, frames.begin() + Nhorz*2 + num_fringes + Nvert*2 + num_fringes);
             slib::DecodePhaseCodeImages(phases, m_phase_map[1]);
             //debug phase map
-            if(debug_info){
+            if(debug_decoding){
                 double minVal,maxVal;
                 cv::Mat tmp = m_phase_map[1].clone();
                 cv::minMaxIdx(tmp,&minVal,&maxVal);
@@ -838,7 +841,7 @@ void DecoderGrayPhase::decodeFrames(cv::Mat &up, cv::Mat &vp, cv::Mat &mask, cv:
             slib::UnwrapPhase(m_phase_map[1], fringe_interval * num_fringes, m_gray_map[1], m_phase_map[1], m_phase_error[1], improved);
             convert_reliable_map(1);
 
-            if(debug_info){ //debug unwrapped phase map
+            if(debug_decoding){ //debug unwrapped phase map
 
                 double minVal,maxVal;
 
@@ -902,7 +905,7 @@ void DecoderGrayPhase::decodeFrames(cv::Mat &up, cv::Mat &vp, cv::Mat &mask, cv:
         mask =  m_reliable_mask[0]>0;  //TODO: do not Mat.clone???
         //mask.clone();
 
-        if(debug_info){//debug up and vp
+        if(debug_decoding){//debug up and vp
             double minVal,maxVal;
             Mat tmp = mask.clone();
             cv::minMaxIdx(tmp,&minVal,&maxVal);
@@ -942,7 +945,7 @@ void DecoderGrayPhase::decodeFrames(cv::Mat &up, cv::Mat &vp, cv::Mat &mask, cv:
         }
 
 
-        if(debug_info)//debug save yml
+        if(debug_decoding)//debug save yml
         {
             if(numCam==1)
             {

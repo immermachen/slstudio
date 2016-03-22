@@ -198,6 +198,9 @@ void Triangulator::triangulate(cv::Mat &up0, cv::Mat &vp0, cv::Mat &mask0, cv::M
     mask1 = maskUndistort1;
     shading1 = shadingUndistort1;
 
+    QSettings settings("SLStudio");
+    bool debug_triangulation = settings.value("debug/triangulation",false).toBool();
+
     if(1) // triangulator using phase correlate + Epipolar Line
     {
         //apply mask

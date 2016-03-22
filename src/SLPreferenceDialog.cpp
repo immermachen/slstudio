@@ -127,6 +127,10 @@ SLPreferenceDialog::SLPreferenceDialog(QWidget *parent) : QDialog(parent), ui(ne
     ui->Threshold_Complentary->setValue(threshold_complementary);
     float threshold_epipolarLineWidth = settings.value("Triangulator/threshold_epipolarLineWidth", 1.0).toFloat();
     ui->Threshold_Epipolarline->setValue(threshold_epipolarLineWidth);
+    bool debug_decoding = settings.value("debug/decoding",false).toBool();
+    ui->CB_Decoding->setChecked(debug_decoding);
+    bool debug_triangulation = settings.value("debug/triangulation",false).toBool();
+    ui->CB_Decoding->setChecked(debug_triangulation);
 }
 
 SLPreferenceDialog::~SLPreferenceDialog(){
@@ -213,6 +217,10 @@ void SLPreferenceDialog::on_buttonBox_accepted(){
     settings.setValue("Decoding/threshold_complementary", threshold_complementary);
     float threshold_epipolarLineWidth = ui->Threshold_Epipolarline->value();
     settings.setValue("Triangulator/threshold_epipolarLineWidth", threshold_epipolarLineWidth);
+    bool debug_decoding =  ui->CB_Decoding->isChecked();
+    settings.setValue("debug/decoding", debug_decoding);
+    bool debug_triangulation =  ui->CB_Triangulation->isChecked();
+    settings.setValue("debug/triangulation", debug_triangulation);
 }
 
 
