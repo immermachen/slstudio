@@ -115,7 +115,9 @@ Mat GeneratePhaseCode(unsigned int length,const int period, const int phase)
     for (int x = 0; x < length; x++)
     {
         float amp = table[ x % period ] * 255.0;
-        phaseVector.at<cv::Vec3b>(x, 0) = cv::Vec3b(amp,amp,amp);
+        //phaseVector.at<cv::Vec3b>(x, 0) = cv::Vec3b(amp,amp,amp); //while light
+        //phaseVector.at<cv::Vec3b>(x, 0) = cv::Vec3b(amp,0.0,0.0); //BGR: blue light
+        phaseVector.at<cv::Vec3b>(x, 0) = cv::Vec3b(0.0,0.0, amp); //BGR: blue light
     }
 
     return phaseVector;

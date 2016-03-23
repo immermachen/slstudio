@@ -189,6 +189,7 @@ void SLScanWorker::setupProjector(int c)
     QSettings settings("SLStudio");
     // Initialize encoder
     bool diamondPattern = settings.value("projector/diamondPattern", false).toBool();
+    bool debug_encoding = settings.value("debug/encoding", false).toBool();
 
     unsigned int screenResX, screenResY;
     projector->getScreenRes(&screenResX, &screenResY);
@@ -244,10 +245,13 @@ void SLScanWorker::setupProjector(int c)
         if(c!=3)
             cv::remap(pattern, pattern, map1, map2, CV_INTER_CUBIC);
 
-        if(0)
+        if(debug_encoding)
         {
+            cv::Mat pattern_blue = pattern.clone();
+            cv::cvtColor(pattern_blue, pattern_blue, CV_BGR2RGB); //In opencv:BGR, But I have create RGB for OpenGL.So austauschen R and B.
+
             QString filename = QString("patternLensCorrection/%1_%2.bmp").arg(c, 1).arg(i, 2, 10, QChar('0'));
-            cv::imwrite(filename.toStdString(), pattern);
+            cv::imwrite(filename.toStdString(), pattern_blue);
         }
 
         if(diamondPattern)

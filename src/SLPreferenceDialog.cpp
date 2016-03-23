@@ -131,6 +131,8 @@ SLPreferenceDialog::SLPreferenceDialog(QWidget *parent) : QDialog(parent), ui(ne
     ui->CB_Decoding->setChecked(debug_decoding);
     bool debug_triangulation = settings.value("debug/triangulation",false).toBool();
     ui->CB_Decoding->setChecked(debug_triangulation);
+    bool debug_encoding = settings.value("debug/encoding",false).toBool();
+    ui->CB_Encoding->setChecked(debug_encoding);
 }
 
 SLPreferenceDialog::~SLPreferenceDialog(){
@@ -221,6 +223,8 @@ void SLPreferenceDialog::on_buttonBox_accepted(){
     settings.setValue("debug/decoding", debug_decoding);
     bool debug_triangulation =  ui->CB_Triangulation->isChecked();
     settings.setValue("debug/triangulation", debug_triangulation);
+    bool debug_encoding =  ui->CB_Encoding->isChecked();
+    settings.setValue("debug/encoding", debug_encoding);
 }
 
 
