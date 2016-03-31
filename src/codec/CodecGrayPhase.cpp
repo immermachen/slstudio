@@ -131,7 +131,7 @@ EncoderGrayPhase::EncoderGrayPhase(unsigned int _screenCols, unsigned int _scree
 //                patternP_inverse.at<cv::Vec3b>(0,j) = cv::Vec3b(255.0*amp_inv,255.0*amp_inv,255.0*amp_inv);
 
                 //patternP.at<cv::Vec3b>(0,j) = cv::Vec3b(255.0*amp, 0.0, 0.0); //BGR
-                //patternP_inverse.at<cv::Vec3b>(0,j) = cv::Vec3b(255.0*amp_inv, 0.0, 0.0); //BGR
+                //patternP_inverse.at<cv::Vec3b>(0,j) = cv::Vec3b(255.0*amp_inv, 0.0, 0.0); //BGRC
                 patternP.at<cv::Vec3b>(0,j) = cv::Vec3b(0.0, 0.0, 255.0*amp);
                 patternP_inverse.at<cv::Vec3b>(0,j) = cv::Vec3b(0.0, 0.0, 255.0*amp_inv); //OpenCV is BGR, but for openGL should be RGB.
             }
